@@ -1,0 +1,10 @@
+.login-page-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 50px;
+    overflow: hidden;
+    height: 100vh;
+    background: linear-gradient(180deg, #2D2203 0%, #0B1376 100%);
+}
