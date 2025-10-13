@@ -1,10 +1,117 @@
 .login-page-container{
     display: flex;
-    justify-content: center;
-    align-items: center;
+    width: 100%;
     color: white;
     font-size: 50px;
     overflow: hidden;
+    padding-left: 52px;
+    padding-right: 52px;
     height: 100vh;
     background: linear-gradient(180deg, #2D2203 0%, #0B1376 100%);
+}
+
+.login-form-div{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.login-heading{
+    font-size: 40px;
+    font-weight: 700;
+    text-transform: uppercase;
+    }
+
+.login-form-div{
+    width: 50%;
+    padding-top: 43px;
+    padding-bottom: 66px;
+    margin-bottom: 53px;
+    border-bottom-right-radius: 135px;
+    border-bottom-left-radius: 135px;
+    background:rgba(255, 255, 255, 0.14) ;
+}
+
+.login-image-div{
+    width: 50%;
+}
+
+.login-right-image{
+    width: 100%;
+    height: 100%;
+}
+
+.login-inputs-div{
+    padding-top: 50px;
+    width: 100%;
+    padding-left: 98px;
+    padding-right: 98px;
+    padding-bottom: 41px;
+}
+
+.login-input{
+    border-radius: 103px;
+    border: 1px solid rgba(253, 189, 15, 0.2);
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding-top: 21px;
+    padding-bottom: 19px;
+    color: white;
+    font-size: 25px;
+    padding-left: 32px;
+margin-bottom: 38px;
+    padding-right: 32px;
+}
+
+.login-input-focused{
+    outline: none;
+    border: 2px solid #FDBD0F;
+}
+
+.login-input::placeholder{
+    color: rgba(146, 146, 146, 1);
+}
+
+.login-buttons-div{
+    display: flex;
+    flex-direction: column;
+}
+
+.login-button{
+    border-radius: 61px;
+    padding-top: 9px;
+    font-size: 40px;
+    border: none;
+    outline: none;
+    margin-bottom: 38px;
+    font-weight: 700;
+    background: #FDBD0F;
+    color: #1E28A7;
+    padding-bottom: 9px;
+}
+.list-button{
+        border-radius: 61px;
+    padding-top: 9px;
+    font-size: 35px;
+    border: 1px solid white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    outline: none;
+    padding-left: 50px;
+    padding-right: 50px;
+    margin-bottom: 38px;
+    font-weight: 700;
+    background: #FFFFFF0D;
+
+    color: white;
+    padding-bottom: 9px;
+}
+
+.list-button img {
+    margin-right: 13px;
+}
+.list-user-button-div{
+    width: 100%;
+    display: flex;
+    justify-content: center;
 }

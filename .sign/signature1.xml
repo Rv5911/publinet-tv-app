@@ -4,13 +4,13 @@
 <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"></SignatureMethod>
 <Reference URI="author-signature.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>o3opECUPLNPH41SqpKxufNz7ErkqAVky7ZfaLG9Snl9p+ic/OZqsAf3PjdyV8UzPGWUWCq8AJgKK
-ssL1Y587dg==</DigestValue>
+<DigestValue>mVvliUo2cMqmjTktJ8U/xaMS/QhK2D8a0oTRB4TkIOyDPy0DNGrSLw53RWbglb66SPG8OWpWqoww
+XNasb5C04A==</DigestValue>
 </Reference>
 <Reference URI="config.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>uVvdeflGVoNYOcEOdDHGp5h8edEjH0+ND1SZ2T9ZUjQQLvexWlGC5GrfxtcsnDnF4tA8+7P7GIm9
-9yqVo7gDPA==</DigestValue>
+<DigestValue>UP1ztkMYA0IsP9RvpRrdDlWabT6aJ1VzB3nqmEB20riljd/2jM3SMOT3a5BFz9XvHEizYAqXRkx6
+Jtc8yO/FPw==</DigestValue>
 </Reference>
 <Reference URI="icon.png">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
@@ -27,11 +27,11 @@ GyvKX9Snig==</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-EX/lXMeYhYLH6xtTmIzHgVs31E13m2k5500hyZ6NIoOut73wv076hFcTSkPCDKluZzZfOiwbqI1u
-qlZCu5Ut8gf2fk2naOKDNhMisIneWyaG/h3yyjIzdMczqHENts2VWSN9+fWpyXjV+A8dUNCevimz
-mVm4cVLCPIYpmTQnQJCazm0+zTodGn7VUq+AjajIQC8c8rVjS8Hj2GQAnATH/n2IOd9T0hYTSqid
-W6BYTivcm7g/xovOsszMXlRjbi3hHlTKLLPRvGaWoRGfO2/RFf7Tv0dnMT6YyWx+p530N+JUIX+e
-gC7x/ftILsk6P/0afZIgRzYmxTxaO2sbbLI+Bg==
+iznX147eKseVw9UmMm7zYhd8lps7IVm5AcN4ryU5Kr8Fza9IP21q795vMXZ7wgR5TKDiUzbX04/w
+w5ie9YIvksVExJNm2eCFdbOXj4gurQopFcWj8wfdlM/jwSe/0Jyx4Pno7heVwqO3cZ+L4uaNnXGF
+LJr8R5G5MlGbcQ7iD2pgtJOy2SsXurdFivY07pu0lVzyq9siWm/Pz6HxvlFvXrmzIcfD2IagfC0C
+/19x4MO8PHnuE/fztfGUukr+X5xSbfWdJcIWcpurzSHcmPPYwRUIq6XP5UpQBIsWZj21S0IFcGFb
+5U81uYwMwD8WiQ+z32SHlS2ASV4Pmzjea0kvFA==
 </SignatureValue>
 <KeyInfo>
 <X509Data>
