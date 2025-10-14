@@ -4,3 +4,7 @@
     font-family: poppins;
     box-sizing: border-box;
 }
+
+  :root{
+    --gold: #FFD700;
+  }
