@@ -5,6 +5,7 @@
   font-size: 50px;
   overflow: hidden;
   padding-left: 52px;
+    animation: fadeInOut 1s ease-in-out;
   padding-right: 52px;
   height: 100vh;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
