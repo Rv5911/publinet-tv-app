@@ -1,9 +1,9 @@
 .login-page-container {
   display: flex;
   width: 100%;
+  overflow: hidden;
   color: white;
   font-size: 50px;
-  overflow: hidden;
   padding-left: 52px;
     animation: fadeInOut 1s ease-in-out;
   padding-right: 52px;

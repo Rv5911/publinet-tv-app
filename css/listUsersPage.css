@@ -1,0 +1,12 @@
+.list-users-container{
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 40px;
+      animation: fadeInOut 1s ease-in-out;
+  color: white;
+      background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+
+}

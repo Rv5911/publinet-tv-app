@@ -1,22 +1,25 @@
 function LoginPage() {
+  let playlistsData = JSON.parse(localStorage.getItem("playlistsData")) ? JSON.parse(localStorage.getItem("playlistsData")) : [];
+
+  // Delay setup until after page is in DOM
   setTimeout(function () {
-    // if(localStorage.getItem("currentPage")!="loginPage") {
-    //   return;
-    // };
     if (LoginPage.cleanup) LoginPage.cleanup();
 
-    const inputs = [
-      document.querySelector(".playlistname-input"),
-      document.querySelector(".username-input"),
-      document.querySelector(".password-input"),
-      document.querySelector(".login-button"),
-      document.querySelector(".list-button"),
-    ].filter(Boolean);
-
+    const playlistInput = document.querySelector(".playlistname-input");
+    const usernameInput = document.querySelector(".username-input");
     const passwordInput = document.querySelector(".password-input");
+    const loginButton = document.querySelector(".login-button");
+    const listButton = document.querySelector(".list-button");
+
+    // Exit early if passwordInput not found
+    if (!passwordInput) return;
+
+    const inputs = [playlistInput, usernameInput, passwordInput, loginButton, listButton].filter(Boolean);
+
     let currentIndex = 0;
     let lastFocusedInput = null;
 
+    // Wrap password input safely
     const passwordWrapper = document.createElement("div");
     passwordWrapper.className = "password-wrapper";
     passwordInput.parentNode.insertBefore(passwordWrapper, passwordInput);
@@ -77,19 +80,24 @@ function LoginPage() {
     }
 
     function handleLogin() {
-      const playlistName = document.querySelector(".playlistname-input").value.trim();
-      const username = document.querySelector(".username-input").value.trim();
-      const password = document.querySelector(".password-input").value.trim();
+      const playlistName = playlistInput.value.trim();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value.trim();
 
-      if(playlistName==""||username==""||password==""){
+      if (playlistName === "" || username === "" || password === "") {
         Toaster.showToast("error", "Please complete all fields!");
+        return;
       }
 
+      if (playlistsData.length === 0) {
+        Toaster.showToast("error", "No playlists available. Please add a playlist!");
+        return;
+      }
 
+      // Add your login logic here
     }
 
     function loginPageKeydownEvents(e) {
-        // if (localStorage.getItem("currentPage") !== "loginPage") return;
       const key = e.key;
       const focused = inputs[currentIndex];
       const eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
@@ -142,14 +150,16 @@ function LoginPage() {
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
-            alert("List Users button clicked!");
+            localStorage.setItem("currentPage", "listUsersPage");
+            LoginPage.cleanup();
+            Router.showPage("listPage");
           }
           break;
       }
     }
 
     document.addEventListener("keydown", loginPageKeydownEvents);
-    document.querySelector(".login-button").addEventListener("click", handleLogin);
+    loginButton.addEventListener("click", handleLogin);
 
     LoginPage.cleanup = function () {
       document.removeEventListener("keydown", loginPageKeydownEvents);

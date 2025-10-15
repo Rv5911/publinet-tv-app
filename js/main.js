@@ -1,6 +1,5 @@
 window.onload = function () {
-
-      window.moviesCategories = [];
+  window.moviesCategories = [];
   window.allMoviesStreams = [];
 
   window.allSeriesStreams = [];
@@ -9,16 +8,38 @@ window.onload = function () {
   window.allLiveStreams = [];
   window.liveCategories = [];
 
-//   localStorage.setItem("currentPage", "loginPage");
+  if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
+    const keys = tizen.tvinputdevice.getSupportedKeys();
+    keys.forEach((key) => {
+      tizen.tvinputdevice.registerKey(key.name);
+    });
+  }
 
-    Toaster();
+  document.addEventListener("keydown", (e) => {
+    if (localStorage.getItem("currentPage") !== "dashboard") {
+      if (e.key === "XF86Exit" && typeof tizen !== "undefined") {
+        const app = tizen.application.getCurrentApplication();
+        if (app) app.exit();
+      }
+    }
+  });
 
-        let mainEl=this.document.querySelector("#main-app-container");
-    mainEl.innerHTML = SplashScreen();
+  Toaster();
 
+
+      Router.showPage("splashScreen");
 
     setTimeout(() => {
-        
-        mainEl.innerHTML = LoginPage();
-    }, 5000);
-}
+  Router.showPage("login");
+
+  }, 5000);
+
+
+  if (typeof logAllDnsEntries === "function") {
+    logAllDnsEntries();
+  }
+
+  if (typeof getTmbdId === "function") {
+    getTmbdId();
+  }
+};

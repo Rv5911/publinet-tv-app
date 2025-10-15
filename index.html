@@ -15,23 +15,44 @@
   <link rel="stylesheet" type="text/css" href="./css/splashScreen.css">
   <link rel="stylesheet" type="text/css" href="./css/toaster.css">
   <link rel="stylesheet" type="text/css" href="./css/homePage.css">
+  <link rel="stylesheet" type="text/css" href="./css/listUsersPage.css">
 
 
 
 
 </head>
 <body>
-  <div id="main-app-container"></div>
+  <div id="main-app-container">
+    <div id="splash-page" class="page" style="display: none"></div>
+          <div id="login-page" class="page" style="display: none"></div>
+          <div id="list-users-page" class="page" style="display: none"></div>
+
+
+
+        <div id="loading-overlay" style="display: none;" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div id="loading-progress">0%</div>
+      </div>
         <div id="toast-container"></div>
+  </div>
+      <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <script src="./pages/LoginPage.js"></script>
   <script src="./pages/HomePage.js"></script>
+  <script src="./pages/ListUsersPage.js"></script>
 
+    <script src="./components/SplashScreen.js"></script>
+  <script src="./components/Toaster.js"></script>
+
+<script src="./config/firebase.js"></script>
+
+<script src="./utils/router.js"></script>
 
 <script src="./api/apiFunctions.js"></script>
 
-  <script src="./components/SplashScreen.js"></script>
-  <script src="./components/Toaster.js"></script>
+
 
 
   <script src="./js/main.js"></script>
