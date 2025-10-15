@@ -1,33 +1,33 @@
 function LoginPage() {
   setTimeout(function () {
+    // if(localStorage.getItem("currentPage")!="loginPage") {
+    //   return;
+    // };
     if (LoginPage.cleanup) LoginPage.cleanup();
 
-    // Get all focusable elements in proper order
-    var inputs = [
+    const inputs = [
       document.querySelector(".playlistname-input"),
       document.querySelector(".username-input"),
       document.querySelector(".password-input"),
       document.querySelector(".login-button"),
       document.querySelector(".list-button"),
-    ].filter(Boolean); // filter nulls just in case
+    ].filter(Boolean);
 
-    var passwordInput = document.querySelector(".password-input");
-    var currentIndex = 0;
-    var lastFocusedInput = null;
+    const passwordInput = document.querySelector(".password-input");
+    let currentIndex = 0;
+    let lastFocusedInput = null;
 
-    // Wrap password input for eye icon
-    var passwordWrapper = document.createElement("div");
+    const passwordWrapper = document.createElement("div");
     passwordWrapper.className = "password-wrapper";
     passwordInput.parentNode.insertBefore(passwordWrapper, passwordInput);
     passwordWrapper.appendChild(passwordInput);
 
-    // Add eye icon
-    var eyeIcon = document.createElement("img");
+    const eyeIcon = document.createElement("img");
     eyeIcon.src = "../assets/eye-open.png";
     eyeIcon.className = "eye-icon-login";
     passwordWrapper.appendChild(eyeIcon);
 
-    var passwordVisible = false;
+    let passwordVisible = false;
     function togglePassword() {
       passwordVisible = !passwordVisible;
       passwordInput.type = passwordVisible ? "text" : "password";
@@ -36,12 +36,10 @@ function LoginPage() {
         : "../assets/eye-closed.png";
     }
 
-    // Highlight first input only visually
     if (inputs.length > 0) {
       inputs[currentIndex].classList.add("login-input-focused");
     }
 
-    // Clear all highlight classes
     function clearFocusStyles() {
       document
         .querySelectorAll(
@@ -57,7 +55,6 @@ function LoginPage() {
         });
     }
 
-    // Apply focus highlight
     function updateFocus(newIndex) {
       if (newIndex < 0 || newIndex >= inputs.length) return;
 
@@ -68,7 +65,7 @@ function LoginPage() {
 
       clearFocusStyles();
       currentIndex = newIndex;
-      var focused = inputs[currentIndex];
+      const focused = inputs[currentIndex];
 
       if (focused.classList.contains("login-input")) {
         focused.classList.add("login-input-focused");
@@ -79,21 +76,23 @@ function LoginPage() {
       }
     }
 
-    // Handle login button
     function handleLogin() {
-      var playlistName = document.querySelector(".playlistname-input").value.trim();
-      var username = document.querySelector(".username-input").value.trim();
-      var password = document.querySelector(".password-input").value.trim();
+      const playlistName = document.querySelector(".playlistname-input").value.trim();
+      const username = document.querySelector(".username-input").value.trim();
+      const password = document.querySelector(".password-input").value.trim();
 
-      console.log("📥 Login Info:", { playlistName, username, password });
-      alert("Login info saved to console!");
+      if(playlistName==""||username==""||password==""){
+        Toaster.showToast("error", "Please complete all fields!");
+      }
+
+
     }
 
-    // Keyboard navigation
     function loginPageKeydownEvents(e) {
-      var key = e.key;
-      var focused = inputs[currentIndex];
-      var eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
+        // if (localStorage.getItem("currentPage") !== "loginPage") return;
+      const key = e.key;
+      const focused = inputs[currentIndex];
+      const eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
 
       switch (key) {
         case "ArrowDown":
@@ -143,7 +142,7 @@ function LoginPage() {
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
-            console.log("📋 List User button clicked");
+            alert("List Users button clicked!");
           }
           break;
       }
@@ -157,7 +156,6 @@ function LoginPage() {
     };
   }, 0);
 
-  // HTML UI
   return `
     <div class="login-page-container">
       <div class="login-form-div">

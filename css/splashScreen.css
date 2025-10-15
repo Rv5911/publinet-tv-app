@@ -47,13 +47,13 @@
   }
   40% {
     opacity: 1;
-    transform: scale(3);
+    transform: scale(2);
   }
   70% {
-    transform: scale(1); 
+    transform: scale(1.5); 
   }
   100% {
-    transform: scale(1);
+    transform: scale(1.4);
     opacity: 1;
   }
 }
