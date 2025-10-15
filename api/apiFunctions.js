@@ -63,21 +63,14 @@ async function loginApi(
 ) {
   const defaultDns = "https://test.koolip.live";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  if (alldns.length === 0) alldns = [defaultDns];
 
-  if (alldns.length === 0) {
-    alldns = [defaultDns];
-  }
-
-  const existingPlaylists =
-    JSON.parse(localStorage.getItem("playlistsData")) || [];
+  const existingPlaylists = JSON.parse(localStorage.getItem("playlistsData")) || [];
 
   if (!fromPlaylist) {
-    const duplicate = existingPlaylists.find(
-      (p) =>
-        p.playlistName.toLowerCase().trim() ===
-        playlistName.toLowerCase().trim()
-    );
-
+    var duplicate = existingPlaylists.find(function (p) {
+      return p.playlistName.toLowerCase().trim() === playlistName.toLowerCase().trim();
+    });
     if (duplicate) {
       Toaster.showToast("error", "Playlist name already exists!");
       return null;
@@ -88,234 +81,167 @@ async function loginApi(
   loadingOverlay.classList.remove("hidden");
   updateLoadingPercentage(0, "Starting login process...");
 
-  let lastStatusCode = null;
+  var lastStatusCode = null;
 
-  enableKeyBlock(() => {
+  enableKeyBlock(function () {
     loadingOverlay.classList.add("hidden");
     Toaster.showToast("error", "Login Aborted!");
   });
 
-  // Case 1: Existing playlist
+  // Helper function to load all data APIs
+  async function loadAllData() {
+    var steps = [
+      { fn: getAllVodMovies, msg: "Loading movies data..." },
+      { fn: getMoviesCategories, msg: "Loading movie categories..." },
+      { fn: getAllVodSeries, msg: "Loading series data..." },
+      { fn: getSeriesCategories, msg: "Loading series categories..." },
+      { fn: getAllLiveStreams, msg: "Loading live streams..." },
+      { fn: getLiveCategories, msg: "Loading live categories..." },
+    ];
+
+    var results = [];
+
+    for (var i = 0; i < steps.length; i++) {
+      if (isLoginCancelled()) return null;
+      updateLoadingPercentage(30 + i * 10, steps[i].msg);
+      var res = await steps[i].fn();
+      if (!res) return null;
+      results.push(res);
+      await new Promise(function (r) {
+        setTimeout(r, 100);
+      });
+    }
+
+    window.allMoviesStreams = results[0];
+    window.moviesCategories = results[1];
+    window.allSeriesStreams = results[2];
+    window.allseriesCategories = results[3];
+    window.allLiveStreams = results[4];
+    window.liveCategories = results[5];
+
+    return true;
+  }
+
+  // Function to finalize playlist save after successful data load
+  function savePlaylist(data, apiUrl) {
+    if (isLoginCancelled()) return null;
+
+    var newPlaylist = {
+      playlistName: playlistName,
+      playlistUrl: apiUrl,
+      playlistUsername: username,
+    };
+
+    if (!fromPlaylist) {
+      existingPlaylists.push(newPlaylist);
+      localStorage.setItem("playlistsData", JSON.stringify(existingPlaylists));
+    }
+
+    localStorage.setItem("selectedPlaylist", JSON.stringify(newPlaylist));
+    localStorage.setItem("currentPlaylistData", JSON.stringify(data));
+  }
+
+  // Case 1: From playlist URL
   if (fromPlaylist && playlistUrl) {
     try {
       updateLoadingPercentage(10, "Validating playlist URL...");
-      const response = await fetch(playlistUrl);
+      var response = await fetch(playlistUrl);
       if (isLoginCancelled()) return null;
 
       if (!response.ok) {
         lastStatusCode = response.status;
-        Toaster.showToast("error", `Invalid response (Status: ${response.status})`);
-        throw new Error(`Invalid response ${response.status}`);
+        throw new Error("Invalid response " + response.status);
       }
 
       updateLoadingPercentage(20, "Processing playlist data...");
-      const data = await response.json();
+      var data = await response.json();
       if (isLoginCancelled()) return null;
 
-      if (data && data.user_info) {
-        if (data.user_info.auth === 1 && data.user_info.status === "Active") {
-          const newPlaylist = {
-            playlistName,
-            playlistUrl,
-            playlistUsername: username,
-          };
-
-          localStorage.setItem("selectedPlaylist", JSON.stringify(newPlaylist));
-          localStorage.setItem("currentPlaylistData", JSON.stringify(data));
-
-          updateLoadingPercentage(30, "Loading movies data...");
-          const vodMovies = await getAllVodMovies();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(40, "Loading movie categories...");
-          const moviesCategories = await getMoviesCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(50, "Loading series data...");
-          const vodSeries = await getAllVodSeries();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(60, "Loading series categories...");
-          const seriesCategories = await getSeriesCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(70, "Loading live streams...");
-          const vodAllLiveStreams = await getAllLiveStreams();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(80, "Loading live categories...");
-          const liveCategories = await getLiveCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          if (
-            vodMovies &&
-            moviesCategories &&
-            vodSeries &&
-            seriesCategories &&
-            vodAllLiveStreams &&
-            liveCategories
-          ) {
-            window.allMoviesStreams = vodMovies;
-            window.moviesCategories = moviesCategories;
-            window.allSeriesStreams = vodSeries;
-            window.allseriesCategories = seriesCategories;
-            window.allLiveStreams = vodAllLiveStreams;
-            window.liveCategories = liveCategories;
-
-            updateLoadingPercentage(100, "Login successful!");
-            setTimeout(() => {
-              localStorage.setItem("currentPage", "dashboard");
-              Router.showPage("dashboard");
-              loadingOverlay.classList.add("hidden");
-              disableKeyBlock();
-            }, 500);
-            return true;
-          }
-        } else {
-          Toaster.showToast("error", "Account not activated");
-        }
-      } else {
-        Toaster.showToast("error", "Invalid Playlist Data");
+      if (!data || !data.user_info || data.user_info.auth !== 1 || data.user_info.status !== "Active") {
+        Toaster.showToast("error", "Account not activated or invalid playlist data");
+        return null;
       }
-    } catch (error) {
-      console.log("❌ Failed to load playlist:", playlistUrl, error);
+
+      var success = await loadAllData();
+      if (!success) return null;
+
+      savePlaylist(data, playlistUrl);
+
+      updateLoadingPercentage(100, "Login successful!");
+      setTimeout(function () {
+        localStorage.setItem("currentPage", "homePage");
+        Router.showPage("homePage");
+        loadingOverlay.classList.add("hidden");
+        disableKeyBlock();
+      }, 500);
+
+      return true;
+    } catch (err) {
+      console.log("❌ Failed to load playlist:", playlistUrl, err);
       Toaster.showToast(
         "error",
-        `Invalid Playlist URL ${lastStatusCode ? `(Status: ${lastStatusCode})` : ""}`
+        "Invalid Playlist URL" + (lastStatusCode ? " (Status: " + lastStatusCode + ")" : "")
       );
     }
-
-    updateLoadingPercentage(100, "Login failed");
-    setTimeout(() => {
-      loadingOverlay.classList.add("hidden");
-      disableKeyBlock();
-      Toaster.showToast(
-        "error",
-        `Invalid Credentials${lastStatusCode ? ` (Status: ${lastStatusCode})` : ""}`
-      );
-    }, 500);
-    return null;
   }
 
   // Case 2: Try DNS list
-  const dnsToCheck = alldns.slice(0, 5);
+  var dnsToCheck = alldns.slice(0, 5);
 
-  for (let i = 0; i < dnsToCheck.length; i++) {
+  for (var i = 0; i < dnsToCheck.length; i++) {
     if (isLoginCancelled()) return null;
-    const apiUrl = buildLoginUrl(dnsToCheck[i], username, password);
-    updateLoadingPercentage(10 + i * 5, `Testing DNS ${i + 1}/${dnsToCheck.length}...`);
+
+    var apiUrl = buildLoginUrl(dnsToCheck[i], username, password);
+    updateLoadingPercentage(10 + i * 5, "Testing DNS " + (i + 1) + "/" + dnsToCheck.length + "...");
 
     try {
-      const response = await fetch(apiUrl);
+      var response = await fetch(apiUrl);
       if (isLoginCancelled()) return null;
 
       if (!response.ok) {
         lastStatusCode = response.status;
-        console.log(`❌ Failed DNS: ${dnsToCheck[i]} (Status: ${response.status})`);
+        console.log("❌ Failed DNS: " + dnsToCheck[i] + " (Status: " + response.status + ")");
         continue;
       }
 
-      const data = await response.json();
+      var data = await response.json();
       if (isLoginCancelled()) return null;
+      if (!data || !data.user_info || data.user_info.auth !== 1 || data.user_info.status !== "Active") continue;
 
-      if (data && data.user_info) {
-        if (data.user_info.auth === 1 && data.user_info.status === "Active") {
-          const newPlaylist = {
-            playlistName,
-            playlistUrl: apiUrl,
-            playlistUsername: username,
-          };
+      var success = await loadAllData();
+      if (!success) return null;
 
-          if (!fromPlaylist) {
-            existingPlaylists.push(newPlaylist);
-            localStorage.setItem("playlistsData", JSON.stringify(existingPlaylists));
-          }
+      savePlaylist(data, apiUrl);
 
-          localStorage.setItem("selectedPlaylist", JSON.stringify(newPlaylist));
-          localStorage.setItem("currentPlaylistData", JSON.stringify(data));
+      updateLoadingPercentage(100, "Login successful!");
+      setTimeout(function () {
+        localStorage.setItem("currentPage", "homePage");
+        Router.showPage("homePage");
+        loadingOverlay.classList.add("hidden");
+        disableKeyBlock();
+      }, 500);
 
-          updateLoadingPercentage(35, "Loading movies data...");
-          const vodMovies = await getAllVodMovies();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(45, "Loading movie categories...");
-          const moviesCategories = await getMoviesCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(55, "Loading series data...");
-          const vodSeries = await getAllVodSeries();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(65, "Loading series categories...");
-          const seriesCategories = await getSeriesCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(75, "Loading live streams...");
-          const vodAllLiveStreams = await getAllLiveStreams();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          updateLoadingPercentage(85, "Loading live categories...");
-          const liveCategories = await getLiveCategories();
-          if (isLoginCancelled()) return null;
-          await new Promise((r) => setTimeout(r, 100));
-
-          if (
-            vodMovies &&
-            moviesCategories &&
-            vodSeries &&
-            seriesCategories &&
-            vodAllLiveStreams &&
-            liveCategories
-          ) {
-            window.allMoviesStreams = vodMovies;
-            window.moviesCategories = moviesCategories;
-            window.allSeriesStreams = vodSeries;
-            window.allseriesCategories = seriesCategories;
-            window.allLiveStreams = vodAllLiveStreams;
-            window.liveCategories = liveCategories;
-
-            updateLoadingPercentage(100, "Login successful!");
-            setTimeout(() => {
-              localStorage.setItem("currentPage", "dashboard");
-              Router.showPage("dashboard");
-              loadingOverlay.classList.add("hidden");
-              disableKeyBlock();
-            }, 500);
-            return true;
-          }
-        } else {
-          Toaster.showToast("error", "Account not activated");
-        }
-      }
-    } catch (error) {
-      console.log("❌ Failed DNS:", dnsToCheck[i], error);
+      return true;
+    } catch (err) {
+      console.log("❌ Failed DNS:", dnsToCheck[i], err);
       continue;
     }
   }
 
   updateLoadingPercentage(100, "Login failed");
-  setTimeout(() => {
+  setTimeout(function () {
     loadingOverlay.classList.add("hidden");
     disableKeyBlock();
     Toaster.showToast(
       "error",
-      `Invalid Credentials${lastStatusCode ? ` (Status: ${lastStatusCode})` : ""}`
+      "Invalid Credentials" + (lastStatusCode ? " (Status: " + lastStatusCode + ")" : "")
     );
   }, 500);
 
   return null;
 }
+
+
 
 
 

@@ -104,7 +104,7 @@ body::-webkit-scrollbar{
 .loading-text {
   margin-top: 15px;
   font-size: 1.2rem;
-  color: var(--gold, #f5c518);
+  color: var(--gold, #FDBD0F);
   font-family: Arial, sans-serif;
   letter-spacing: 2px;
   animation: fadeBlink 1.5s infinite;

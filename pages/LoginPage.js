@@ -1,5 +1,7 @@
 function LoginPage() {
-  let playlistsData = JSON.parse(localStorage.getItem("playlistsData")) ? JSON.parse(localStorage.getItem("playlistsData")) : [];
+  let playlistsData = JSON.parse(localStorage.getItem("playlistsData"))
+    ? JSON.parse(localStorage.getItem("playlistsData"))
+    : [];
 
   // Delay setup until after page is in DOM
   setTimeout(function () {
@@ -14,7 +16,13 @@ function LoginPage() {
     // Exit early if passwordInput not found
     if (!passwordInput) return;
 
-    const inputs = [playlistInput, usernameInput, passwordInput, loginButton, listButton].filter(Boolean);
+    const inputs = [
+      playlistInput,
+      usernameInput,
+      passwordInput,
+      loginButton,
+      listButton,
+    ].filter(Boolean);
 
     let currentIndex = 0;
     let lastFocusedInput = null;
@@ -89,12 +97,17 @@ function LoginPage() {
         return;
       }
 
-      if (playlistsData.length === 0) {
-        Toaster.showToast("error", "No playlists available. Please add a playlist!");
-        return;
-      }
+      logAllDnsEntries();
+      loginApi(
+        username,
+        password,
+        playlistName
+      ).then((response) => {
+        if (response) {
+          LoginPage.cleanup();
+        }
+      });
 
-      // Add your login logic here
     }
 
     function loginPageKeydownEvents(e) {
@@ -150,10 +163,21 @@ function LoginPage() {
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
-            localStorage.setItem("currentPage", "listUsersPage");
-            LoginPage.cleanup();
-            Router.showPage("listPage");
-          }
+              localStorage.setItem("currentPage", "listUsersPage");
+              LoginPage.cleanup();
+              Router.showPage("listPage");
+            // if (playlistsData.length === 0) {
+            //   Toaster.showToast(
+            //     "error",
+            //     "No playlists available. Please add a playlist!"
+            //   );
+            //   return;
+            // } else {
+              // localStorage.setItem("currentPage", "listUsersPage");
+              // LoginPage.cleanup();
+              // Router.showPage("listPage");
+            }
+          // }
           break;
       }
     }

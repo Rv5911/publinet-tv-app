@@ -3,6 +3,7 @@ const Router = (() => {
         login: { el: document.getElementById("login-page"), render: LoginPage },
         listPage: { el: document.getElementById("list-users-page"), render: ListUsersPage },
         splashScreen: { el: document.getElementById("splash-page"), render: SplashScreen },
+        homePage: { el: document.getElementById("home-page"), render: HomePage },
 
 
     };

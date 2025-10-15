@@ -32,7 +32,7 @@ window.onload = function () {
     setTimeout(() => {
   Router.showPage("login");
 
-  }, 5000);
+  }, 0);
 
 
   if (typeof logAllDnsEntries === "function") {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document</title>
+  <title>Vega TV</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <link
@@ -26,10 +26,11 @@
     <div id="splash-page" class="page" style="display: none"></div>
           <div id="login-page" class="page" style="display: none"></div>
           <div id="list-users-page" class="page" style="display: none"></div>
+          <div id="home-page" class="page" style="display: none"></div>
 
 
 
-        <div id="loading-overlay" style="display: none;" class="loading-overlay hidden">
+        <div id="loading-overlay"  class="loading-overlay hidden">
         <div class="spinner"></div>
         <div id="loading-progress">0%</div>
       </div>
@@ -48,6 +49,7 @@
 
 <script src="./config/firebase.js"></script>
 
+<script src="./utils/utils.js"></script>
 <script src="./utils/router.js"></script>
 
 <script src="./api/apiFunctions.js"></script>

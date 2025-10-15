@@ -80,7 +80,7 @@
 .login-button {
   border-radius: 61px;
   padding-top: 9px;
-  font-size: 40px;
+  font-size: 36px;
   border: none;
   outline: none;
   margin-bottom: 38px;
@@ -92,7 +92,7 @@
 .list-button {
   border-radius: 61px;
   padding-top: 9px;
-  font-size: 35px;
+  font-size: 32px;
   border: 1px solid white;
   display: flex;
   justify-content: center;
