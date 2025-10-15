@@ -127,7 +127,9 @@ if (onAddUser) {
 
         case "Enter":
           if (onAddUser) {
-            alert("Add User Enter");
+                localStorage.setItem("currentPage", "loginPage");
+              ListUsersPage.cleanup();
+              Router.showPage("login");
           } else {
             const usernameElement = rows[currentRow][currentCol].querySelector(
               ".playlist-card-username"

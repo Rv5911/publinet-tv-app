@@ -30,6 +30,8 @@ window.onload = function () {
       Router.showPage("splashScreen");
 
     setTimeout(() => {
+              localStorage.setItem("currentPage", "loginPage");
+
   Router.showPage("login");
 
   }, 0);

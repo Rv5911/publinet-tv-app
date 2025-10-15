@@ -111,6 +111,9 @@ function LoginPage() {
     }
 
     function loginPageKeydownEvents(e) {
+      if(localStorage.getItem("currentPage") !== "loginPage"){
+        return
+      }
       const key = e.key;
       const focused = inputs[currentIndex];
       const eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
