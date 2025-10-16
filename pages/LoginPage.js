@@ -43,8 +43,8 @@ function LoginPage() {
       passwordVisible = !passwordVisible;
       passwordInput.type = passwordVisible ? "text" : "password";
       eyeIcon.src = passwordVisible
-        ? "../assets/eye-open.png"
-        : "../assets/eye-closed.png";
+        ? "../assets/eye-closed.png"
+        : "../assets/eye-open.png";
     }
 
     if (inputs.length > 0) {
@@ -166,21 +166,21 @@ function LoginPage() {
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
+            const playlistsData = localStorage.getItem("playlistsData") ? JSON.parse(
+              localStorage.getItem("playlistsData")
+            ): [];
+            if (playlistsData.length === 0) {
+              Toaster.showToast(
+                "error",
+                "No playlists available. Please add a playlist!"
+              );
+              return;
+            } else {
               localStorage.setItem("currentPage", "listUsersPage");
               LoginPage.cleanup();
               Router.showPage("listPage");
-            // if (playlistsData.length === 0) {
-            //   Toaster.showToast(
-            //     "error",
-            //     "No playlists available. Please add a playlist!"
-            //   );
-            //   return;
-            // } else {
-              // localStorage.setItem("currentPage", "listUsersPage");
-              // LoginPage.cleanup();
-              // Router.showPage("listPage");
             }
-          // }
+          }
           break;
       }
     }
@@ -200,9 +200,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input login-input" type="text" placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input" type="text" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input" type="password" placeholder="Enter Password"></div>
+          <div><input class="playlistname-input login-input" type="text" value="My Playlist223" placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input" value="Abel57" type="text" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input" type="password" value="222333" placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>
