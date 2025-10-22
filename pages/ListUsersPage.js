@@ -3,11 +3,6 @@ function ListUsersPage() {
     ? JSON.parse(localStorage.getItem("playlistsData"))
     : [];
 
-  if (listPlaylistsData.length == 0) {
-    localStorage.setItem("currentPage", "loginPage");
-    ListUsersPage.cleanup();
-    Router.showPage("login");
-  }
 
   setTimeout(() => {
     if (ListUsersPage.cleanup) ListUsersPage.cleanup();
@@ -303,19 +298,34 @@ function ListUsersPage() {
       cancelBtn.addEventListener("click", closeDialog);
     }
 
-    function removePlaylist(row, col) {
-      computeRows();
-      const indexToRemove =
-        rows.slice(0, row).reduce((acc, r) => acc + r.length, 0) + col;
-      const data = JSON.parse(localStorage.getItem("playlistsData")) || [];
-      data.splice(indexToRemove, 1);
-      localStorage.setItem("playlistsData", JSON.stringify(data));
+ function removePlaylist(row, col) {
+  computeRows();
 
-      ListUsersPage.cleanup();
-      Router.showPage("listPage");
-    }
+  // Calculate which card index to remove (flattened index)
+  const indexToRemove =
+    rows.slice(0, row).reduce((acc, r) => acc + r.length, 0) + col;
 
-    // --- Cleanup ---
+  // Get current data from localStorage
+  const data = JSON.parse(localStorage.getItem("playlistsData")) || [];
+
+  // Remove selected item
+  data.splice(indexToRemove, 1);
+
+  // Save updated list
+  localStorage.setItem("playlistsData", JSON.stringify(data));
+
+  // ✅ Check updated list and route accordingly
+  if (data.length === 0) {
+    localStorage.setItem("currentPage", "loginPage");
+    ListUsersPage.cleanup();
+    Router.showPage("login");
+  } else {
+    ListUsersPage.cleanup();
+    Router.showPage("listUsersPage"); 
+  }
+}
+
+
     ListUsersPage.cleanup = function () {
       document.removeEventListener("keydown", listUsersKeydownEvents);
       document.removeEventListener("keydown", handleEnterKeyDown);

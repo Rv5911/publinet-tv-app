@@ -26,12 +26,12 @@ window.onload = function () {
 
   Toaster();
 
-  Router.showPage("splashScreen");
+  // Router.showPage("splashScreen");
 
   setTimeout(() => {
-    localStorage.setItem("currentPage", "loginPage");
+    localStorage.setItem("currentPage", "settingsPage");
 
-    Router.showPage("login");
+    Router.showPage("settingsPage");
   }, 0);
 
   if (typeof logAllDnsEntries === "function") {
