@@ -1,0 +1,91 @@
+/* Carousel Container */
+.carousel-container {
+  width: 100%;
+  height: 883px; /* or use height: 90vh; for responsive */
+  margin: auto;
+  overflow: hidden;
+  position: relative;
+  border-radius: 12px;
+  background: #000; /* fallback background */
+}
+
+/* Slides Wrapper */
+.carousel-slides {
+  display: flex;
+  transition: transform 0.5s ease-in-out;
+  width: 100%;
+  height: 100%;
+}
+
+/* Individual Slide */
+.slide {
+  flex: 1 0 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* important for images */
+  position: relative;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: 25% 75%;
+  object-fit: cover; 
+  display: block;
+}
+
+/* Carousel Dots Container */
+.carousel-dots {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  z-index: 10;
+  zoom: 1.4; /* scale up dots if needed */
+}
+
+/* Individual Dot */
+.carousel-dot {
+  width: 18px;
+  height: 18px;
+  margin-left: 12px;
+  background: white;
+  border-radius: 50%; /* circle */
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Active Dot */
+.carousel-dot.active {
+  width: 40px;
+  height: 18px;
+  border-radius: 30px;
+  background: var(--dark-gold, #ffd700); /* fallback gold color */
+}
+
+/* Optional: Responsive */
+@media (max-width: 1200px) {
+  .carousel-container {
+    height: 70vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .carousel-container {
+    height: 50vh;
+  }
+
+  .carousel-dot {
+    width: 12px;
+    height: 12px;
+  }
+
+  .carousel-dot.active {
+    width: 28px;
+    height: 12px;
+  }
+}

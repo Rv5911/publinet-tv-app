@@ -1,4 +1,4 @@
-const Router = (function () {
+const Router = (function() {
   const pages = {
     login: { el: document.getElementById("login-page"), render: LoginPage },
     listPage: { el: document.getElementById("list-users-page"), render: ListUsersPage },
@@ -17,7 +17,7 @@ const Router = (function () {
       pages[currentPageName].cleanup();
     }
 
-    Object.values(pages).forEach(function (p) {
+    Object.values(pages).forEach(function(p) {
       if (p.el) p.el.style.display = "none";
     });
 
@@ -36,10 +36,9 @@ const Router = (function () {
 
     currentPageName = name;
     localStorage.setItem("currentPage", name);
-    renderNavbar(); // ✅ Update navbar visibility
   }
 
-  return { showPage: showPage };
+  return { showPage };
 })();
 
 window.Router = Router;

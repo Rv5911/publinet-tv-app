@@ -52,7 +52,10 @@ setTimeout(function () {
 
   return `
     <div class="home-page-container">
-<h1>Home Page</h1>
+    <div class="poster">
+${HomeCarousel()}
     </div>
-    `;
+    </div>
+      </div>
+  `;
 }
