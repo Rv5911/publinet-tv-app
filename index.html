@@ -1,80 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vega TV</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap"
+    rel="stylesheet"
+  />
 
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-  <link rel="stylesheet" type="text/css" href="./css/style.css">
-  <link rel="stylesheet" type="text/css" href="./css/loginPage.css">
-  <link rel="stylesheet" type="text/css" href="./css/splashScreen.css">
-  <link rel="stylesheet" type="text/css" href="./css/toaster.css">
-  <link rel="stylesheet" type="text/css" href="./css/homePage.css">
-  <link rel="stylesheet" type="text/css" href="./css/listUsersPage.css">
-  <link rel="stylesheet" type="text/css" href="./css/settingsPage.css">
-  <link rel="stylesheet" type="text/css" href="./css/streamFormat.css">
-  <link rel="stylesheet" type="text/css" href="./css/timeFormat.css">
-  <link rel="stylesheet" type="text/css" href="./css/parentalControl.css">
-
-
-
-
-
-
-
+  <!-- CSS FILES -->
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/loginPage.css" />
+  <link rel="stylesheet" href="./css/splashScreen.css" />
+  <link rel="stylesheet" href="./css/toaster.css" />
+  <link rel="stylesheet" href="./css/homePage.css" />
+  <link rel="stylesheet" href="./css/listUsersPage.css" />
+  <link rel="stylesheet" href="./css/settingsPage.css" />
+  <link rel="stylesheet" href="./css/streamFormat.css" />
+  <link rel="stylesheet" href="./css/timeFormat.css" />
+  <link rel="stylesheet" href="./css/parentalControl.css" />
+  <link rel="stylesheet" href="./css/navbar.css" />
+  <link rel="stylesheet" href="./css/livetvPage.css" />
+  <link rel="stylesheet" href="./css/moviesPage.css" />
+  <link rel="stylesheet" href="./css/seriesPage.css" />
 
 </head>
+
 <body>
+  <!-- ✅ Navbar Root -->
+  <div id="navbar-root"></div>
+
   <div id="main-app-container">
     <div id="splash-page" class="page" style="display: none"></div>
-          <div id="login-page" class="page" style="display: none"></div>
-          <div id="list-users-page" class="page" style="display: none"></div>
-          <div id="home-page" class="page" style="display: none"></div>
-          <div id="settings-page" class="page" style="display: none"></div>
+    <div id="login-page" class="page" style="display: none"></div>
+    <div id="list-users-page" class="page" style="display: none"></div>
+    <div id="home-page" class="page" style="display: none"></div>
+    <div id="movies-page" class="page" style="display: none"></div>
+    <div id="series-page" class="page" style="display: none"></div>
+    <div id="livetv-page" class="page" style="display: none"></div>
 
 
 
+    <div id="settings-page" class="page" style="display: none"></div>
 
-        <div id="loading-overlay"  class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <div id="loading-progress">0%</div>
-      </div>
-        <div id="toast-container"></div>
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <div id="loading-progress">0%</div>
+    </div>
+
+    <div id="toast-container"></div>
   </div>
-      <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- JS FILES -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <script src="./components/SplashScreen.js"></script>
+  <script src="./components/Toaster.js"></script>
+  <script src="./components/Navbar.js"></script>
+
 
   <script src="./pages/LoginPage.js"></script>
   <script src="./pages/HomePage.js"></script>
+  <script src="./pages/MoviesPage.js"></script>
+  <script src="./pages/SeriesPage.js"></script>
+  <script src="./pages/LiveTVPage.js"></script>
+
+
   <script src="./pages/ListUsersPage.js"></script>
   <script src="./pages/SettingsPage.js"></script>
   <script src="./pages/settingsPages/StreamFormat.js"></script>
   <script src="./pages/settingsPages/TimeFormat.js"></script>
   <script src="./pages/settingsPages/ParentalControl.js"></script>
 
-
-
-
-
-    <script src="./components/SplashScreen.js"></script>
-  <script src="./components/Toaster.js"></script>
-
-<script src="./config/firebase.js"></script>
-
-<script src="./utils/utils.js"></script>
-<script src="./utils/router.js"></script>
-
-<script src="./api/apiFunctions.js"></script>
-
-
-
-
+  <script src="./config/firebase.js"></script>
+  <script src="./utils/utils.js"></script>
+  <script src="./utils/router.js"></script>
+  <script src="./api/apiFunctions.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>

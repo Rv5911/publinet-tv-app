@@ -1,7 +1,6 @@
 function HomePage() {
 const selectedPlaylistData= localStorage.getItem("selectedPlaylist") ? JSON.parse(localStorage.getItem("selectedPlaylist")):{}
 
-console.log(selectedPlaylistData,"selecc")
 setTimeout(function () {
     if (HomePage.cleanup) HomePage.cleanup();
  
@@ -34,9 +33,9 @@ setTimeout(function () {
         case "BrowserBack":
         case "XF86Back":
         case 10009:
-          localStorage.setItem("currentPage", "loginPage");
-          HomePage.cleanup();
-          Router.showPage("login");
+          // localStorage.setItem("currentPage", "loginPage");
+          // HomePage.cleanup();
+          // Router.showPage("login");
           break;
  
         default:
@@ -53,32 +52,7 @@ setTimeout(function () {
 
   return `
     <div class="home-page-container">
-        <h1>Welcome to the Home Page</h1>
-
-        <h1>
-        ${selectedPlaylistData.playlistName}
-        </h1>
-
-        <p>
-  ${window.moviesCategories.length}
-  </p>
-  <p>
-  ${window.allMoviesStreams.length}
-</p>
-<p>
-    ${window.allSeriesStreams.length}
-    </p>
-    <p>
-    ${window.allseriesCategories.length}
-    </p>
-    <p>
-    ${window.allLiveStreams.length}
-    </p>
-    <p>
-    ${window.liveCategories.length}
-    </p>
-
-
+<h1>Home Page</h1>
     </div>
     `;
 }
