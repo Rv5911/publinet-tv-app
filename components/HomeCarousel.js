@@ -8,12 +8,10 @@ function HomeCarousel() {
     let activeIndex = 0;
     let autoSlideFrame;
 
-    slidesContainer.style.willChange = "transform"; // GPU acceleration
-
+    slidesContainer.style.willChange = "transform";
     function updateCarousel() {
-      // Only transform the container once per frame
       requestAnimationFrame(() => {
-        slidesContainer.style.transition = "transform 0.3s ease-in-out"; // faster
+        slidesContainer.style.transition = "transform 0.3s ease-in-out";
         slidesContainer.style.transform = `translateX(${-activeIndex * 100}%)`;
         dots.forEach((dot, i) => dot.classList.toggle("active", i === activeIndex));
       });

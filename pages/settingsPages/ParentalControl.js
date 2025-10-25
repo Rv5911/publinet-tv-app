@@ -125,9 +125,8 @@ function ParentalControl() {
             saveButton.blur();
           }
           document.removeEventListener("keydown", parentalControlKeydownEvents);
-          document.querySelector(".settings-second-container").innerHTML = "";
-          localStorage.setItem("currentPage", "settingsPage");
-          localStorage.setItem("settingPage", "settingsPage");
+         localStorage.setItem("currentPage", "homePage");
+          Router.showPage("homePage");
           break;
 
         default:
