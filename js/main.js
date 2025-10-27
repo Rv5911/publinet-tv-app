@@ -39,8 +39,8 @@ window.onload = function () {
   Router.showPage("splashScreen");
 
     setTimeout(() => {
-      localStorage.setItem("currentPage", "login");
-      Router.showPage("login");
+      localStorage.setItem("currentPage", "homePage");
+      Router.showPage("homePage");
     }, 0);
 
   if (typeof Toaster === "function") Toaster();
