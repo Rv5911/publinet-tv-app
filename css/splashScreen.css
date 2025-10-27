@@ -61,6 +61,7 @@
 .splash-logo {
   width: 100px;
   height: 100px;
+  zoom: 1.8;
   display: flex;
   justify-content: center;
   align-items: center;

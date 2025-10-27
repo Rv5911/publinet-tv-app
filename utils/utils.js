@@ -481,6 +481,24 @@ let keyBlockHandler = null;
 // removeAllFromHistory("watchHistoryLive");
 
 // expose globally
+
+function applyMarqueeEffect(containerSelector, titleSelector, focusedClass) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+
+  const titles = container.querySelectorAll(titleSelector);
+  titles.forEach((title) => {
+    const parent = title.closest(`.${focusedClass}`);
+    if (parent) {
+      if (title.scrollWidth > title.clientWidth) {
+        title.classList.add("marquee-active");
+      }
+    } else {
+      title.classList.remove("marquee-active");
+    }
+  });
+}
+
 window.updatePlaylistData = updatePlaylistData;
 window.getPlaylistData = getPlaylistData;
 window.isLoginCancelled = isLoginCancelled;
@@ -499,5 +517,6 @@ window.saveItemToCurrentPlaylist = saveItemToCurrentPlaylist;
 window.addItemToHistory = addItemToHistory;
 window.removeItemFromHistoryById = removeItemFromHistoryById;
 window.removeAllFromHistory = removeAllFromHistory;
+window.applyMarqueeEffect = applyMarqueeEffect;
 
 window.decodeBase64 = decodeBase64;

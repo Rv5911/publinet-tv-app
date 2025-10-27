@@ -83,7 +83,7 @@ function ListUsersPage() {
 
     function listUsersKeydownEvents(e) {
       if (dialogOpen) return;
-      if (localStorage.getItem("currentPage") !== "listUsersPage") return;
+      if (localStorage.getItem("currentPage") !== "listPage") return;
 
       const key = e.key;
       switch (key) {
@@ -143,7 +143,7 @@ function ListUsersPage() {
 
     function handleEnterKeyDown(e) {
       if (dialogOpen) return;
-      if (localStorage.getItem("currentPage") !== "listUsersPage") return;
+      if (localStorage.getItem("currentPage") !== "listPage") return;
       if (e.key !== "Enter") return;
       if (enterPressTimer) return;
 
@@ -159,7 +159,7 @@ function ListUsersPage() {
 
     function handleEnterKeyUp(e) {
       if (dialogOpen) return;
-      if (localStorage.getItem("currentPage") !== "listUsersPage") return;
+      if (localStorage.getItem("currentPage") !== "listPage") return;
       if (e.key !== "Enter") return;
 
       if (enterPressTimer) {
@@ -167,7 +167,7 @@ function ListUsersPage() {
         enterPressTimer = null;
 
         if (onAddUser) {
-          localStorage.setItem("currentPage", "loginPage");
+          localStorage.setItem("currentPage", "login");
           ListUsersPage.cleanup();
           Router.showPage("login");
         } else {
@@ -338,7 +338,7 @@ function ListUsersPage() {
     .map(
       (user) => `
       <div class="playlist-card">
-        <img src="/assets/playlist-icon.png" alt="Logo" class="logo" />
+        <img src="/assets/playlist-icon.png" alt="Logo" class="list-top-logo" />
         <div class="playlist-card-content">
           <p class="playlist-card-title">${user ? user.playlistName : "N/A"}</p>
           <p class="playlist-card-username">${
@@ -354,7 +354,7 @@ function ListUsersPage() {
     <div class="list-users-container">
  
       <div class="list-users-navbar">
-        <img src="/assets/main-logo.png" alt="Logo" class="logo" />
+        <img src="/assets/main-logo.png" alt="Logo" class="list-logo" />
         <p>List Users</p>
         <button>Add User</button>
       </div>

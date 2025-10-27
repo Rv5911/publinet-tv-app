@@ -7,71 +7,61 @@ window.onload = function () {
   window.liveCategories = [];
 
   if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
-    var keys = tizen.tvinputdevice.getSupportedKeys();
-    keys.forEach(function (key) {
+    const keys = tizen.tvinputdevice.getSupportedKeys();
+    keys.forEach((key) => {
       tizen.tvinputdevice.registerKey(key.name);
     });
   }
 
-  // Global keydown
   document.addEventListener("keydown", function (e) {
-    var sidebar = document.getElementById("sidebar");
+    const sidebar = document.getElementById("sidebar");
     if (
       sidebar &&
       sidebar.classList &&
       !sidebar.classList.contains("hidden") &&
-      ["ArrowUp","ArrowDown","Enter","Escape","Backspace","XF86Back"].indexOf(e.key) > -1
+      ["ArrowUp","ArrowDown","Enter","Escape","Backspace","XF86Back"].includes(e.key)
     ) {
       e.preventDefault();
       return;
     }
 
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.key) > -1)
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
       e.preventDefault();
+    }
   });
 
-  // ✅ Render navbar once
-  var navbarRoot = document.getElementById("navbar-root");
+  const navbarRoot = document.getElementById("navbar-root");
   if (navbarRoot) {
     navbarRoot.innerHTML = Navbar();
     initNavbar();
   }
 
-  // Show initial page
-  var currentPage = localStorage.getItem("currentPage") || "splashScreen";
-  Router.showPage(currentPage);
-  
-  // Optional: switch to home after splash
-  if (currentPage === "splashScreen") {
-    setTimeout(() => {
-      Router.showPage("homePage");
-    }, 1000);
-  }
+  Router.showPage("splashScreen");
 
-  // Initialize utilities
+    setTimeout(() => {
+      localStorage.setItem("currentPage", "login");
+      Router.showPage("login");
+    }, 0);
+
   if (typeof Toaster === "function") Toaster();
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();
 };
 
-// ✅ Hide/show navbar based on page
 function renderNavbarVisibility() {
-  var currentPage = localStorage.getItem("currentPage");
-  var hiddenPages = ["login", "listPage", "splashScreen", "settingsPage"];
-  var navbarRoot = document.getElementById("navbar-root");
+  const currentPage = localStorage.getItem("currentPage");
+  const hiddenPages = ["login", "listPage", "splashScreen", "settingsPage"];
+  const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;
 
-  if (hiddenPages.indexOf(currentPage) > -1) {
-    navbarRoot.style.display = "none";
-  } else {
-    navbarRoot.style.display = "block";
-  }
+  navbarRoot.style.display = hiddenPages.includes(currentPage)
+    ? "none"
+    : "block";
 }
 
-// ✅ Patch Router to update navbar visibility after page change
-(function() {
-  var originalShowPage = Router.showPage;
-  Router.showPage = function(name) {
+(function () {
+  const originalShowPage = Router.showPage;
+  Router.showPage = function (name) {
     originalShowPage(name);
     renderNavbarVisibility();
   };

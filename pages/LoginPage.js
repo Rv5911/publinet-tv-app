@@ -5,6 +5,7 @@ function LoginPage() {
 
   // Delay setup until after page is in DOM
   setTimeout(function () {
+    if(localStorage.getItem("currentPage") !== "login") return
     if (LoginPage.cleanup) LoginPage.cleanup();
 
     const playlistInput = document.querySelector(".playlistname-input");
@@ -34,8 +35,16 @@ function LoginPage() {
     passwordWrapper.appendChild(passwordInput);
 
     const eyeIcon = document.createElement("img");
-    eyeIcon.src = "../assets/eye-open.png";
+    eyeIcon.src = "../assets/eye-closed.png";
     eyeIcon.className = "eye-icon-login";
+    eyeIcon.alt = "Toggle password visibility";
+    
+    // Add error handling for image loading
+    eyeIcon.onerror = function() {
+      console.error("Eye icon image failed to load");
+      eyeIcon.alt = passwordVisible ? "Hide" : "Show";
+    };
+    
     passwordWrapper.appendChild(eyeIcon);
 
     let passwordVisible = false;
@@ -43,9 +52,15 @@ function LoginPage() {
       passwordVisible = !passwordVisible;
       passwordInput.type = passwordVisible ? "text" : "password";
       eyeIcon.src = passwordVisible
-        ? "../assets/eye-closed.png"
-        : "../assets/eye-open.png";
+        ? "../assets/eye-open.png"  // When password IS visible, show OPEN eye
+        : "../assets/eye-closed.png"; // When password is NOT visible, show CLOSED eye
+      
+      // Update alt text for accessibility
+      eyeIcon.alt = passwordVisible ? "Hide password" : "Show password";
     }
+
+    // Add click event listener for eye icon
+    eyeIcon.addEventListener("click", togglePassword);
 
     if (inputs.length > 0) {
       inputs[currentIndex].classList.add("login-input-focused");
@@ -107,16 +122,16 @@ function LoginPage() {
           LoginPage.cleanup();
         }
       });
-
     }
 
     function loginPageKeydownEvents(e) {
-      if(localStorage.getItem("currentPage") !== "loginPage"){
+      if(localStorage.getItem("currentPage") !== "login"){
         return
       }
       const key = e.key;
       const focused = inputs[currentIndex];
       const eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
+      e.preventDefault();
 
       switch (key) {
         case "ArrowDown":
@@ -190,6 +205,8 @@ function LoginPage() {
 
     LoginPage.cleanup = function () {
       document.removeEventListener("keydown", loginPageKeydownEvents);
+      // Remove click event listener from eye icon
+      eyeIcon.removeEventListener("click", togglePassword);
     };
   }, 0);
 

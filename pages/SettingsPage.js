@@ -64,8 +64,9 @@ function SettingsPage() {
         case "BrowserBack":
         case "XF86Back":
         case "10009":
-          localStorage.setItem("currentPage", "homePage");
           SettingsPage.cleanup();
+
+          localStorage.setItem("currentPage", "homePage");
 
           Router.showPage("homePage");
           break;

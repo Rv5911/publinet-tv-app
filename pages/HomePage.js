@@ -3,6 +3,7 @@ const selectedPlaylistData= localStorage.getItem("selectedPlaylist") ? JSON.pars
 
 setTimeout(function () {
     if (HomePage.cleanup) HomePage.cleanup();
+    console.log(selectedPlaylistData,"selectedPlaylistData")
  
     function homePageKeydownEvents(e) {
       const key = e.key;
@@ -55,6 +56,7 @@ setTimeout(function () {
     <div class="poster">
 ${HomeCarousel()}
     </div>
+    <h1>${selectedPlaylistData.playlistName}
     </div>
       </div>
   `;
