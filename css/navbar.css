@@ -27,8 +27,8 @@
 .search-bar {
   padding-top: 15px;
   padding-bottom: 15px;
-  padding-left: 60px;
-  padding-right: 60px;
+  padding-left: 87px;
+  padding-right: 87px;
   border: 0.5px solid #FDBD0F;
   width: 333px;
   border-radius: 86px;
@@ -134,13 +134,13 @@
   color: white;
   transition: all 0.3s ease-in-out;
   z-index: 1001;
-  transform: translateX(100%); /* Start off-screen to the right */
+  transform: translateX(100%);
   opacity: 0;
   visibility: hidden;
 }
 
 .sidebar:not(.hidden) {
-  transform: translateX(0); /* Slide in */
+  transform: translateX(0);
   opacity: 1;
   visibility: visible;
 }
@@ -200,7 +200,6 @@
   filter: invert(100%);
 }
 
-/* === SORT DROPDOWN STYLES === */
 .sidebar-sort {
   position: relative;
   display: flex;
@@ -232,7 +231,7 @@
 }
 
 .sort-options:not(.hidden) {
-  max-height: 500px; /* Adjust based on your content height */
+  max-height: 500px; 
   opacity: 1;
   visibility: visible;
 }
@@ -264,14 +263,13 @@
   margin-right: 40px;
 }
 
-/* === CUSTOM CHECKBOX STYLES === */
 .checkbox-container {
   display: flex;
   align-items: center;
   position: relative;
   padding-left: 45px;
   cursor: pointer;
-  font-size: 26px;
+  font-size: 20px;
   user-select: none;
   width: 100%;
 }
@@ -297,31 +295,27 @@
   transition: all 0.2s ease;
 }
 
-/* Default hover/focus state */
 .checkbox-container:hover input ~ .checkmark,
 .checkbox-container:focus input ~ .checkmark {
   border-color: var(--dark-gold);
   background-color: rgba(253, 189, 15, 0.1);
 }
 
-/* When sort option is active/focused - BLACK background */
 .sort-option.active .checkmark,
 .sort-option:focus .checkmark {
   background-color: black !important;
   border-color: var(--dark-gold) !important;
 }
 
-/* When checkbox is checked - YELLOW background */
 .checkbox-container input:checked ~ .checkmark {
   background-color: var(--dark-gold) !important;
   border-color: var(--dark-gold) !important;
 }
 
-/* When checkbox is checked AND sort option is active - keep yellow background */
 .sort-option.active .checkbox-container input:checked ~ .checkmark,
 .sort-option:focus .checkbox-container input:checked ~ .checkmark {
   background-color: var(--dark-gold) !important;
-  border-color: var(--dark-gold) !important;
+  border-color: white !important;
 }
 
 .checkmark:after {
@@ -341,24 +335,20 @@
   display: block;
 }
 
-/* Focus styles for sort options */
 .sort-option:focus {
   outline: 2px solid var(--dark-gold);
   outline-offset: 2px;
 }
 
-/* Ensure text color changes properly when active */
 .sort-option.active .checkbox-container,
 .sort-option:focus .checkbox-container {
   color: black;
 }
 
-/* Keep black tick visible on yellow background */
 .checkbox-container input:checked ~ .checkmark:after {
   border-color: black;
 }
 
-/* Text color adjustment for active state */
 .sort-option.active,
 .sort-option:focus {
   color: black;

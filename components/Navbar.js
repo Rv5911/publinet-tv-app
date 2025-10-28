@@ -99,7 +99,7 @@ function initNavbar() {
   const sortCheckboxes = Array.from(document.querySelectorAll(".sort-checkbox"));
 
   let currentIndex = 0;
-  const totalItems = navItems.length + 2; // search + nav items + profile
+  const totalItems = navItems.length + 2; 
 
   const pageIndexMap = {
     homePage: 0,
@@ -108,7 +108,6 @@ function initNavbar() {
     seriesPage: 3
   };
 
-  // Set default sort option
   setSortOption("default");
 
   updateNavbarActive(localStorage.getItem("currentPage"));
@@ -132,7 +131,6 @@ function initNavbar() {
 
   sortItem.addEventListener("click", toggleSortMenu);
 
-  // Add event listeners for sort checkboxes
   sortCheckboxes.forEach(checkbox => {
     checkbox.addEventListener("change", (e) => {
       if (e.target.checked) {
@@ -148,7 +146,6 @@ function initNavbar() {
 
     const key = e.key;
 
-    // Sort options open - highest priority
     if (isSortOptionsOpen) {
       if (["ArrowUp", "ArrowDown", "Enter", "Escape", "Backspace", "XF86Back"].includes(key)) {
         e.preventDefault();
@@ -157,7 +154,6 @@ function initNavbar() {
       }
     }
 
-    // Sidebar open
     if (sidebar && !sidebar.classList.contains("hidden")) {
       if (["ArrowUp", "ArrowDown", "Enter", "Escape", "Backspace", "XF86Back"].includes(key)) {
         e.preventDefault();
@@ -166,19 +162,36 @@ function initNavbar() {
       }
     }
 
-    // Navbar navigation
-    if (!isNavbarFocused) return;
-    if (["ArrowLeft", "ArrowRight"].includes(key)) e.preventDefault();
+if (!isNavbarFocused) return;
+if (["ArrowLeft", "ArrowRight"].includes(key)) e.preventDefault();
 
-    switch (key) {
-      case "ArrowRight":
-        currentIndex = (currentIndex + 1) % totalItems;
-        highlightNavItem(currentIndex);
-        break;
-      case "ArrowLeft":
-        currentIndex = (currentIndex - 1 + totalItems) % totalItems;
-        highlightNavItem(currentIndex);
-        break;
+// if (
+//   (key === "ArrowRight" && (searchInput.classList.contains("active") || profileIcon.classList.contains("active"))) ||
+//   (key === "ArrowLeft" && (searchInput.classList.contains("active") || profileIcon.classList.contains("active")))
+// ) {
+//   return; 
+// }
+
+switch (key) {
+  case "ArrowRight":
+    if(profileIcon.classList.contains("active")){
+      return
+    }else{
+      currentIndex = (currentIndex + 1) % totalItems;
+      highlightNavItem(currentIndex);
+      break;
+
+    }
+  case "ArrowLeft":
+    if (searchInput.classList.contains("active")) {
+      return;
+    }else{
+
+      currentIndex = (currentIndex - 1 + totalItems) % totalItems;
+      highlightNavItem(currentIndex);
+      break;
+    }
+
       case "Enter":
         if (currentIndex === 0) {
           searchInput.focus();
@@ -204,6 +217,7 @@ function initNavbar() {
     profileIcon.classList.remove("active");
 
     if (index === 0) {
+      navItems.forEach((i) => i.classList.remove("active"));
       searchInput.classList.add("active");
     } else if (index === totalItems - 1) {
       profileIcon.classList.add("active");
@@ -232,16 +246,19 @@ function initNavbar() {
     if (firstItem) firstItem.focus();
   }
 
-  function closeSidebar() {
-    sidebar.classList.add("hidden");
-    sidebar.style.right = "0px";
-    isNavbarFocused = true;
-    isSortOptionsOpen = false;
-    profileIcon.focus();
-    profileIcon.classList.add("active");
-    // Also close sort options if open
-    closeSortMenu();
-  }
+function closeSidebar() {
+  sidebar.classList.add("hidden");
+  sidebar.style.right = "0px";
+  isNavbarFocused = true;
+  isSortOptionsOpen = false;
+  
+  setTimeout(() => {
+    if (profileIcon) {
+      profileIcon.focus();
+      profileIcon.classList.add("active");
+    }
+  }, 10);
+}
 
   function handleLogOut() {
     localStorage.setItem("currentPage", "login");
@@ -263,7 +280,6 @@ function initNavbar() {
     arrowIcon.classList.add("rotated");
     isSortOptionsOpen = true;
     
-    // Focus first sort option
     const sortOptionItems = Array.from(sortOptions.querySelectorAll(".sort-option"));
     if (sortOptionItems.length > 0) {
       updateSortOptionsSelection(sortOptionItems, 0);
@@ -305,85 +321,82 @@ function initNavbar() {
     // closeSortMenu();
   }
 
-  function handleSidebarKeys(e) {
-    // If sort options are open, don't handle sidebar keys
-    if (isSortOptionsOpen) return;
+function handleSidebarKeys(e) {
+  if (isSortOptionsOpen) return;
 
-    const items = Array.from(sidebar.querySelectorAll("li.sidebar-link"));
-    if (!items.length) return;
-    
-    let activeIndex = items.findIndex((item) => item.classList.contains("active"));
-    if (activeIndex === -1) activeIndex = 0;
-    
-    const activeItem = items[activeIndex];
-    const text = activeItem.textContent.trim();
+  const items = Array.from(sidebar.querySelectorAll("li.sidebar-link"));
+  if (!items.length) return;
+  
+  let activeIndex = items.findIndex((item) => item.classList.contains("active"));
+  if (activeIndex === -1) activeIndex = 0;
+  
+  const activeItem = items[activeIndex];
+  const text = activeItem.textContent.trim();
 
-    switch (e.key) {
-      case "ArrowDown":
-        activeIndex = (activeIndex + 1) % items.length;
-        updateSidebarSelection(items, activeIndex);
-        break;
-      case "ArrowUp":
-        activeIndex = (activeIndex - 1 + items.length) % items.length;
-        updateSidebarSelection(items, activeIndex);
-        break;
-      case "Enter":
-        if (text === "Sort") {
-          openSortMenu();
-        } else if (text === "Sign Out") {
-          handleLogOut();
-        } else if (text === "Settings") {
-          localStorage.setItem("currentPage", "settingsPage");
-          Router.showPage("settingsPage");
-          closeSidebar();
-        } else if (text === "List User") {
-          Router.showPage("listPage");
-          closeSidebar();
-        } else if (text === "My Account") {
-          alert("My Account selected");
-        }
-        break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
+  switch (e.key) {
+    case "ArrowDown":
+      activeIndex = (activeIndex + 1) % items.length;
+      updateSidebarSelection(items, activeIndex);
+      break;
+    case "ArrowUp":
+      activeIndex = (activeIndex - 1 + items.length) % items.length;
+      updateSidebarSelection(items, activeIndex);
+      break;
+    case "Enter":
+      if (text === "Sort") {
+        openSortMenu();
+      } else if (text === "Sign Out") {
+        handleLogOut();
+      } else if (text === "Settings") {
+        localStorage.setItem("currentPage", "settingsPage");
+        Router.showPage("settingsPage");
         closeSidebar();
-        break;
-    }
+      } else if (text === "List User") {
+        Router.showPage("listPage");
+        closeSidebar();
+      } else if (text === "My Account") {
+        alert("My Account selected");
+      }
+      break;
+    case "Escape":
+    case "Backspace":
+    case "XF86Back":
+      closeSidebar();
+      break;
   }
+}
 
-  function handleSortOptionsKeys(e) {
-    const sortOptionItems = Array.from(sortOptions.querySelectorAll(".sort-option"));
-    if (!sortOptionItems.length) return;
-    
-    let activeIndex = sortOptionItems.findIndex((item) => item.classList.contains("active"));
-    if (activeIndex === -1) activeIndex = 0;
+ function handleSortOptionsKeys(e) {
+  const sortOptionItems = Array.from(sortOptions.querySelectorAll(".sort-option"));
+  if (!sortOptionItems.length) return;
+  
+  let activeIndex = sortOptionItems.findIndex((item) => item.classList.contains("active"));
+  if (activeIndex === -1) activeIndex = 0;
 
-    switch (e.key) {
-      case "ArrowDown":
-        activeIndex = (activeIndex + 1) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
-        break;
-      case "ArrowUp":
-        activeIndex = (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
-        break;
-      case "Enter":
-        const activeSortItem = sortOptionItems[activeIndex];
-        const checkbox = activeSortItem.querySelector(".sort-checkbox");
-        if (checkbox) {
-          checkbox.checked = true;
-          setSortOption(checkbox.dataset.sort);
-          // Optionally close sort menu after selection
-          // closeSortMenu();
-        }
-        break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-        closeSortMenu();
-        break;
-    }
+  switch (e.key) {
+    case "ArrowDown":
+      activeIndex = (activeIndex + 1) % sortOptionItems.length;
+      updateSortOptionsSelection(sortOptionItems, activeIndex);
+      break;
+    case "ArrowUp":
+      activeIndex = (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
+      updateSortOptionsSelection(sortOptionItems, activeIndex);
+      break;
+    case "Enter":
+      const activeSortItem = sortOptionItems[activeIndex];
+      const checkbox = activeSortItem.querySelector(".sort-checkbox");
+      if (checkbox) {
+        checkbox.checked = true;
+        setSortOption(checkbox.dataset.sort);
+      }
+      break;
+    case "Escape":
+    case "Backspace":
+    case "XF86Back":
+      closeSortMenu();
+      break;
   }
+}
 
   function updateSidebarSelection(items, index) {
     items.forEach((item) => {

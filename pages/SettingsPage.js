@@ -97,13 +97,10 @@ function SettingsPage() {
     }
 
     function setupSubPageCleanup() {
-      // No-op: Subpages handle their own Back/Exit keys to avoid conflicts
     }
 
-    // Set up cleanup for the default StreamFormat view
     setupSubPageCleanup();
 
-    // Observe changes to subpage container to keep isInSubPage in sync
     const subPageContainerObserver = new MutationObserver(function() {
       const subContainer = document.querySelector(".settings-second-container");
       if (!subContainer) return;

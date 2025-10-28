@@ -1,12 +1,146 @@
-.movies-page-container{
-      height: 100vh;
+.movies-page-container {
+  height: 100vh;
   width: 100%;
+  padding-top: 250px;
+  padding-left: 60px;
+  padding-right: 60px;
+  padding-bottom: 100px;
   overflow-x: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 50px;
   animation: fadeInOut 1s ease-in-out;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+}
+
+.movies-fav-container h1 {
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.movies-popular-container h1 {
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.movies-fav-list {
+  display: flex;
+  overflow-y: hidden;
+  margin-bottom: 40px;
+}
+
+.movies-fav-list::-webkit-scrollbar {
+  display: none;
+}
+
+.movies-fav-card {
+  margin-right: 30px;
+  border-radius: 16px;
+  flex-shrink: 0;
+  height: 300px;
+  width: 220px; 
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  overflow: hidden;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Add hover effect */
+.movies-fav-card:hover::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  outline: none;
+  width: 100%;
+  border:  2px solid var(--dark-gold);
+  height: 100%;
+    background: 
+    linear-gradient(181.38deg, rgba(15, 15, 15, 0.07) 76.76%, #0D0E3B 95.16%),
+    linear-gradient(1.38deg, rgba(15, 15, 15, 0.07) 76.76%, rgba(0, 0, 0, 0.85) 95.16%),
+    linear-gradient(270deg, rgba(15, 15, 15, 0.07) 34.66%, rgba(0, 0, 0, 0.85) 90.03%),
+    linear-gradient(90deg, rgba(15, 15, 15, 0.07) 34.66%, rgba(0, 0, 0, 0.85) 90.03%);
+  z-index: 1;
+}
+
+.movies-fav-card-content{
+  display: flex;
+  padding: 10px;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2; /* Ensure content stays above the hover overlay */
+}
+
+.movies-fav-heart {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.movies-fav-card::before{
+  content: "";
+  position: absolute;
+  top: 0;
+
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bottom-card-content{
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.bottom-card-first{
+  font-size: 16px;
+  font-weight: 400;
+  width: 50%;
+}
+
+.bottom-card-second{
+  font-size: 16px;
+  text-align: end;
+  font-weight: 400;
+  width: 50%;
+}
+
+.bottom-card-first h2{
+  font-weight: 400;
+  width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-card-second h2{
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom-card-second h3{
+  font-weight: 200;
+  white-space: nowrap;
+}
+
+.movies-fav-play-div{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.movies-fav-play{
+  width: 73px;
+  margin-bottom: 30px;
+  height: 73px;
+  object-fit: contain;
+  text-align: center;
 }
