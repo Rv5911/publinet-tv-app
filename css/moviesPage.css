@@ -7,6 +7,9 @@
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
+.movies-page-container::-webkit-scrollbar {
+  display: none;
+}
 
 .movies-fav-container h1,
 .movies-popular-container h1,

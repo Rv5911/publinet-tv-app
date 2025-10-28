@@ -54,7 +54,7 @@ function SeriesPage() {
                 genre: "Drama",
                 seasons: "3 Seasons",
                 year: "2020-2023",
-                image: "./assets/demo-img-card.png"
+                image: "./assets/series-demo.jpg"
               }, "normal")
             )
             .join("")}
@@ -72,7 +72,7 @@ function SeriesPage() {
                 genre: "Action",
                 seasons: "5 Seasons",
                 year: "2018-2024",
-                image: "./assets/demo-img-card.png"
+                image: "./assets/series-demo.jpg"
               }, "large")
             )
             .join("")}
@@ -90,30 +90,14 @@ function SeriesPage() {
                 genre: "Comedy",
                 seasons: "1 Season",
                 year: "2024",
-                image: "./assets/demo-img-card.png"
+                image: "./assets/series-demo.jpg"
               }, "normal")
             )
             .join("")}
         </div>
       </div>
 
-      <div class="series-section">
-        <h1 class="series-section-title">Continue Watching</h1>
-        <div class="series-list series-list-normal">
-          ${Array.from({ length: 15 })
-            .map(
-              (_, index) => createSeriesCard({
-                id: index + 51,
-                title: `Continue Series ${index + 1}`,
-                genre: "Thriller",
-                seasons: "2 Seasons",
-                year: "2022-2023",
-                image: "./assets/demo-img-card.png"
-              }, "normal")
-            )
-            .join("")}
-        </div>
-      </div>
+    
     </div>
   `;
 }
