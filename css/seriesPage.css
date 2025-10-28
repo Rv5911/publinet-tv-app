@@ -1,12 +1,189 @@
-.series-page-container{
-      height: 100vh;
+.series-container {
+  height: 100vh;
   width: 100%;
+  padding: 250px 60px 100px;
   overflow-x: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 50px;
   animation: fadeInOut 1s ease-in-out;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+
+}
+
+.series-section {
+  margin-bottom: 40px;
+}
+
+.series-section-title {
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.series-list {
+  display: flex;
+  overflow-y: hidden;
+  padding: 10px;
+  scroll-behavior: smooth;
+}
+
+.series-list::-webkit-scrollbar {
+  display: none;
+}
+
+.series-card {
+  border-radius: 16px;
+  flex-shrink: 0;
+  height: 300px;
+  margin-right: 30px;
+  width: 220px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  position: relative;
+  overflow: hidden; 
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  cursor: pointer;
+  transition: border 0.2s ease, transform 0.2s ease;
+  z-index: 0;
+}
+
+/* Large Card Style for Most Popular */
+.series-card-large {
+  width: 500px;
+  height: 350px;
+}
+
+.series-card:hover {
+  border: 2px solid var(--dark-gold);
+  transform: scale(1.03);
+  z-index: 1; 
+}
+
+.series-card:hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(217, 217, 217, 0) 11.21%,
+    rgba(0, 0, 0, 0.926) 79.94%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+.series-card.series-focused {
+  border: 2px solid var(--dark-gold);
+  transform: scale(1.05);
+  outline: none;
+  z-index: 2;
+}
+
+.series-card.series-focused::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(217, 217, 217, 0) 11.21%,
+    rgba(0, 0, 0, 0.926) 79.94%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Series Card Content */
+.series-card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+  height: 100%;
+  position: relative;
+  z-index: 2; 
+}
+
+.series-card-top {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.series-card-heart {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.series-card-center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.series-card-play {
+  width: 73px;
+  height: 73px;
+  object-fit: contain;
+  margin-bottom: 30px;
+}
+
+.series-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.series-card-info-left,
+.series-card-info-right {
+  width: 50%;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.series-card-info-right {
+  text-align: end;
+}
+
+.series-card-title,
+.series-card-year {
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.series-card-seasons {
+  font-weight: 200;
+  white-space: nowrap;
+}
+
+.series-card-large .series-card-content {
+  padding: 15px;
+}
+
+.series-card-large .series-card-heart {
+  width: 35px;
+  height: 35px;
+}
+
+.series-card-large .series-card-play {
+  width: 85px;
+  height: 85px;
+  margin-bottom: 40px;
+}
+
+.series-card-large .series-card-bottom {
+  font-size: 18px;
+}
+
+.series-card-large .series-card-title,
+.series-card-large .series-card-year {
+  font-size: 20px;
+}
+
+.series-card-large .series-card-genre,
+.series-card-large .series-card-seasons {
+  font-size: 18px;
 }
