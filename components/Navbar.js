@@ -182,15 +182,20 @@ switch (key) {
       break;
 
     }
-  case "ArrowLeft":
-    if (searchInput.classList.contains("active")) {
-      return;
-    }else{
+case "ArrowLeft":
+  if (searchInput.classList.contains("active")) {
+    // Blur input first so it no longer looks focused
+    searchInput.blur();
 
-      currentIndex = (currentIndex - 1 + totalItems) % totalItems;
-      highlightNavItem(currentIndex);
-      break;
-    }
+    // Move to Home
+    currentIndex = 1;
+    highlightNavItem(currentIndex);
+  } else {
+    currentIndex = (currentIndex - 1 + totalItems) % totalItems;
+    highlightNavItem(currentIndex);
+  }
+  break;
+
 
       case "Enter":
         if (currentIndex === 0) {
@@ -211,22 +216,24 @@ switch (key) {
     }
   });
 
-  function highlightNavItem(index) {
-    searchInput.classList.remove("active");
-    navItems.forEach((i) => i.classList.remove("active"));
-    profileIcon.classList.remove("active");
+function highlightNavItem(index) {
+  searchInput.classList.remove("active");
+  navItems.forEach((i) => i.classList.remove("active"));
+  profileIcon.classList.remove("active");
 
-    if (index === 0) {
-      navItems.forEach((i) => i.classList.remove("active"));
-      searchInput.classList.add("active");
-    } else if (index === totalItems - 1) {
-      profileIcon.classList.add("active");
-      profileIcon.focus();
-    } else {
-      navItems[index - 1].classList.add("active");
-      navItems[index - 1].focus();
-    }
+  if (index === 0) {
+    searchInput.classList.add("active");
+    searchInput.focus();
+  } else if (index === totalItems - 1) {
+    profileIcon.classList.add("active");
+    profileIcon.focus();
+  } else {
+    const item = navItems[index - 1];
+    item.classList.add("active");
+    item.focus();
   }
+}
+
 
   function updateNavbarActive(page) {
     const index = pageIndexMap[page] || 0;
