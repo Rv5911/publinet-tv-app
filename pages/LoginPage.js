@@ -5,6 +5,7 @@ function LoginPage() {
 
   // Delay setup until after page is in DOM
   setTimeout(function () {
+    localStorage.removeItem("navigationFocus")
     if(localStorage.getItem("currentPage") !== "login") return
     if (LoginPage.cleanup) LoginPage.cleanup();
 

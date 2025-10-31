@@ -6,6 +6,7 @@ window.onload = function () {
   window.allLiveStreams = [];
   window.liveCategories = [];
 
+
   if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
     const keys = tizen.tvinputdevice.getSupportedKeys();
     keys.forEach((key) => {
@@ -39,8 +40,16 @@ window.onload = function () {
   Router.showPage("splashScreen");
 
     setTimeout(() => {
-      localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("moviesPage");
+      const playlistsData= localStorage.getItem("playlistsData") ? JSON.parse(localStorage.getItem("playlistsData")) : [];
+      if(playlistsData.length>0){
+        localStorage.removeItem("navigationFocus");
+        localStorage.setItem("currentPage", "listPage");
+        Router.showPage("listPage");
+      }else{
+      localStorage.setItem("currentPage", "login");
+      Router.showPage("login");
+      }
+
     }, 0);
 
   if (typeof Toaster === "function") Toaster();

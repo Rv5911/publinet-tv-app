@@ -172,6 +172,7 @@ async function loginApi(
 
             updateLoadingPercentage(100, "Login successful!");
             setTimeout(() => {
+              localStorage.setItem("navigationFocus","navbar")
               localStorage.setItem("currentPage", "homePage");
               Router.showPage("homePage");
               loadingOverlay.classList.add("hidden");
@@ -289,6 +290,8 @@ async function loginApi(
 
             updateLoadingPercentage(100, "Login successful!");
             setTimeout(() => {
+                            localStorage.setItem("navigationFocus","navbar")
+
               localStorage.setItem("currentPage", "homePage");
               Router.showPage("homePage");
               loadingOverlay.classList.add("hidden");

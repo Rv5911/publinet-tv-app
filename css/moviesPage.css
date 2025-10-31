@@ -66,11 +66,7 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: linear-gradient(
-    180deg,
-    rgba(217, 217, 217, 0) 11.21%,
-    rgba(0, 0, 0, 0.926) 79.94%
-  );
+  background: linear-gradient(to top, rgba(0, 0, 0, 1), transparent);
   z-index: 1;
   pointer-events: none;
 }
@@ -87,11 +83,8 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: linear-gradient(
-    180deg,
-    rgba(217, 217, 217, 0) 11.21%,
-    rgba(0, 0, 0, 0.926) 79.94%
-  );
+  
+  background: linear-gradient(to top, rgba(0, 0, 0, 1), transparent);
   z-index: 1;
   pointer-events: none;
 }
