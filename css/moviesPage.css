@@ -97,32 +97,69 @@
   padding: 10px;
   height: 100%;
   position: relative;
-  z-index: 2; 
+  z-index: 2;
+  pointer-events: none;
+}
+
+.movie-card-content > * {
+  pointer-events: none;
+}
+
+.movie-card-top {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .movie-card-heart {
   width: 30px;
   height: 30px;
   object-fit: contain;
+  opacity: 1;
+  visibility: visible;
+  /* Always visible */
 }
 
 .movie-card-play-div {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
+  flex: 1;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+}
+
+.movie-card.focused .movie-card-play-div {
+  opacity: 1;
+  visibility: visible;
 }
 
 .movie-card-play {
   width: 73px;
   height: 73px;
   object-fit: contain;
-  margin-bottom: 30px;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
 }
 
 .movie-card-bottom {
   display: flex;
   justify-content: space-between;
   width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.movie-card.focused .movie-card-bottom {
+  opacity: 1;
+  visibility: visible;
 }
 
 .movie-card-bottom-left,
@@ -140,8 +177,59 @@
 .movie-card-bottom-right h2 {
   font-weight: 400;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.movie-card-bottom-left h2:not(.movie-title-marquee),
+.movie-card-bottom-right h2:not(.movie-title-marquee) {
+  text-overflow: ellipsis;
+}
+
+/* Marquee effect for long titles */
+.movie-card-bottom-left {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* Default state - show ellipsis for titles when not focused */
+.movie-title-marquee {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  animation: none;
+}
+
+/* When focused - enable marquee animation for all titles */
+.movie-card.focused .movie-card-bottom-left {
+  overflow: hidden;
+}
+
+.movie-card.focused .movie-title-marquee {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  animation: marquee 10s linear infinite !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+  /* Start with text off-screen to the right */
+  padding-left: 100% !important;
+  /* Allow full width of text */
+  width: auto !important;
+  max-width: none !important;
+  /* Remove ellipsis */
+  text-overflow: clip !important;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    /* Scroll text from right to left completely off-screen */
+    transform: translateX(-200%);
+  }
 }
 
 .movie-card-bottom-right h3 {
@@ -162,7 +250,6 @@
 .movie-card-large .movie-card-play {
   width: 85px;
   height: 85px;
-  margin-bottom: 40px;
 }
 
 .movie-card-large .movie-card-bottom {
@@ -177,4 +264,42 @@
 .movie-card-large .movie-card-bottom-left h3,
 .movie-card-large .movie-card-bottom-right h3 {
   font-size: 18px;
+}
+
+/* Loading indicator in card list */
+.movies-loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 30px;
+  min-width: 250px;
+  flex-shrink: 0;
+  margin-right: 30px;
+  height: 300px;
+}
+
+.movies-loading-indicator::before {
+  content: "";
+  width: 30px;
+  height: 30px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #FDBD0F;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 15px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.movies-loading-indicator p {
+  color: white;
+  font-size: 18px;
+  font-weight: 400;
+  margin: 0;
+  white-space: nowrap;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
