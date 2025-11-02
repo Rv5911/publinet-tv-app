@@ -211,7 +211,9 @@ document.addEventListener("keydown", (e) => {
       }
       break;
 case "ArrowDown":
-  if (currentPage === "moviesPage") {
+  // Only handle ArrowDown if we're on navbar focus AND on moviesPage
+  // This prevents interference when already navigating movies
+  if (currentPage === "moviesPage" && navigationFocus === "navbar") {
     localStorage.setItem("navigationFocus", "moviesPage");
     
     navItems.forEach(item => item.classList.remove("active"));
@@ -221,7 +223,9 @@ case "ArrowDown":
     if (window.moviesNavigationState) {
       window.moviesNavigationState.currentCategoryIndex = 0;
       window.moviesNavigationState.currentCardIndex = 0;
-      window.saveNavigationState(); 
+      if (window.saveNavigationState) {
+        window.saveNavigationState(); 
+      }
     }
     
     setTimeout(() => {

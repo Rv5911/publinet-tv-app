@@ -96,11 +96,11 @@ body::-webkit-scrollbar {
 }
 
 .spinner {
-  border: 1px solid var(--gold);
+  border: 2px solid var(--gold);
   border-left-color: transparent;
   width: 36px;
   height: 36px;
-  animation: spin89345 0.9s linear infinite;
+  animation: spin89345 0.8s linear infinite;
 }
 
 @keyframes spin89345 {
