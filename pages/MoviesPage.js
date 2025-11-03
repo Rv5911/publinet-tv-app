@@ -1,4 +1,3 @@
-// === MEMORY OPTIMIZATION: Global navigation state ===
 let moviesNavigationState = {
     currentCategoryIndex: 0,
     currentCardIndex: 0,
@@ -6,14 +5,11 @@ let moviesNavigationState = {
     lastFocusedCard: 0
 };
 
-// Track if navigation is initialized
 let isNavigationInitialized = false;
 
-// Increased key debouncing to prevent fast movement
 let lastKeyPressTime = 0;
-let keyPressDelay = 300; // Increased from 150 to 300ms
+let keyPressDelay = 300; 
 
-// Chunk loading state - optimized for 512MB RAM
 let chunkLoadingState = {
     loadedCategories: 0,
     categoryChunkSize: 4,
@@ -22,7 +18,6 @@ let chunkLoadingState = {
     isLoading: false
 };
 
-// Enter key press tracking for long press detection
 let enterKeyState = {
     isPressed: false,
     pressStartTime: 0,
@@ -30,7 +25,6 @@ let enterKeyState = {
     timeoutId: null
 };
 
-// === SIMPLIFIED MOVIE DATA FORMAT ===
 function formatMovieData(movieStream) {
     if (!movieStream) return null;
     
@@ -510,32 +504,38 @@ function moveLeft() {
 }
 
 function moveDown() {
+ 
     let allCategories = window.allMoviesCategories || [];
     if (allCategories.length === 0) return;
     
     let currentIndex = moviesNavigationState.currentCategoryIndex;
     
-    // Store current position before moving
-    moviesNavigationState.lastFocusedCategory = currentIndex;
-    moviesNavigationState.lastFocusedCard = moviesNavigationState.currentCardIndex;
+    let currentCardIndex = moviesNavigationState.currentCardIndex;
     
-    // FIXED: Find next category that has movies
-    let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1); // direction 1 = down
-    
+    let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1); 
+
+    if(nextCategoryIndex>3){
+       const navbarEl=document.querySelector("#navbar-root");
+
+    if(navbarEl){
+        navbarEl.style.display="none";
+    }
+    }
+    // console.log(nextCategoryIndex,"nextCategoryIndex")
     if (nextCategoryIndex !== -1) {
         moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
         
-        // FIXED: Try to focus on same index in next category, or last available card
+        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentCategory();
         if (newCategory) {
             let loadedCount = getLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
-            let previousCardIndex = moviesNavigationState.lastFocusedCard;
             
-            // If same index exists in new category, use it. Otherwise use last available card.
-            if (previousCardIndex < loadedCount) {
-                moviesNavigationState.currentCardIndex = previousCardIndex;
+            // Keep the same card index if it exists in the new category
+            if (currentCardIndex < loadedCount) {
+                moviesNavigationState.currentCardIndex = currentCardIndex;
             } else {
-                moviesNavigationState.currentCardIndex = Math.max(0, loadedCount - 1);
+                // If current index doesn't exist, go to first card
+                moviesNavigationState.currentCardIndex = 0;
             }
         } else {
             moviesNavigationState.currentCardIndex = 0;
@@ -560,11 +560,11 @@ function moveDown() {
 }
 
 function moveUp() {
+
     let currentIndex = moviesNavigationState.currentCategoryIndex;
     
-    // Store current position before moving
-    moviesNavigationState.lastFocusedCategory = currentIndex;
-    moviesNavigationState.lastFocusedCard = moviesNavigationState.currentCardIndex;
+    // Store current card index before moving
+    let currentCardIndex = moviesNavigationState.currentCardIndex;
     
     // FIXED: Find previous category that has movies
     let prevCategoryIndex = findNextCategoryWithMovies(currentIndex - 1, -1); // direction -1 = up
@@ -572,36 +572,57 @@ function moveUp() {
     if (prevCategoryIndex !== -1) {
         moviesNavigationState.currentCategoryIndex = prevCategoryIndex;
         
-        // FIXED: Try to focus on same index in previous category, or last available card
+        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentCategory();
         if (newCategory) {
             let loadedCount = getLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
-            let previousCardIndex = moviesNavigationState.lastFocusedCard;
             
-            // If same index exists in previous category, use it. Otherwise use last available card.
-            if (previousCardIndex < loadedCount) {
-                moviesNavigationState.currentCardIndex = previousCardIndex;
+            // Keep the same card index if it exists in the new category
+            if (currentCardIndex < loadedCount) {
+                moviesNavigationState.currentCardIndex = currentCardIndex;
             } else {
-                moviesNavigationState.currentCardIndex = Math.max(0, loadedCount - 1);
+                // If current index doesn't exist, go to first card
+                moviesNavigationState.currentCardIndex = 0;
             }
         } else {
             moviesNavigationState.currentCardIndex = 0;
         }
     } else {
-        // Go back to navbar (no more categories with movies above)
-        removeAllFocus();
-        saveNavigationState();
-        localStorage.setItem("navigationFocus", "navbar");
-        
-        let moviesNavItem = document.querySelector('.nav-item[data-page="moviesPage"]');
-        if (moviesNavItem) {
-            moviesNavItem.focus();
-            moviesNavItem.classList.add("active");
-        }
+  removeAllFocus();
+  saveNavigationState();
+  localStorage.setItem("navigationFocus", "navbar");
+
+  setTimeout(() => {
+        const navbarEl=document.querySelector("#navbar-root");
+
+    if(navbarEl){
+        navbarEl.style.display="block";
     }
+    const scrollable = document.querySelector('.movies-page-container') || document.scrollingElement || document.documentElement;
+
+    if (scrollable) {
+      scrollable.scrollTop = 0;
+    }
+
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    if (typeof window.scrollTo === "function") {
+      try {
+        window.scrollTo(0, 0);
+      } catch (_) {}
+    }
+
+    const moviesNavItem = document.querySelector('.nav-item[data-page="moviesPage"]');
+    if (moviesNavItem) {
+      moviesNavItem.focus();
+      moviesNavItem.classList.add("active");
+    }
+  }, 50); 
 }
 
-// === LOAD MORE MOVIES FOR CURRENT CATEGORY ===
+}
+
 function loadMoreMoviesForCategory(categoryIndex) {
     if (chunkLoadingState.isLoading) return;
     
@@ -707,6 +728,7 @@ function scrollToElement(element) {
     
     try {
         // Use nearest for smooth scrolling
+          document.body.scrollTop = 30
         element.scrollIntoView({ 
             block: "nearest", 
             inline: "nearest" 
@@ -903,5 +925,3 @@ window.moviesNavigationState = moviesNavigationState;
 window.updateFocus = updateFocus;
 window.saveNavigationState = saveNavigationState;
 window.rerenderMoviesPage = MoviesPage;
-
-console.log("Complete MoviesPage loaded - Fixed navigation speed and empty categories");
