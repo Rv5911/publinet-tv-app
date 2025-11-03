@@ -211,32 +211,48 @@ document.addEventListener("keydown", (e) => {
       }
       break;
 case "ArrowDown":
-  // Only handle ArrowDown if we're on navbar focus AND on moviesPage
-  // This prevents interference when already navigating movies
-  if (currentPage === "moviesPage" && navigationFocus === "navbar") {
-    localStorage.setItem("navigationFocus", "moviesPage");
+  // Handle ArrowDown for both moviesPage and liveTvPage
+  if ((currentPage === "moviesPage" || currentPage === "liveTvPage") && navigationFocus === "navbar") {
+    localStorage.setItem("navigationFocus", currentPage);
     
     navItems.forEach(item => item.classList.remove("active"));
     searchInput.classList.remove("active");
     profileIcon.classList.remove("active");
     
-    if (window.moviesNavigationState) {
+    // For liveTvPage, focus on first category
+    if (currentPage === "liveTvPage") {
+      setTimeout(() => {
+        // Call the focusCategories function from your LiveTvPage
+        if (typeof focusCategories === 'function') {
+          focusCategories(0); // Focus on first category
+        }
+        // Alternatively, if you need to access the LiveTvPage functions
+        const firstCategory = document.querySelector(".livetv-channel-category");
+        if (firstCategory) {
+          firstCategory.focus();
+          firstCategory.classList.add("livetv-channel-category-focused");
+        }
+      }, 10);
+    }
+    
+    // Existing moviesPage logic
+    if (currentPage === "moviesPage" && window.moviesNavigationState) {
       window.moviesNavigationState.currentCategoryIndex = 0;
       window.moviesNavigationState.currentCardIndex = 0;
       if (window.saveNavigationState) {
         window.saveNavigationState(); 
       }
-    }
-    
-    setTimeout(() => {
-      const firstCard = document.querySelector(".movie-card");
-      if (firstCard) {
-        firstCard.focus();
-        if (window.updateFocus) {
-          window.updateFocus();
+      
+      setTimeout(() => {
+        const firstCard = document.querySelector(".movie-card");
+        if (firstCard) {
+          firstCard.focus();
+          if (window.updateFocus) {
+            window.updateFocus();
+          }
         }
-      }
-    }, 10);
+      }, 10);
+    }
   }
   break;
     case "Enter":

@@ -1,3 +1,5 @@
+const adultsCategories=["Adult","XXX","18+","18 +","Erotica","Adult Movies","Adult Series","Nude","Nudity","Sex","Sexual"];
+
 function clearLocalStorageExcept(keepKeys) {
   var temp = {};
 
@@ -31,7 +33,6 @@ function formatUnixDate(timestamp) {
 }
 
 
-// playlistManager.js
 
 function updatePlaylistData(playlistId, key, value) {
   let playlistsData = JSON.parse(localStorage.getItem("playlistsData")) || [];
@@ -68,7 +69,7 @@ function savePlaylistsData(data) {
 function getCurrentPlaylistUsername() {
   try {
     const cp = JSON.parse(localStorage.getItem("currentPlaylistData")) || {};
-    return (cp.user_info && cp.user_info.username) || cp.playlistUsername || null;
+    return cp.playlistName ? cp.playlistName : null;
   } catch (e) {
     return null;
   }
@@ -91,7 +92,7 @@ function isItemFavoriteForPlaylist(item, typeKey, playlistUsername) {
   if (!username) return false;
 
   const playlists = getPlaylistsData();
-  const pl = playlists.find(p => p.playlistUsername === username);
+  const pl = playlists.find(p => p.playlistName === username);
   if (!pl || !pl[typeKey]) return false;
 
   const uid = getItemUniqueId(item);
@@ -106,7 +107,7 @@ function saveItemToCurrentPlaylist(item, typeKey, playlistUsername) {
   if (!username) return false;
 
   const playlists = getPlaylistsData();
-  const pl = playlists.find(p => p.playlistUsername === username);
+  const pl = playlists.find(p => p.playlistName === username);
   if (!pl || !pl[typeKey]) return false;
 
   const uid = getItemUniqueId(item);
@@ -121,7 +122,7 @@ function addItemToHistory(item, typeKey, playlistUsername) {
   if (!username) return;
 
   const playlists = getPlaylistsData();
-  const plIndex = playlists.findIndex(p => p.playlistUsername === username);
+  const plIndex = playlists.findIndex(p => p.playlistName === username);
   if (plIndex === -1) return;
 
   const pl = playlists[plIndex];
@@ -182,7 +183,7 @@ function removeItemFromHistoryById(streamIds, typeKey, playlistUsername) {
   if (!username) return;
 
   const playlists = getPlaylistsData();
-  const plIndex = playlists.findIndex(p => p.playlistUsername === username);
+  const plIndex = playlists.findIndex(p => p.playlistName === username);
   if (plIndex === -1) return;
 
   const pl = playlists[plIndex];
@@ -220,7 +221,7 @@ function removeAllFromHistory(typeKey, playlistUsername) {
   }
 
   const playlists = getPlaylistsData();
-  const plIndex = playlists.findIndex(p => p.playlistUsername === username);
+  const plIndex = playlists.findIndex(p => p.playlistName === username);
   if (plIndex === -1) {
     console.warn(`Playlist not found for username: ${username}`);
     return;
@@ -258,7 +259,7 @@ function toggleFavoriteItem(item, typeKey, playlistUsername) {
   const uid = getItemUniqueId(item);
   if (!uid) return { success: false, message: "item has no unique id", isFav: false };
 
-  const plIndex = playlists.findIndex(p => p.playlistUsername === username);
+  const plIndex = playlists.findIndex(p => p.playlistName === username);
   if (plIndex === -1) {
     // create minimal playlist entry with the right key
     const newPl = { playlistName: username, playlistUrl: "", playlistUsername: username };
@@ -520,3 +521,4 @@ window.removeAllFromHistory = removeAllFromHistory;
 window.applyMarqueeEffect = applyMarqueeEffect;
 
 window.decodeBase64 = decodeBase64;
+window.adultsCategories = adultsCategories;

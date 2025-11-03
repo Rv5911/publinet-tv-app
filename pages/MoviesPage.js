@@ -5,10 +5,14 @@ let moviesNavigationState = {
     lastFocusedCard: 0
 };
 
+        let allMoviesStreamsData = window.allMoviesStreams || [];
+  let favoriteMoviesIds= [];
+
 let isNavigationInitialized = false;
 
 let lastKeyPressTime = 0;
 let keyPressDelay = 300; 
+let favoritesMoviesArray = [];
 
 let chunkLoadingState = {
     loadedCategories: 0,
@@ -53,21 +57,22 @@ function formatDuration(movie) {
     return "2h 0m";
 }
 
-// === SIMPLIFIED DATA GETTERS ===
 function getFavoriteMovies() {
     try {
-        let username = window.getCurrentPlaylistUsername ? window.getCurrentPlaylistUsername() : null;
+        const username = getCurrentPlaylistUsername();
         if (!username) return [];
+
+        const playlists = getPlaylistsData();
+        const playlist = playlists.find(p => p.playlistName === username);
         
-        let playlists = window.getPlaylistsData ? window.getPlaylistsData() : [];
-        for (let i = 0; i < playlists.length; i++) {
-            if (playlists[i].playlistUsername === username) {
-                let favorites = playlists[i].favoritesMovies || [];
-                return favorites.slice(0, 20).map(formatMovieData).filter(m => m !== null);
-            }
+        if (playlist && playlist.movies) {
+            console.log(playlist.movies, "PLAYLIST MOVIES");
+            return playlist.movies.map(id => id.toString()); // Ensure all IDs are strings
         }
+        
         return [];
     } catch (e) {
+        console.error("Error getting favorite movies:", e);
         return [];
     }
 }
@@ -92,7 +97,6 @@ function getRecentlyWatchedMovies() {
 
 function getPopularMovies() {
     try {
-        let allMoviesStreamsData = window.allMoviesStreams || [];
         if (allMoviesStreamsData.length === 0) return [];
         
         let sorted = allMoviesStreamsData.slice(0, 50);
@@ -139,38 +143,41 @@ function getAPICategories() {
     return categories;
 }
 
-// === FIXED MOVIE CARD CREATION WITH IMAGES AND MARQUEE ===
 function createMovieCard(movieData, size, categoryIndex, movieIndex) {
     let isLarge = size === "large";
     let cardClass = isLarge ? "movie-card movie-card-large" : "movie-card";
-    
+    let movieId = String(movieData.stream_id || movieData.id);
+    let isMovieFav = favoriteMoviesIds.some(favId => String(favId) === movieId);
     let imageUrl = movieData.image || "./assets/demo-img-card.png";
     let titleClass = 'movie-title-marquee';
     
-    return '<div class="' + cardClass + '" ' +
-           'data-category="' + categoryIndex + '" ' +
-           'data-index="' + movieIndex + '" ' +
-           'data-stream-id="' + (movieData.stream_id || movieData.id) + '" ' +
-           'style="background-image: url(\'' + imageUrl + '\')">' +
-           '<div class="movie-card-content">' +
-           '<div class="movie-card-top">' +
-           '<img src="./assets/heartIcon.png" alt="img" class="movie-card-heart" />' +
-           '</div>' +
-           '<div class="movie-card-play-div">' +
-           '<img src="./assets/card-play-icon.png" alt="Play" class="movie-card-play" />' +
-           '</div>' +
-           '<div class="movie-card-bottom">' +
-           '<div class="movie-card-bottom-left">' +
-           '<h3>' + (movieData.genre || "Movie") + '</h3>' +
-           '<h2 class="' + titleClass + '">' + (movieData.title || "Unknown") + '</h2>' +
-           '</div>' +
-           '<div class="movie-card-bottom-right">' +
-           '<h3>' + (movieData.duration || "2h 0m") + '</h3>' +
-           '<h2>' + (movieData.year || "Unknown") + '</h2>' +
-           '</div>' +
-           '</div>' +
-           '</div>' +
-           '</div>';
+    return `<div class="${cardClass}" 
+            data-category="${categoryIndex}" 
+            data-index="${movieIndex}" 
+            data-stream-id="${movieId}" 
+            style="background-image: url('${imageUrl}')">
+            <div class="movie-card-content">
+                <div class="movie-card-top">
+                    <img src="./assets/heartIcon.png" 
+                         style="display: ${isMovieFav ? 'block' : 'none'}" 
+                         alt="Favorite" 
+                         class="movie-card-heart" />
+                </div>
+                <div class="movie-card-play-div">
+                    <img src="./assets/card-play-icon.png" alt="Play" class="movie-card-play" />
+                </div>
+                <div class="movie-card-bottom">
+                    <div class="movie-card-bottom-left">
+                        <h3>${movieData.genre || "Movie"}</h3>
+                        <h2 class="${titleClass}">${movieData.title || "Unknown"}</h2>
+                    </div>
+                    <div class="movie-card-bottom-right">
+                        <h3>${movieData.duration || "2h 0m"}</h3>
+                        <h2>${movieData.year || "Unknown"}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>`;
 }
 
 function createLoadingIndicator(categoryIndex) {
@@ -367,7 +374,6 @@ function handleEnterKey(e) {
 }
 
 function handleSimpleEnter() {
-    // FIXED: Check if current category has movies before handling enter
     if (!categoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
         return;
     }
@@ -381,11 +387,25 @@ function handleSimpleEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        console.log('Simple Enter click on movie:', streamId);
-        alert('Simple Enter click - Play Movie: ' + streamId);
+        alert("Stream ID: " + streamId);
+
+        //         localStorage.setItem("moviesCategoryIndex", categoryIndex);
+        // localStorage.setItem("moviesCardIndex", cardIndex);
+        // localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
         
-        // Here you can navigate to movie detail page or play movie
-        // Example: navigateToMovieDetail(streamId);
+        // localStorage.setItem("selectedMovieId", streamId);
+        // localStorage.setItem("currentPage", "moviesDetailPage");
+        // console.log(streamId,"streamId")
+
+        //  const selectedMovieItem=allMoviesStreams.find(item=>item.stream_id==streamId);
+        //  if(selectedMovieItem){
+
+        //      localStorage.setItem("selectedMovieData", JSON.stringify(selectedMovieItem));
+        //      console.log("selected streamId",streamId)
+        //  }
+        // document.querySelector("#loading-progress").style.display = "none";
+        // Router.showPage("movieDetailPage");
+
     }
 }
 
@@ -404,10 +424,9 @@ function handleLongPressEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        console.log('Long press Enter on movie:', streamId);
-        alert('Long press Enter - Show Options: ' + streamId);
-        
-        // Here you can show options menu or add to favorites
+        alert("Stream ID: " + streamId);
+        // console.log("streamId",streamId)
+        // toggleFavoriteItem(streamId, "movies", getCurrentPlaylistUsername());
         // Example: showMovieOptions(streamId);
     }
 }
@@ -837,9 +856,18 @@ function MoviesPage() {
     localStorage.setItem("currentPage", "moviesPage");
     localStorage.setItem("navigationFocus", "moviesPage");
     
-    // Get categories data after a short delay to show loading
     setTimeout(function() {
-        let favoriteMovies = getFavoriteMovies();
+   favoriteMoviesIds = getFavoriteMovies();
+        
+        let favoriteMoviesData = window.allMoviesStreams.filter(m => {
+            let streamIdStr = m.stream_id ? m.stream_id.toString() : '';
+            return favoriteMoviesIds.includes(streamIdStr);
+        });
+        
+        console.log(favoriteMoviesData, "FAVORITE MOVIES DATA");
+        console.log("Favorite IDs:", favoriteMoviesIds);
+        console.log("Available stream IDs:", allMoviesStreamsData.map(m => m.stream_id));
+        
         let popularMovies = getPopularMovies();
         let recentlyWatchedMovies = getRecentlyWatchedMovies();
         let apiCategories = getAPICategories();
@@ -848,7 +876,7 @@ function MoviesPage() {
         let initialCategories = [
             { 
                 title: "My Fav", 
-                movies: favoriteMovies, 
+                movies: favoriteMoviesData, // Use the filtered data
                 id: "fav", 
                 containerClass: "movies-fav-container"
             },
