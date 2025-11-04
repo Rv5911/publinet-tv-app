@@ -6,7 +6,6 @@ window.onload = function () {
   window.allLiveStreams = [];
   window.liveCategories = [];
 
-
   if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
     const keys = tizen.tvinputdevice.getSupportedKeys();
     keys.forEach((key) => {
@@ -20,13 +19,20 @@ window.onload = function () {
       sidebar &&
       sidebar.classList &&
       !sidebar.classList.contains("hidden") &&
-      ["ArrowUp","ArrowDown","Enter","Escape","Backspace","XF86Back"].includes(e.key)
+      [
+        "ArrowUp",
+        "ArrowDown",
+        "Enter",
+        "Escape",
+        "Backspace",
+        "XF86Back",
+      ].includes(e.key)
     ) {
       e.preventDefault();
       return;
     }
 
-    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
       e.preventDefault();
     }
   });
@@ -39,18 +45,24 @@ window.onload = function () {
 
   Router.showPage("splashScreen");
 
-    setTimeout(() => {
-      const playlistsData= localStorage.getItem("playlistsData") ? JSON.parse(localStorage.getItem("playlistsData")) : [];
-      if(playlistsData.length>0){
-        localStorage.removeItem("navigationFocus");
-        localStorage.setItem("currentPage", "listPage");
-        Router.showPage("listPage");
-      }else{
+  setTimeout(() => {
+    const playlistsData = localStorage.getItem("playlistsData")
+      ? JSON.parse(localStorage.getItem("playlistsData"))
+      : [];
+    const isLogin = localStorage.getItem("isLogin") === "true";
+    if(isLogin){
+      localStorage.setItem("currentPage", "preLoginPage");
+      Router.showPage("preLoginPage");
+    }
+    else if (playlistsData.length > 0 && !isLogin) {
+      localStorage.removeItem("navigationFocus");
+      localStorage.setItem("currentPage", "listPage");
+      Router.showPage("listPage");
+    } else {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
-      }
-
-    }, 0);
+    }
+  }, 0);
 
   if (typeof Toaster === "function") Toaster();
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
@@ -59,7 +71,14 @@ window.onload = function () {
 
 function renderNavbarVisibility() {
   const currentPage = localStorage.getItem("currentPage");
-  const hiddenPages = ["login", "listPage", "splashScreen", "settingsPage"];
+  const hiddenPages = [
+    "login",
+    "listPage",
+    "splashScreen",
+    "settingsPage",
+    "accountPage",
+    "preLoginPage",
+  ];
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;
 

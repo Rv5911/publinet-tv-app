@@ -9,6 +9,8 @@ const Router = (function() {
     seriesPage: { el: document.getElementById("series-page"), render: SeriesPage },
     liveTvPage: { el: document.getElementById("livetv-page"), render: LiveTvPage },
             accountPage: { el: document.getElementById("account-page"), render: AccountPage },
+            preLoginPage: { el: document.getElementById("prelogin-page"), render: PreLoginPage },
+
 
   };
 
