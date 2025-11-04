@@ -145,7 +145,8 @@ document.addEventListener("keydown", (e) => {
   const currentPage = localStorage.getItem("currentPage");
   const key = e.key;
 
-  // Handle sort options keys (regardless of navigation focus)
+  if(currentPage=="settingsPage") return;
+
   if (isSortOptionsOpen) {
     if (
       [
