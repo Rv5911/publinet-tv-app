@@ -11,7 +11,7 @@ let moviesNavigationState = {
 let isNavigationInitialized = false;
 
 let lastKeyPressTime = 0;
-let keyPressDelay = 300; 
+let keyPressDelay = 500; 
 let favoritesMoviesArray = [];
 
 let chunkLoadingState = {
@@ -387,7 +387,7 @@ function handleSimpleEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        alert("Stream ID: " + streamId);
+       alert("Short Press ",streamId)
 
         //         localStorage.setItem("moviesCategoryIndex", categoryIndex);
         // localStorage.setItem("moviesCardIndex", cardIndex);
@@ -410,7 +410,6 @@ function handleSimpleEnter() {
 }
 
 function handleLongPressEnter() {
-    // FIXED: Check if current category has movies before handling enter
     if (!categoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
         return;
     }
@@ -424,7 +423,7 @@ function handleLongPressEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        alert("Stream ID: " + streamId);
+        alert("LONG PRESS " + streamId);
         // console.log("streamId",streamId)
         // toggleFavoriteItem(streamId, "movies", getCurrentPlaylistUsername());
         // Example: showMovieOptions(streamId);
@@ -533,7 +532,7 @@ function moveDown() {
     
     let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1); 
 
-    if(nextCategoryIndex>3){
+    if(nextCategoryIndex>4){
        const navbarEl=document.querySelector("#navbar-root");
 
     if(navbarEl){

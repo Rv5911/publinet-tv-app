@@ -5,24 +5,38 @@ const castImageUrl = "https://image.tmdb.org/t/p/w500";
 
 let currentAnimationId = null;
 
+function resetLoadingPercentage() {
+  const progressElement = document.getElementById("loading-progress");
+  if (!progressElement) return;
+  
+  if (currentAnimationId) {
+    cancelAnimationFrame(currentAnimationId);
+    currentAnimationId = null;
+  }
+  
+  progressElement.textContent = "0%";
+}
+
 function updateLoadingPercentage(targetPercentage, message = "") {
   const progressElement = document.getElementById("loading-progress");
   if (!progressElement) return;
 
   if (currentAnimationId) {
     cancelAnimationFrame(currentAnimationId);
+    currentAnimationId = null;
   }
 
   const currentText = progressElement.textContent;
   const currentMatch = currentText.match(/(\d+)%/);
   const currentPercentage = currentMatch ? parseInt(currentMatch[1]) : 0;
 
+  // If already at target, just ensure it's displayed
   if (targetPercentage === currentPercentage) {
     progressElement.textContent = `${targetPercentage}%`;
     return;
   }
 
-  const duration = 300; // Reduced duration for faster transitions
+  const duration = 300;
   const startTime = Date.now();
   const startPercentage = currentPercentage;
 
@@ -30,21 +44,21 @@ function updateLoadingPercentage(targetPercentage, message = "") {
     const elapsed = Date.now() - startTime;
     const progress = Math.min(elapsed / duration, 1);
     
-    // Easing function for smooth animation
     const easeOutQuart = 1 - Math.pow(1 - progress, 4);
     const currentValue = Math.round(startPercentage + (targetPercentage - startPercentage) * easeOutQuart);
     
+    // ALWAYS update the display on every frame
     progressElement.textContent = `${currentValue}%`;
     
     if (progress < 1) {
       currentAnimationId = requestAnimationFrame(animate);
     } else {
-      // Ensure we end exactly at target
       progressElement.textContent = `${targetPercentage}%`;
       currentAnimationId = null;
     }
   }
 
+  // Start animation immediately
   currentAnimationId = requestAnimationFrame(animate);
 }
 
@@ -70,14 +84,11 @@ async function loginApi(
     alldns = [defaultDns];
   }
 
-  const existingPlaylists =
-    JSON.parse(localStorage.getItem("playlistsData")) || [];
+  const existingPlaylists = JSON.parse(localStorage.getItem("playlistsData")) || [];
 
   if (!fromPlaylist) {
     const duplicate = existingPlaylists.find(
-      (p) =>
-        p.playlistName.toLowerCase().trim() ===
-        playlistName.toLowerCase().trim()
+      (p) => p.playlistName.toLowerCase().trim() === playlistName.toLowerCase().trim()
     );
 
     if (duplicate) {
@@ -86,27 +97,28 @@ async function loginApi(
     }
   }
 
-  // ALWAYS show loading overlay at the start
+  // RESET loading percentage before starting
+  resetLoadingPercentage();
+  
   const loadingOverlay = document.getElementById("loading-overlay");
   loadingOverlay.classList.remove("hidden");
-  updateLoadingPercentage(0, "Starting login process...");
 
   let lastStatusCode = null;
+  let loginCancelled = false;
 
   enableKeyBlock(() => {
+    loginCancelled = true;
     loadingOverlay.classList.add("hidden");
+    resetLoadingPercentage();
     Toaster.showToast("error", "Login Aborted!");
   });
 
   try {
-    // Case 1: Existing playlist
     if (fromPlaylist && playlistUrl) {
       try {
         updateLoadingPercentage(10, "Validating playlist URL...");
         const response = await fetch(playlistUrl);
-        if (isLoginCancelled()) {
-          loadingOverlay.classList.add("hidden");
-          disableKeyBlock();
+        if (loginCancelled) {
           return null;
         }
 
@@ -117,9 +129,7 @@ async function loginApi(
 
         updateLoadingPercentage(20, "Processing playlist data...");
         const data = await response.json();
-        if (isLoginCancelled()) {
-          loadingOverlay.classList.add("hidden");
-          disableKeyBlock();
+        if (loginCancelled) {
           return null;
         }
 
@@ -138,50 +148,48 @@ async function loginApi(
             };
             localStorage.setItem("currentPlaylistData", JSON.stringify(newCurrentPlaylistData));
 
-            // Load all data sequentially with proper error handling
             updateLoadingPercentage(30, "Loading movies data...");
             const vodMovies = await getAllVodMovies();
-            if (isLoginCancelled() || !vodMovies) {
+            if (loginCancelled || !vodMovies) {
               throw new Error("Failed to load movies data");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(40, "Loading movie categories...");
             const moviesCategories = await getMoviesCategories();
-            if (isLoginCancelled() || !moviesCategories) {
+            if (loginCancelled || !moviesCategories) {
               throw new Error("Failed to load movie categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(50, "Loading series data...");
             const vodSeries = await getAllVodSeries();
-            if (isLoginCancelled() || !vodSeries) {
+            if (loginCancelled || !vodSeries) {
               throw new Error("Failed to load series data");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(60, "Loading series categories...");
             const seriesCategories = await getSeriesCategories();
-            if (isLoginCancelled() || !seriesCategories) {
+            if (loginCancelled || !seriesCategories) {
               throw new Error("Failed to load series categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(70, "Loading live streams...");
             const vodAllLiveStreams = await getAllLiveStreams();
-            if (isLoginCancelled() || !vodAllLiveStreams) {
+            if (loginCancelled || !vodAllLiveStreams) {
               throw new Error("Failed to load live streams");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(80, "Loading live categories...");
             const liveCategories = await getLiveCategories();
-            if (isLoginCancelled() || !liveCategories) {
+            if (loginCancelled || !liveCategories) {
               throw new Error("Failed to load live categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
-            // Store all loaded data
             window.allMoviesStreams = vodMovies;
             window.moviesCategories = moviesCategories;
             window.allSeriesStreams = vodSeries;
@@ -191,14 +199,13 @@ async function loginApi(
 
             updateLoadingPercentage(100, "Login successful!");
             
-            // Store playlist data only when ALL loading is complete
             if (!fromPlaylist) {
               existingPlaylists.push(newPlaylist);
               localStorage.setItem("playlistsData", JSON.stringify(existingPlaylists));
             }
             
             setTimeout(() => {
-                            localStorage.setItem("isLogin", true);
+                     localStorage.setItem("isLogin", true);
 
               localStorage.setItem("navigationFocus","navbar")
               localStorage.setItem("currentPage", "homePage");
@@ -214,19 +221,18 @@ async function loginApi(
           throw new Error("Invalid Playlist Data");
         }
       } catch (error) {
+        if (loginCancelled) return null;
+        
         console.log("❌ Failed to load playlist:", playlistUrl, error);
         throw new Error(`Invalid Playlist URL ${lastStatusCode ? `(Status: ${lastStatusCode})` : ""}`);
       }
     }
 
-    // Case 2: Try DNS list
     const dnsToCheck = alldns.slice(0, 5);
     let success = false;
 
     for (let i = 0; i < dnsToCheck.length; i++) {
-      if (isLoginCancelled()) {
-        loadingOverlay.classList.add("hidden");
-        disableKeyBlock();
+      if (loginCancelled) {
         return null;
       }
       
@@ -235,9 +241,7 @@ async function loginApi(
 
       try {
         const response = await fetch(apiUrl);
-        if (isLoginCancelled()) {
-          loadingOverlay.classList.add("hidden");
-          disableKeyBlock();
+        if (loginCancelled) {
           return null;
         }
 
@@ -248,9 +252,7 @@ async function loginApi(
         }
 
         const data = await response.json();
-        if (isLoginCancelled()) {
-          loadingOverlay.classList.add("hidden");
-          disableKeyBlock();
+        if (loginCancelled) {
           return null;
         }
 
@@ -269,50 +271,48 @@ async function loginApi(
             };
             localStorage.setItem("currentPlaylistData", JSON.stringify(newCurrentPlaylistData));
 
-            // Load all data sequentially with proper error handling
             updateLoadingPercentage(35, "Loading movies data...");
             const vodMovies = await getAllVodMovies();
-            if (isLoginCancelled() || !vodMovies) {
+            if (loginCancelled || !vodMovies) {
               throw new Error("Failed to load movies data");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(45, "Loading movie categories...");
             const moviesCategories = await getMoviesCategories();
-            if (isLoginCancelled() || !moviesCategories) {
+            if (loginCancelled || !moviesCategories) {
               throw new Error("Failed to load movie categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(55, "Loading series data...");
             const vodSeries = await getAllVodSeries();
-            if (isLoginCancelled() || !vodSeries) {
+            if (loginCancelled || !vodSeries) {
               throw new Error("Failed to load series data");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(65, "Loading series categories...");
             const seriesCategories = await getSeriesCategories();
-            if (isLoginCancelled() || !seriesCategories) {
+            if (loginCancelled || !seriesCategories) {
               throw new Error("Failed to load series categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(75, "Loading live streams...");
             const vodAllLiveStreams = await getAllLiveStreams();
-            if (isLoginCancelled() || !vodAllLiveStreams) {
+            if (loginCancelled || !vodAllLiveStreams) {
               throw new Error("Failed to load live streams");
             }
             await new Promise((r) => setTimeout(r, 100));
 
             updateLoadingPercentage(85, "Loading live categories...");
             const liveCategories = await getLiveCategories();
-            if (isLoginCancelled() || !liveCategories) {
+            if (loginCancelled || !liveCategories) {
               throw new Error("Failed to load live categories");
             }
             await new Promise((r) => setTimeout(r, 100));
 
-            // Store all loaded data
             window.allMoviesStreams = vodMovies;
             window.moviesCategories = moviesCategories;
             window.allSeriesStreams = vodSeries;
@@ -320,7 +320,6 @@ async function loginApi(
             window.allLiveStreams = vodAllLiveStreams;
             window.liveCategories = liveCategories;
 
-            // Store playlist data only when ALL loading is complete
             if (!fromPlaylist) {
               existingPlaylists.push(newPlaylist);
               localStorage.setItem("playlistsData", JSON.stringify(existingPlaylists));
@@ -330,9 +329,9 @@ async function loginApi(
             success = true;
             
             setTimeout(() => {
-                            localStorage.setItem("isLogin", true);
+                        localStorage.setItem("isLogin", true);
 
-                 localStorage.setItem("navigationFocus","navbar")
+              localStorage.setItem("navigationFocus","navbar")
               localStorage.setItem("currentPage", "homePage");
               Router.showPage("homePage");
               loadingOverlay.classList.add("hidden");
@@ -344,6 +343,7 @@ async function loginApi(
           }
         }
       } catch (error) {
+        if (loginCancelled) return null;
         console.log("❌ Failed DNS:", dnsToCheck[i], error);
         continue;
       }
@@ -354,20 +354,22 @@ async function loginApi(
     }
 
   } catch (error) {
+    if (loginCancelled) return null;
+    
     console.log("❌ Login failed:", error);
     updateLoadingPercentage(100, "Login failed");
     
     setTimeout(() => {
       loadingOverlay.classList.add("hidden");
       disableKeyBlock();
+      resetLoadingPercentage();
       Toaster.showToast("error", error.message);
     }, 500);
     return null;
   }
 }
 
-
-
+// ✅ Get movies categories
 async function getMoviesCategories() {
   const selectedPlaylist = JSON.parse(localStorage.getItem("selectedPlaylist"));
   try {

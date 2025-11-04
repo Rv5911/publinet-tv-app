@@ -8,6 +8,8 @@ const Router = (function() {
     moviesPage: { el: document.getElementById("movies-page"), render: MoviesPage },
     seriesPage: { el: document.getElementById("series-page"), render: SeriesPage },
     liveTvPage: { el: document.getElementById("livetv-page"), render: LiveTvPage },
+            accountPage: { el: document.getElementById("account-page"), render: AccountPage },
+
   };
 
   var currentPageName = null;

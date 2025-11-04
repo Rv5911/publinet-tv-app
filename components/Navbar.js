@@ -426,7 +426,9 @@ case "ArrowDown":
           Router.showPage("listPage");
           closeSidebar();
         } else if (text === "My Account") {
-          alert("My Account selected");
+               localStorage.setItem("currentPage", "accountPage");
+          Router.showPage("accountPage");
+          closeSidebar();
         }
         break;
       case "Escape":
