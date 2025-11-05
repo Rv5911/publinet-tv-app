@@ -145,6 +145,10 @@ document.addEventListener("keydown", (e) => {
   const currentPage = localStorage.getItem("currentPage");
   const key = e.key;
 
+    if (currentPage === "moviesDetailPage") {
+    return;
+  }
+
   if(currentPage=="settingsPage") return;
 
   if (isSortOptionsOpen) {

@@ -387,25 +387,28 @@ function handleSimpleEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-       alert("Short Press ",streamId)
 
-        //         localStorage.setItem("moviesCategoryIndex", categoryIndex);
-        // localStorage.setItem("moviesCardIndex", cardIndex);
-        // localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
+        localStorage.setItem("moviesCategoryIndex", categoryIndex);
+        localStorage.setItem("moviesCardIndex", cardIndex);
+        localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
         
-        // localStorage.setItem("selectedMovieId", streamId);
-        // localStorage.setItem("currentPage", "moviesDetailPage");
-        // console.log(streamId,"streamId")
+        localStorage.setItem("selectedMovieId", streamId);
 
-        //  const selectedMovieItem=allMoviesStreams.find(item=>item.stream_id==streamId);
-        //  if(selectedMovieItem){
+        const selectedMovieItem = allMoviesStreams.find(item => item.stream_id == streamId);
+        if (selectedMovieItem) {
+            localStorage.setItem("selectedMovieData", JSON.stringify(selectedMovieItem));
+        }
 
-        //      localStorage.setItem("selectedMovieData", JSON.stringify(selectedMovieItem));
-        //      console.log("selected streamId",streamId)
-        //  }
-        // document.querySelector("#loading-progress").style.display = "none";
-        // Router.showPage("movieDetailPage");
-
+        // CLEANUP: Remove movies page event listeners
+        cleanupNavigation();
+        
+        document.querySelector("#loading-progress").style.display = "none";
+        
+        // SET CORRECT PAGE STATE
+        localStorage.setItem("currentPage", "moviesDetailPage");
+        localStorage.setItem("navigationFocus", "moviesDetailPage");
+        
+        Router.showPage("movieDetailPage"); // Make sure this matches your router
     }
 }
 
@@ -423,9 +426,9 @@ function handleLongPressEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        alert("LONG PRESS " + streamId);
-        // console.log("streamId",streamId)
-        // toggleFavoriteItem(streamId, "movies", getCurrentPlaylistUsername());
+        // alert("LONG PRESS " + streamId);
+        console.log("streamId",streamId)
+        toggleFavoriteItem(streamId, "movies", getCurrentPlaylistUsername());
         // Example: showMovieOptions(streamId);
     }
 }
