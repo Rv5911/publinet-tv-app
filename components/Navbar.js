@@ -223,11 +223,9 @@ case "ArrowDown":
     // For liveTvPage, focus on first category
     if (currentPage === "liveTvPage") {
       setTimeout(() => {
-        // Call the focusCategories function from your LiveTvPage
         if (typeof focusCategories === 'function') {
           focusCategories(0); // Focus on first category
         }
-        // Alternatively, if you need to access the LiveTvPage functions
         const firstCategory = document.querySelector(".livetv-channel-category");
         if (firstCategory) {
           firstCategory.focus();
