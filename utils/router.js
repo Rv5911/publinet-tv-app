@@ -11,6 +11,8 @@ const Router = (function() {
             accountPage: { el: document.getElementById("account-page"), render: AccountPage },
             preLoginPage: { el: document.getElementById("prelogin-page"), render: PreLoginPage },
         movieDetailPage: { el: document.getElementById("movies-detail-page"), render: MovieDetailPage },
+                videoJsPlayer: { el: document.getElementById("videojs-player"), render: VideoJsPlayer },
+
 
 
 

@@ -11,7 +11,7 @@ let moviesNavigationState = {
 let isNavigationInitialized = false;
 
 let lastKeyPressTime = 0;
-let keyPressDelay = 500; 
+let keyPressDelay = 400; 
 let favoritesMoviesArray = [];
 
 let chunkLoadingState = {
@@ -25,7 +25,7 @@ let chunkLoadingState = {
 let enterKeyState = {
     isPressed: false,
     pressStartTime: 0,
-    longPressThreshold: 500,
+    longPressThreshold: 400,
     timeoutId: null
 };
 
@@ -535,7 +535,7 @@ function moveDown() {
     
     let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1); 
 
-    if(nextCategoryIndex>4){
+    if(nextCategoryIndex>2){
        const navbarEl=document.querySelector("#navbar-root");
 
     if(navbarEl){
