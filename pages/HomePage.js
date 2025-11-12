@@ -3,6 +3,12 @@ const selectedPlaylistData= localStorage.getItem("selectedPlaylist") ? JSON.pars
 
 setTimeout(function () {
     if (HomePage.cleanup) HomePage.cleanup();
+        const loadingEl=document.querySelector("#loading-overlay")
+    if(loadingEl){
+      loadingEl.style.background="black"
+      loadingEl.style.marginTop="0px"
+
+    }
     console.log(selectedPlaylistData,"selectedPlaylistData")
  
     function homePageKeydownEvents(e) {

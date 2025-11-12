@@ -568,6 +568,13 @@ function moveDown() {
     
     let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1);
 
+        if(nextCategoryIndex>2){
+       const navbarEl=document.querySelector("#navbar-root");
+
+    if(navbarEl){
+        navbarEl.style.display="none";
+    }
+        }
     if (nextCategoryIndex !== -1) {
         moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
         
@@ -618,6 +625,22 @@ function moveUp() {
             moviesNavigationState.currentCardIndex = 0;
         }
     } else {
+        try {
+            const moviesContainer = document.querySelector('.movies-page-container');
+            if (moviesContainer) {
+                moviesContainer.scrollTop = 0;
+            }
+
+                   const navbarEl=document.querySelector("#navbar-root");
+
+    if(navbarEl){
+        navbarEl.style.display="block";
+    }
+            
+        } catch (e) {
+            console.log('Scroll to top failed:', e);
+        }
+        
         removeAllFocus();
         saveNavigationState();
         localStorage.setItem("navigationFocus", "navbar");

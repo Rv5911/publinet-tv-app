@@ -1267,9 +1267,10 @@ setTimeout(() => {
         <input id="customSeek" type="range" value="0" min="0" step="0.1" />
         <span id="duration" class="time-display">0:00</span>
       </div>
-      <div class="aspect-ratio-container">
-        <button class="aspect-ratio-button" id="aspectRatioButton"><i class="fa-solid fa-compress" style="color:${isAspectRatioFocused ? 'var(--gold)' : 'white'}"></i>Aspect Ratio</button>
-      </div>
+      ${isYouTube ? "" : `<div class="aspect-ratio-container">
+        <button class="aspect-ratio-button" id="aspectRatioButton"><i class="fa-solid fa-compress" style="color: ${isAspectRatioFocused ? 'var(--gold)' : 'white'}"></i>Aspect Ratio</button>
+      </div>`}
+
     </div>
  
     <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>

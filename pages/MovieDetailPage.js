@@ -421,7 +421,7 @@ if (
 }
 
     document.querySelector("#movies-detail-page").innerHTML = `
-<div class="movie-detail-page-container" style="background-image:   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);, url('${backdrop}')">
+<div class="movie-detail-page-container">
   <div class="movie-detail-page-content-container">
     
     </div>
