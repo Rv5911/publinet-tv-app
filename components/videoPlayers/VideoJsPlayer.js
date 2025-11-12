@@ -663,8 +663,8 @@ function VideoJsPlayer(poster = "") {
         }
 
         if (fromValue == "movie") {
-          localStorage.setItem("currentPage", "moviesDetailPage");
-          Router.showPage("movieDetail");
+          localStorage.setItem("currentPage", "movieDetailPage");
+          Router.showPage("movieDetailPage");
         } else {
           localStorage.setItem("currentPage", "seriesDetailPage");
           Router.showPage("seriesDetail");
@@ -674,8 +674,8 @@ function VideoJsPlayer(poster = "") {
           currentPlayer.dispose();
         }
         if (fromValue == "movie") {
-          localStorage.setItem("currentPage", "moviesDetailPage");
-          Router.showPage("movieDetail");
+          localStorage.setItem("currentPage", "movieDetailPage");
+          Router.showPage("movieDetailPage");
         } else {
           localStorage.setItem("currentPage", "seriesDetailPage");
           Router.showPage("seriesDetail");
@@ -772,7 +772,7 @@ function VideoJsPlayer(poster = "") {
 
     // Keyboard events
     function videojsPlayerdownHandler(e) {
-      if (localStorage.getItem("currentPage") !== "videojsPlayer") return;
+      if (localStorage.getItem("currentPage") !== "videoJsPlayer") return;
 
       const key = e.keyCode || e.which;
       const keyChar = e.key;

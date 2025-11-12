@@ -75,6 +75,19 @@ function getCurrentPlaylistUsername() {
   }
 }
 
+function getCurrentPlaylist(){
+  try {
+    const playlists=localStorage.getItem("playlistsData") ? JSON.parse(localStorage.getItem("playlistsData")) : [];
+    const selectedPlaylist=localStorage.getItem("selectedPlaylist") ? JSON.parse(localStorage.getItem("selectedPlaylist")) : {};
+
+    const currentPlaylist=playlists.find(pl => pl.playlistName === selectedPlaylist.playlistName);
+
+    return currentPlaylist;
+  } catch (e) {
+    return null;
+  }
+}
+
 function getItemUniqueId(item) {
   if (!item) return null;
   if (item.stream_id) return String(item.stream_id);
@@ -522,3 +535,4 @@ window.applyMarqueeEffect = applyMarqueeEffect;
 
 window.decodeBase64 = decodeBase64;
 window.adultsCategories = adultsCategories;
+window.getCurrentPlaylist = getCurrentPlaylist;

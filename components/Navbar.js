@@ -330,6 +330,8 @@ case "ArrowDown":
   }
 
   function handleLogOut() {
+                         localStorage.setItem("isLogin", false);
+
     localStorage.setItem("currentPage", "login");
     Router.showPage("login");
     closeSidebar();
@@ -426,6 +428,8 @@ case "ArrowDown":
           Router.showPage("settingsPage");
           closeSidebar();
         } else if (text === "List User") {
+                               localStorage.setItem("isLogin", false);
+
           Router.showPage("listPage");
           closeSidebar();
         } else if (text === "My Account") {

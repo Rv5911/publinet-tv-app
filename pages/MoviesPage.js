@@ -5,13 +5,13 @@ let moviesNavigationState = {
     lastFocusedCard: 0
 };
 
+
         let allMoviesStreamsData = window.allMoviesStreams || [];
   let favoriteMoviesIds= [];
 
 let isNavigationInitialized = false;
 
-let lastKeyPressTime = 0;
-let keyPressDelay = 400; 
+
 let favoritesMoviesArray = [];
 
 let chunkLoadingState = {
@@ -100,6 +100,7 @@ function getPopularMovies() {
         if (allMoviesStreamsData.length === 0) return [];
         
         let sorted = allMoviesStreamsData.slice(0, 50);
+        console.log(sorted,"SORTED")
         sorted.sort(function(a, b) {
             return (parseFloat(b.rating_5based) || 0) - (parseFloat(a.rating_5based) || 0);
         });
@@ -147,7 +148,11 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
     let isLarge = size === "large";
     let cardClass = isLarge ? "movie-card movie-card-large" : "movie-card";
     let movieId = String(movieData.stream_id || movieData.id);
-    let isMovieFav = favoriteMoviesIds.some(favId => String(favId) === movieId);
+    
+    // Safe check for favoriteMoviesIds
+    let isMovieFav = Array.isArray(favoriteMoviesIds) && 
+                     favoriteMoviesIds.some(favId => String(favId) === String(movieId));
+    
     let imageUrl = movieData.image || "./assets/demo-img-card.png";
     let titleClass = 'movie-title-marquee';
     
@@ -331,7 +336,6 @@ function createNoDataMessage(categoryTitle) {
            '</div>';
 }
 
-// === FIXED ENTER KEY HANDLING ===
 function handleEnterKey(e) {
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
@@ -405,10 +409,10 @@ function handleSimpleEnter() {
         document.querySelector("#loading-progress").style.display = "none";
         
         // SET CORRECT PAGE STATE
-        localStorage.setItem("currentPage", "moviesDetailPage");
-        localStorage.setItem("navigationFocus", "moviesDetailPage");
+        localStorage.setItem("currentPage", "movieDetailPage");
+        localStorage.setItem("navigationFocus", "movieDetailPage");
         
-        Router.showPage("movieDetailPage"); // Make sure this matches your router
+        Router.showPage("movieDetailPage"); 
     }
 }
 
@@ -433,12 +437,13 @@ function handleLongPressEnter() {
     }
 }
 
-// === FIXED KEYBOARD NAVIGATION ===
+let navigationDebounce = {
+    lastKeyPress: 0,
+    debounceTime: 300,
+    isDebouncing: false
+};
+
 function handleKeyNavigation(e) {
-    if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-        return;
-    }
-    
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
     
@@ -446,21 +451,22 @@ function handleKeyNavigation(e) {
         return;
     }
     
-    // Handle Enter key separately
     if (e.key === "Enter") {
         handleEnterKey(e);
         return;
     }
     
-    // Enhanced debouncing with proper timing
-    let now = Date.now();
-    if (now - lastKeyPressTime < keyPressDelay) {
+    // DEBOUNCE CHECK - Prevent too fast navigation
+    const now = Date.now();
+    if (now - navigationDebounce.lastKeyPress < navigationDebounce.debounceTime) {
         e.preventDefault();
         return;
     }
-    lastKeyPressTime = now;
     
     e.preventDefault();
+    
+    // Set debounce timestamp
+    navigationDebounce.lastKeyPress = now;
     
     switch(e.key) {
         case "ArrowRight":
@@ -481,8 +487,37 @@ function handleKeyNavigation(e) {
     saveNavigationState();
 }
 
+function cleanupNavigation() {
+    document.removeEventListener("keydown", handleKeyNavigation);
+    document.removeEventListener("keyup", handleKeyNavigation);
+    isNavigationInitialized = false;
+    navigationDebounce.lastKeyPress = 0;
+    navigationDebounce.isDebouncing = false;
+
+
+}
+
+function getCurrentVisibleIndex(categoryIndex, cardIndex) {
+    let cardList = document.querySelector('.movies-card-list[data-category="' + categoryIndex + '"]');
+    if (!cardList) return cardIndex;
+    
+    // Get container and card dimensions
+    let containerWidth = cardList.offsetWidth;
+    let firstCard = cardList.querySelector('.movie-card');
+    if (!firstCard) return cardIndex;
+    
+    let cardWidth = firstCard.offsetWidth + 16; // card width + margin
+    let visibleCardsCount = Math.floor(containerWidth / cardWidth);
+    
+    // If we're beyond visible range, return position within visible range
+    if (cardIndex >= visibleCardsCount) {
+        return cardIndex % visibleCardsCount;
+    }
+    
+    // If within visible range, keep the same position
+    return cardIndex;
+}
 function moveRight() {
-    // FIXED: Check if current category has movies
     if (!categoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
         return;
     }
@@ -525,50 +560,33 @@ function moveLeft() {
 }
 
 function moveDown() {
- 
     let allCategories = window.allMoviesCategories || [];
     if (allCategories.length === 0) return;
     
     let currentIndex = moviesNavigationState.currentCategoryIndex;
-    
     let currentCardIndex = moviesNavigationState.currentCardIndex;
     
-    let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1); 
+    let nextCategoryIndex = findNextCategoryWithMovies(currentIndex + 1, 1);
 
-    if(nextCategoryIndex>2){
-       const navbarEl=document.querySelector("#navbar-root");
-
-    if(navbarEl){
-        navbarEl.style.display="none";
-    }
-    }
-    // console.log(nextCategoryIndex,"nextCategoryIndex")
     if (nextCategoryIndex !== -1) {
         moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
         
-        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentCategory();
         if (newCategory) {
             let loadedCount = getLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
             
-            // Keep the same card index if it exists in the new category
-            if (currentCardIndex < loadedCount) {
-                moviesNavigationState.currentCardIndex = currentCardIndex;
-            } else {
-                // If current index doesn't exist, go to first card
-                moviesNavigationState.currentCardIndex = 0;
-            }
+            // Maintain same visible position in the new category
+            let visiblePosition = getCurrentVisibleIndex(currentIndex, currentCardIndex);
+            moviesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
         } else {
             moviesNavigationState.currentCardIndex = 0;
         }
         
-        // Check if we're at the last loaded category and load more if needed
         let loadedCategoriesCount = chunkLoadingState.loadedCategories;
         if (moviesNavigationState.currentCategoryIndex >= loadedCategoriesCount - 2) {
             loadMoreCategories();
         }
     } else {
-        // Already at last category with movies
         let currentCategory = getCurrentCategory();
         if (currentCategory && currentCategory.movies) {
             let loadedCount = getLoadedChunkCount(currentIndex);
@@ -581,73 +599,45 @@ function moveDown() {
 }
 
 function moveUp() {
-
     let currentIndex = moviesNavigationState.currentCategoryIndex;
-    
-    // Store current card index before moving
     let currentCardIndex = moviesNavigationState.currentCardIndex;
     
-    // FIXED: Find previous category that has movies
-    let prevCategoryIndex = findNextCategoryWithMovies(currentIndex - 1, -1); // direction -1 = up
+    let prevCategoryIndex = findNextCategoryWithMovies(currentIndex - 1, -1);
     
     if (prevCategoryIndex !== -1) {
         moviesNavigationState.currentCategoryIndex = prevCategoryIndex;
         
-        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentCategory();
         if (newCategory) {
             let loadedCount = getLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
             
-            // Keep the same card index if it exists in the new category
-            if (currentCardIndex < loadedCount) {
-                moviesNavigationState.currentCardIndex = currentCardIndex;
-            } else {
-                // If current index doesn't exist, go to first card
-                moviesNavigationState.currentCardIndex = 0;
-            }
+            // Maintain same visible position in the new category
+            let visiblePosition = getCurrentVisibleIndex(currentIndex, currentCardIndex);
+            moviesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
         } else {
             moviesNavigationState.currentCardIndex = 0;
         }
     } else {
-  removeAllFocus();
-  saveNavigationState();
-  localStorage.setItem("navigationFocus", "navbar");
+        removeAllFocus();
+        saveNavigationState();
+        localStorage.setItem("navigationFocus", "navbar");
 
-  setTimeout(() => {
-        const navbarEl=document.querySelector("#navbar-root");
-
-    if(navbarEl){
-        navbarEl.style.display="block";
+        setTimeout(() => {
+            const moviesNavItem = document.querySelector('.nav-item[data-page="moviesPage"]');
+            if (moviesNavItem) {
+                moviesNavItem.focus();
+                moviesNavItem.classList.add("active");
+            }
+        }, 50);
     }
-    const scrollable = document.querySelector('.movies-page-container') || document.scrollingElement || document.documentElement;
-
-    if (scrollable) {
-      scrollable.scrollTop = 0;
-    }
-
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    if (typeof window.scrollTo === "function") {
-      try {
-        window.scrollTo(0, 0);
-      } catch (_) {}
-    }
-
-    const moviesNavItem = document.querySelector('.nav-item[data-page="moviesPage"]');
-    if (moviesNavItem) {
-      moviesNavItem.focus();
-      moviesNavItem.classList.add("active");
-    }
-  }, 50); 
-}
-
 }
 
 function loadMoreMoviesForCategory(categoryIndex) {
     if (chunkLoadingState.isLoading) return;
     
     let categories = window.allMoviesCategories || [];
+    if (categoryIndex < 0 || categoryIndex >= categories.length) return;
+    
     let category = categories[categoryIndex];
     if (!category) return;
     
@@ -681,7 +671,11 @@ function loadMoreMoviesForCategory(categoryIndex) {
         
         if (newCardsHTML) {
             cardList.insertAdjacentHTML('beforeend', newCardsHTML);
-            updateFocus();
+            
+            // If this is the category we're trying to restore focus to, update focus
+            if (moviesNavigationState.currentCategoryIndex === categoryIndex) {
+                updateFocus();
+            }
         }
         
         chunkLoadingState.isLoading = false;
@@ -796,18 +790,59 @@ function restoreNavigationState() {
             moviesNavigationState.lastFocusedCategory = state.lastFocusedCategory || 0;
             moviesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
             
-            // FIXED: Ensure we start with a category that has movies
-            if (!categoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
-                let nextCategoryIndex = findNextCategoryWithMovies(0, 1);
-                if (nextCategoryIndex !== -1) {
-                    moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
-                    moviesNavigationState.currentCardIndex = 0;
-                }
-            }
+            // Wait for content to load before validating
+            setTimeout(() => {
+                validateAndAdjustRestoredState();
+            }, 100);
         }
     } catch (e) {
         console.log('Error restoring navigation state:', e);
     }
+}
+
+function doesCardExist(categoryIndex, cardIndex) {
+    let cardList = document.querySelector('.movies-card-list[data-category="' + categoryIndex + '"]');
+    if (!cardList) return false;
+    
+    let card = cardList.querySelector('.movie-card[data-index="' + cardIndex + '"]');
+    return card !== null;
+}
+
+function validateAndAdjustRestoredState() {
+    // First, ensure we have at least one category with movies
+    if (!categoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
+        let nextCategoryIndex = findNextCategoryWithMovies(0, 1);
+        if (nextCategoryIndex !== -1) {
+            moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
+            moviesNavigationState.currentCardIndex = 0;
+        } else {
+            // No categories with movies found, reset to defaults
+            moviesNavigationState.currentCategoryIndex = 0;
+            moviesNavigationState.currentCardIndex = 0;
+        }
+    } else {
+        // Category exists, check if card index is valid
+        let currentCategory = getCurrentCategory();
+        if (currentCategory) {
+            let loadedCount = getLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
+            
+            // If the restored card index is beyond loaded count, adjust it
+            if (moviesNavigationState.currentCardIndex >= loadedCount) {
+                moviesNavigationState.currentCardIndex = Math.max(0, loadedCount - 1);
+            }
+            
+            // If the specific card doesn't exist but should be loaded, try to load more
+            if (!doesCardExist(moviesNavigationState.currentCategoryIndex, moviesNavigationState.currentCardIndex) && 
+                loadedCount < currentCategory.movies.length) {
+                loadMoreMoviesForCategory(moviesNavigationState.currentCategoryIndex);
+            }
+        }
+    }
+    
+    // Update focus after state is validated
+    setTimeout(() => {
+        updateFocus();
+    }, 50);
 }
 
 // === HELPER FUNCTIONS ===
@@ -834,7 +869,6 @@ function cleanupNavigation() {
     isNavigationInitialized = false;
 }
 
-// === CHECK IF ANY CATEGORY HAS DATA ===
 function hasAnyCategoryData() {
     let categories = window.allMoviesCategories || [];
     for (let i = 0; i < categories.length; i++) {
@@ -845,40 +879,39 @@ function hasAnyCategoryData() {
     return false;
 }
 
-// === MAIN MOVIES PAGE FUNCTION ===
 function MoviesPage() {
-    // Show loading state immediately
-    let loadingHTML = '<div class="movies-page-loading">' +
+    let loadingHTML = '<div class="movies-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Movies...</p>' +
                      '</div>';
     
-    // Update page tracking
     localStorage.setItem("previousPage", localStorage.getItem("currentPage") || "");
     localStorage.setItem("currentPage", "moviesPage");
     localStorage.setItem("navigationFocus", "moviesPage");
     
+    // Initialize favoriteMoviesIds to empty array to prevent the error
+    favoriteMoviesIds = [];
+    
     setTimeout(function() {
-   favoriteMoviesIds = getFavoriteMovies();
+        const currentPlaylist = getCurrentPlaylist();   
+        const currentPlaylistFavIds = currentPlaylist ? currentPlaylist.favouriteMovies : [];   
         
-        let favoriteMoviesData = window.allMoviesStreams.filter(m => {
-            let streamIdStr = m.stream_id ? m.stream_id.toString() : '';
-            return favoriteMoviesIds.includes(streamIdStr);
-        });
+        // Assign to the global variable, don't declare a new one
+        favoriteMoviesIds = currentPlaylistFavIds || [];
+
         
-        console.log(favoriteMoviesData, "FAVORITE MOVIES DATA");
-        console.log("Favorite IDs:", favoriteMoviesIds);
-        console.log("Available stream IDs:", allMoviesStreamsData.map(m => m.stream_id));
-        
-        let popularMovies = getPopularMovies();
-        let recentlyWatchedMovies = getRecentlyWatchedMovies();
+        let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
+            window.allMoviesStreams.filter(m => currentPlaylistFavIds.includes(m.stream_id)) : [];
+        let popularMovies = window.allMoviesStreams ? 
+            window.allMoviesStreams.filter(m => m.rating_5based > 4).slice(0, 10) : [];
+        let recentlyWatchedMovies = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
+            currentPlaylist.continueWatchingMovies : [];
         let apiCategories = getAPICategories();
         
-        // Create initial categories array
         let initialCategories = [
             { 
                 title: "My Fav", 
-                movies: favoriteMoviesData, // Use the filtered data
+                movies: favouriteMovies, 
                 id: "fav", 
                 containerClass: "movies-fav-container"
             },
@@ -940,10 +973,13 @@ function MoviesPage() {
             container.outerHTML = html;
         }
         
+        // Restore navigation state AFTER content is loaded
+        restoreNavigationState();
+        
         // Initialize navigation
         setTimeout(function() {
             initNavigation();
-            updateFocus();
+            // Focus will be updated by restoreNavigationState
         }, 100);
         
     }, 500); 

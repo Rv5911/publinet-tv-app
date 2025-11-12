@@ -208,8 +208,10 @@ async function MovieDetailPage() {
     localStorage.setItem("playlistsData", JSON.stringify(playlistsData));
   }
 
-  // --- Keydown navigation ---
   function moviesDetailPageKeydownHandler(e) {
+    if(localStorage.getItem("currentPage")!="movieDetailPage"){
+      return;
+    }
     var focused = focusableEls[currentFocusIndex];
     if (!focused) return;
 
