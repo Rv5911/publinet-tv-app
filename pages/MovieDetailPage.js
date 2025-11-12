@@ -267,6 +267,10 @@ async function MovieDetailPage() {
         localStorage.setItem("currentPage", "videojsPlayer");
 
         Router.showPage("videoJsPlayer");
+               const navbarEl=document.querySelector("#navbar-root");
+    if(navbarEl){
+        navbarEl.style.display="none";
+    }
         document.body.style.backgroundImage = "none";
         document.body.style.backgroundColor = "black";
         return;

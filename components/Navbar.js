@@ -109,9 +109,19 @@ function initNavbar() {
     seriesPage: 3,
   };
 
+  // Initialize search query in window object
+  window.searchQuery = window.searchQuery || '';
+
   setSortOption("default");
 
   updateNavbarActive(localStorage.getItem("currentPage"));
+
+  // Add search input event listener to save query
+  searchInput.addEventListener('input', (e) => {
+    window.searchQuery = e.target.value;
+  console.log(window.searchQuery,"window.searchQuerywindow.searchQuery")
+
+  });
 
   navItems.forEach((item) => {
     item.addEventListener("click", () => {
@@ -139,6 +149,7 @@ function initNavbar() {
       }
     });
   });
+
 
 document.addEventListener("keydown", (e) => {
   const navigationFocus = localStorage.getItem("navigationFocus");

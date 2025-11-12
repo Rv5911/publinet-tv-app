@@ -525,6 +525,11 @@ function VideoJsPlayer(poster = "") {
     });
 
     function goBack() {
+
+                     const navbarEl=document.querySelector("#navbar-root");
+    if(navbarEl){
+        navbarEl.style.display="block";
+    }
       if (fromValue === "series") {
         const episodeId = localStorage.getItem("selectedEpisodeId");
         localStorage.setItem("lastPlayedEpisodeId", episodeId);
