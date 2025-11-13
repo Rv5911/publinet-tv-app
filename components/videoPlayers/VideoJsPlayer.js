@@ -672,7 +672,7 @@ function VideoJsPlayer(poster = "") {
           Router.showPage("movieDetailPage");
         } else {
           localStorage.setItem("currentPage", "seriesDetailPage");
-          Router.showPage("seriesDetail");
+          Router.showPage("seriesDetailPage");
         }
       } else {
         if (typeof currentPlayer.dispose === "function") {
@@ -683,7 +683,7 @@ function VideoJsPlayer(poster = "") {
           Router.showPage("movieDetailPage");
         } else {
           localStorage.setItem("currentPage", "seriesDetailPage");
-          Router.showPage("seriesDetail");
+          Router.showPage("seriesDetailPage");
         }
       }
     }

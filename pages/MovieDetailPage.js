@@ -332,8 +332,11 @@ async function MovieDetailPage() {
         [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) &&
         menuBtn
       )
+{
+        alert("menuBtn")
         currentFocusIndex = focusableEls.indexOf(menuBtn);
-      else if (Array.from(castItems).includes(focused) && playBtn)
+}
+      else if (Array.from(castItems).includes(focused) && playBtn) 
         currentFocusIndex = focusableEls.indexOf(playBtn);
     }
     if (e.key === "ArrowDown") {

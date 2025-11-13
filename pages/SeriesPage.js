@@ -453,23 +453,20 @@ function handleSeriesSimpleEnter() {
         localStorage.setItem("seriesCardIndex", cardIndex);
         localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
         
+  const allSeriesData = window.allSeriesStreams ? window.allSeriesStreams : [];
+  const selectedSeriesObj = allSeriesData.find(
+    (s) => Number(s.series_id) === Number(seriesId)
+  );
+
+                 const navbarEl=document.querySelector("#navbar-root");
+    if(navbarEl){
+        navbarEl.style.display="none";
+    }
         localStorage.setItem("selectedSeriesId", seriesId);
-
-        const selectedSeriesItem = window.allSeriesStreams && window.allSeriesStreams.find ? window.allSeriesStreams.find(item => item.series_id == seriesId) : null;
-        if (selectedSeriesItem) {
-            localStorage.setItem("selectedSeriesData", JSON.stringify(selectedSeriesItem));
-        }
-
-        // CLEANUP: Remove series page event listeners
-        cleanupSeriesNavigation();
-        
-        document.querySelector("#loading-progress").style.display = "none";
-        
-        // SET CORRECT PAGE STATE
         localStorage.setItem("currentPage", "seriesDetailPage");
-        localStorage.setItem("navigationFocus", "seriesDetailPage");
-        
-        Router.showPage("seriesDetailPage"); 
+        localStorage.setItem("selectedSeriesItem", JSON.stringify(selectedSeriesObj));
+        document.querySelector("#loading-progress").style.display = "none";
+        Router.showPage("seriesDetailPage");; 
     }
 }
 
@@ -483,13 +480,13 @@ function handleSeriesLongPressEnter() {
     
     let currentCard = document.querySelector(
         '.series-card[data-category="' + categoryIndex + '"][data-index="' + cardIndex + '"]'
-    );
+    );  
     
     if (currentCard) {
         let seriesId = currentCard.getAttribute('data-series-id');
         // alert("LONG PRESS " + seriesId);
         console.log("seriesId",seriesId)
-        alert("seriesId",seriesId)
+        alert(`LONG PRESS ${seriesId}`);
         toggleFavoriteItem(seriesId, "series", getCurrentPlaylistUsername());
         // Example: showSeriesOptions(seriesId);
     }
