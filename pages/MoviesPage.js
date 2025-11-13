@@ -160,7 +160,7 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
             data-category="${categoryIndex}" 
             data-index="${movieIndex}" 
             data-stream-id="${movieId}" 
-            style="background-image: url('${imageUrl}')">
+            style="background-image: url('${imageUrl ? imageUrl : "./assets/demo-img-card.png"}')">
             <div class="movie-card-content">
                 <div class="movie-card-top">
                     <img src="./assets/heartIcon.png" 
@@ -964,7 +964,6 @@ function MoviesPage() {
         chunkLoadingState.loadedChunks = {};
         chunkLoadingState.isLoading = false;
         
-        // Check if we have any data
         if (!hasAnyCategoryData()) {
             let noDataHTML = '<div class="movies-page-container">' +
                            createNoDataMessage("movies") +
@@ -973,12 +972,10 @@ function MoviesPage() {
             return;
         }
         
-        // Build page HTML with initial categories
         let html = '<div class="movies-page-container">';
         
         for (let i = 0; i < initialCategories.length; i++) {
             let category = initialCategories[i];
-            // Only show category if it has movies
             if (category.movies && category.movies.length > 0) {
                 html += createCategorySection(category, i);
             }

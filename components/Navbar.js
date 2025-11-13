@@ -227,8 +227,8 @@ document.addEventListener("keydown", (e) => {
       }
       break;
 case "ArrowDown":
-  // Handle ArrowDown for both moviesPage and liveTvPage
-  if ((currentPage === "moviesPage" || currentPage === "liveTvPage") && navigationFocus === "navbar") {
+  // Handle ArrowDown for moviesPage, liveTvPage, and seriesPage
+  if ((currentPage === "moviesPage" || currentPage === "liveTvPage" || currentPage === "seriesPage") && navigationFocus === "navbar") {
     localStorage.setItem("navigationFocus", currentPage);
     
     navItems.forEach(item => item.classList.remove("active"));
@@ -263,6 +263,25 @@ case "ArrowDown":
           firstCard.focus();
           if (window.updateFocus) {
             window.updateFocus();
+          }
+        }
+      }, 10);
+    }
+    
+    // SeriesPage logic
+    if (currentPage === "seriesPage" && window.seriesNavigationState) {
+      window.seriesNavigationState.currentCategoryIndex = 0;
+      window.seriesNavigationState.currentCardIndex = 0;
+      if (window.saveSeriesNavigationState) {
+        window.saveSeriesNavigationState(); 
+      }
+      
+      setTimeout(() => {
+        const firstCard = document.querySelector(".series-card");
+        if (firstCard) {
+          firstCard.focus();
+          if (window.updateSeriesFocus) {
+            window.updateSeriesFocus();
           }
         }
       }, 10);

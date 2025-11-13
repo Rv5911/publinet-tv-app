@@ -10,10 +10,6 @@ let favoriteSeriesIds = [];
 
 let isSeriesNavigationInitialized = false;
 
-let seriesLastKeyPressTime = 0;
-let seriesKeyPressDelay = 500; 
-let favoritesSeriesArray = [];
-
 let seriesChunkLoadingState = {
     loadedCategories: 0,
     categoryChunkSize: 4,
@@ -25,7 +21,7 @@ let seriesChunkLoadingState = {
 let seriesEnterKeyState = {
     isPressed: false,
     pressStartTime: 0,
-    longPressThreshold: 500,
+    longPressThreshold: 400,
     timeoutId: null
 };
 
@@ -111,7 +107,7 @@ function getPopularSeries() {
 }
 
 function getAPISeriesCategories() {
-    let allSeriesCategoriesData = window.seriesCategories || [];
+    let allSeriesCategoriesData = window.allseriesCategories || [];
     let allSeriesStreamsData = window.allSeriesStreams || [];
     
     if (allSeriesCategoriesData.length === 0 || allSeriesStreamsData.length === 0) {
@@ -147,7 +143,11 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
     let isLarge = size === "large";
     let cardClass = isLarge ? "series-card series-card-large" : "series-card";
     let seriesId = String(seriesData.series_id || seriesData.id);
-    let isSeriesFav = favoriteSeriesIds.some(favId => String(favId) === seriesId);
+    
+    // Safe check for favoriteSeriesIds
+    let isSeriesFav = Array.isArray(favoriteSeriesIds) && 
+                     favoriteSeriesIds.some(favId => String(favId) === String(seriesId));
+    
     let imageUrl = seriesData.image || "./assets/demo-img-card.png";
     let titleClass = 'series-title-marquee';
     
@@ -263,41 +263,103 @@ function loadMoreSeriesCategories() {
     let allCategories = window.allseriesCategories || [];
     let currentLoaded = seriesChunkLoadingState.loadedCategories;
     
-    if (currentLoaded >= allCategories.length) return;
+    if (currentLoaded >= allCategories.length) {
+        // Remove loading indicator if no more categories to load
+        let container = document.querySelector('.series-page-container');
+        if (container) {
+            let categoriesLoading = container.querySelector('.categories-loading-indicator');
+            if (categoriesLoading) {
+                categoriesLoading.remove();
+            }
+        }
+        return;
+    }
     
     seriesChunkLoadingState.isLoading = true;
     
     let nextChunk = Math.min(currentLoaded + seriesChunkLoadingState.categoryChunkSize, allCategories.length);
     
-    setTimeout(function() {
-        let container = document.querySelector('.series-page-container');
-        if (!container) {
+    // Safety timeout to prevent infinite loading
+    let safetyTimeout = setTimeout(function() {
+        if (seriesChunkLoadingState.isLoading) {
+            console.warn('loadMoreSeriesCategories: Safety timeout triggered, resetting loading state');
             seriesChunkLoadingState.isLoading = false;
-            return;
+            let container = document.querySelector('.series-page-container');
+            if (container) {
+                let categoriesLoading = container.querySelector('.categories-loading-indicator');
+                if (categoriesLoading) {
+                    categoriesLoading.remove();
+                }
+            }
         }
-        
-        let categoriesLoading = container.querySelector('.series-categories-loading-indicator');
-        if (categoriesLoading) {
-            categoriesLoading.remove();
-        }
-        
-        for (let i = currentLoaded; i < nextChunk; i++) {
-            let category = allCategories[i];
-            if (!category) continue;
+    }, 5000); // 5 second safety timeout
+    
+    setTimeout(function() {
+        try {
+            let container = document.querySelector('.series-page-container');
+            if (!container) {
+                clearTimeout(safetyTimeout);
+                seriesChunkLoadingState.isLoading = false;
+                return;
+            }
             
-            let categoryHTML = createSeriesCategorySection(category, i);
-            container.insertAdjacentHTML('beforeend', categoryHTML);
+            let categoriesLoading = container.querySelector('.categories-loading-indicator');
+            if (categoriesLoading) {
+                categoriesLoading.remove();
+            }
+            
+            let categoriesAdded = 0;
+            for (let i = currentLoaded; i < nextChunk; i++) {
+                let category = allCategories[i];
+                if (!category) continue;
+                
+                // Only add category if it has series
+                if (category.series && category.series.length > 0) {
+                    try {
+                        let categoryHTML = createSeriesCategorySection(category, i);
+                        container.insertAdjacentHTML('beforeend', categoryHTML);
+                        categoriesAdded++;
+                    } catch (e) {
+                        console.error('Error creating category section:', e);
+                    }
+                }
+            }
+            
+            // Check if there are more categories with series to load
+            let hasMoreCategories = false;
+            for (let i = nextChunk; i < allCategories.length; i++) {
+                let category = allCategories[i];
+                if (category && category.series && category.series.length > 0) {
+                    hasMoreCategories = true;
+                    break;
+                }
+            }
+            
+            if (hasMoreCategories) {
+                container.insertAdjacentHTML('beforeend', '<div class="categories-loading-indicator"><p>Loading more categories...</p></div>');
+            }
+            
+            seriesChunkLoadingState.loadedCategories = nextChunk;
+            clearTimeout(safetyTimeout);
+            seriesChunkLoadingState.isLoading = false;
+            
+            if (categoriesAdded > 0) {
+                updateSeriesFocus();
+            }
+        } catch (e) {
+            console.error('Error in loadMoreSeriesCategories:', e);
+            clearTimeout(safetyTimeout);
+            seriesChunkLoadingState.isLoading = false;
+            
+            // Remove loading indicator on error
+            let container = document.querySelector('.series-page-container');
+            if (container) {
+                let categoriesLoading = container.querySelector('.categories-loading-indicator');
+                if (categoriesLoading) {
+                    categoriesLoading.remove();
+                }
+            }
         }
-        
-        if (nextChunk < allCategories.length) {
-            container.insertAdjacentHTML('beforeend', '<div class="series-categories-loading-indicator"><p>Loading more categories...</p></div>');
-        }
-        
-        seriesChunkLoadingState.loadedCategories = nextChunk;
-        seriesChunkLoadingState.isLoading = false;
-        
-        updateSeriesFocus();
-        
     }, 200);
 }
 
@@ -331,7 +393,6 @@ function createNoSeriesDataMessage(categoryTitle) {
            '</div>';
 }
 
-// === FIXED ENTER KEY HANDLING ===
 function handleSeriesEnterKey(e) {
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
@@ -387,25 +448,28 @@ function handleSeriesSimpleEnter() {
     
     if (currentCard) {
         let seriesId = currentCard.getAttribute('data-series-id');
-        alert("Short Press ", seriesId)
 
-        //         localStorage.setItem("seriesCategoryIndex", categoryIndex);
-        // localStorage.setItem("seriesCardIndex", cardIndex);
-        // localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
+        localStorage.setItem("seriesCategoryIndex", categoryIndex);
+        localStorage.setItem("seriesCardIndex", cardIndex);
+        localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
         
-        // localStorage.setItem("selectedSeriesId", seriesId);
-        // localStorage.setItem("currentPage", "seriesDetailPage");
-        // console.log(seriesId,"seriesId")
+        localStorage.setItem("selectedSeriesId", seriesId);
 
-        //  const selectedSeriesItem=allSeriesStreams.find(item=>item.series_id==seriesId);
-        //  if(selectedSeriesItem){
+        const selectedSeriesItem = window.allSeriesStreams && window.allSeriesStreams.find ? window.allSeriesStreams.find(item => item.series_id == seriesId) : null;
+        if (selectedSeriesItem) {
+            localStorage.setItem("selectedSeriesData", JSON.stringify(selectedSeriesItem));
+        }
 
-        //      localStorage.setItem("selectedSeriesData", JSON.stringify(selectedSeriesItem));
-        //      console.log("selected seriesId",seriesId)
-        //  }
-        // document.querySelector("#loading-progress").style.display = "none";
-        // Router.showPage("seriesDetailPage");
-
+        // CLEANUP: Remove series page event listeners
+        cleanupSeriesNavigation();
+        
+        document.querySelector("#loading-progress").style.display = "none";
+        
+        // SET CORRECT PAGE STATE
+        localStorage.setItem("currentPage", "seriesDetailPage");
+        localStorage.setItem("navigationFocus", "seriesDetailPage");
+        
+        Router.showPage("seriesDetailPage"); 
     }
 }
 
@@ -423,19 +487,21 @@ function handleSeriesLongPressEnter() {
     
     if (currentCard) {
         let seriesId = currentCard.getAttribute('data-series-id');
-        alert("LONG PRESS " + seriesId);
-        // console.log("seriesId",seriesId)
-        // toggleFavoriteItem(seriesId, "series", getCurrentPlaylistUsername());
+        // alert("LONG PRESS " + seriesId);
+        console.log("seriesId",seriesId)
+        alert("seriesId",seriesId)
+        toggleFavoriteItem(seriesId, "series", getCurrentPlaylistUsername());
         // Example: showSeriesOptions(seriesId);
     }
 }
 
-// === FIXED KEYBOARD NAVIGATION ===
+let seriesNavigationDebounce = {
+    lastKeyPress: 0,
+    debounceTime: 300,
+    isDebouncing: false
+};
+
 function handleSeriesKeyNavigation(e) {
-    if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) {
-        return;
-    }
-    
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
     
@@ -443,21 +509,22 @@ function handleSeriesKeyNavigation(e) {
         return;
     }
     
-    // Handle Enter key separately
     if (e.key === "Enter") {
         handleSeriesEnterKey(e);
         return;
     }
     
-    // Enhanced debouncing with proper timing
-    let now = Date.now();
-    if (now - seriesLastKeyPressTime < seriesKeyPressDelay) {
+    // DEBOUNCE CHECK - Prevent too fast navigation
+    const now = Date.now();
+    if (now - seriesNavigationDebounce.lastKeyPress < seriesNavigationDebounce.debounceTime) {
         e.preventDefault();
         return;
     }
-    seriesLastKeyPressTime = now;
     
     e.preventDefault();
+    
+    // Set debounce timestamp
+    seriesNavigationDebounce.lastKeyPress = now;
     
     switch(e.key) {
         case "ArrowRight":
@@ -478,8 +545,36 @@ function handleSeriesKeyNavigation(e) {
     saveSeriesNavigationState();
 }
 
+function cleanupSeriesNavigation() {
+    document.removeEventListener("keydown", handleSeriesKeyNavigation);
+    document.removeEventListener("keyup", handleSeriesKeyNavigation);
+    isSeriesNavigationInitialized = false;
+    seriesNavigationDebounce.lastKeyPress = 0;
+    seriesNavigationDebounce.isDebouncing = false;
+}
+
+function getCurrentVisibleIndex(categoryIndex, cardIndex) {
+    let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+    if (!cardList) return cardIndex;
+    
+    // Get container and card dimensions
+    let containerWidth = cardList.offsetWidth;
+    let firstCard = cardList.querySelector('.series-card');
+    if (!firstCard) return cardIndex;
+    
+    let cardWidth = firstCard.offsetWidth + 16; // card width + margin
+    let visibleCardsCount = Math.floor(containerWidth / cardWidth);
+    
+    // If we're beyond visible range, return position within visible range
+    if (cardIndex >= visibleCardsCount) {
+        return cardIndex % visibleCardsCount;
+    }
+    
+    // If within visible range, keep the same position
+    return cardIndex;
+}
+
 function moveSeriesRight() {
-    // FIXED: Check if current category has series
     if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
         return;
     }
@@ -522,50 +617,40 @@ function moveSeriesLeft() {
 }
 
 function moveSeriesDown() {
- 
     let allCategories = window.allseriesCategories || [];
     if (allCategories.length === 0) return;
     
     let currentIndex = seriesNavigationState.currentCategoryIndex;
-    
     let currentCardIndex = seriesNavigationState.currentCardIndex;
     
-    let nextCategoryIndex = findNextSeriesCategoryWithSeries(currentIndex + 1, 1); 
+    let nextCategoryIndex = findNextSeriesCategoryWithSeries(currentIndex + 1, 1);
 
-    if(nextCategoryIndex > 4){
+    if(nextCategoryIndex > 2){
        const navbarEl=document.querySelector("#navbar-root");
 
     if(navbarEl){
         navbarEl.style.display="none";
     }
     }
-    // console.log(nextCategoryIndex,"nextCategoryIndex")
     if (nextCategoryIndex !== -1) {
         seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
         
-        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentSeriesCategory();
         if (newCategory) {
             let loadedCount = getSeriesLoadedChunkCount(seriesNavigationState.currentCategoryIndex);
             
-            // Keep the same card index if it exists in the new category
-            if (currentCardIndex < loadedCount) {
-                seriesNavigationState.currentCardIndex = currentCardIndex;
-            } else {
-                // If current index doesn't exist, go to first card
-                seriesNavigationState.currentCardIndex = 0;
-            }
+            // Maintain same visible position in the new category
+            let visiblePosition = getCurrentVisibleIndex(currentIndex, currentCardIndex);
+            seriesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
         } else {
             seriesNavigationState.currentCardIndex = 0;
         }
         
-        // Check if we're at the last loaded category and load more if needed
         let loadedCategoriesCount = seriesChunkLoadingState.loadedCategories;
         if (seriesNavigationState.currentCategoryIndex >= loadedCategoriesCount - 2) {
             loadMoreSeriesCategories();
         }
     } else {
-        // Already at last category with series
         let currentCategory = getCurrentSeriesCategory();
         if (currentCategory && currentCategory.series) {
             let loadedCount = getSeriesLoadedChunkCount(currentIndex);
@@ -578,80 +663,78 @@ function moveSeriesDown() {
 }
 
 function moveSeriesUp() {
-
     let currentIndex = seriesNavigationState.currentCategoryIndex;
-    
-    // Store current card index before moving
     let currentCardIndex = seriesNavigationState.currentCardIndex;
     
-    // FIXED: Find previous category that has series
-    let prevCategoryIndex = findNextSeriesCategoryWithSeries(currentIndex - 1, -1); // direction -1 = up
+    let prevCategoryIndex = findNextSeriesCategoryWithSeries(currentIndex - 1, -1);
     
     if (prevCategoryIndex !== -1) {
         seriesNavigationState.currentCategoryIndex = prevCategoryIndex;
         
-        // FIXED: Maintain same card index position when moving between categories
         let newCategory = getCurrentSeriesCategory();
         if (newCategory) {
             let loadedCount = getSeriesLoadedChunkCount(seriesNavigationState.currentCategoryIndex);
             
-            // Keep the same card index if it exists in the new category
-            if (currentCardIndex < loadedCount) {
-                seriesNavigationState.currentCardIndex = currentCardIndex;
-            } else {
-                // If current index doesn't exist, go to first card
-                seriesNavigationState.currentCardIndex = 0;
-            }
+            // Maintain same visible position in the new category
+            let visiblePosition = getCurrentVisibleIndex(currentIndex, currentCardIndex);
+            seriesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
         } else {
             seriesNavigationState.currentCardIndex = 0;
         }
     } else {
-  removeAllSeriesFocus();
-  saveSeriesNavigationState();
-  localStorage.setItem("navigationFocus", "navbar");
+        try {
+            const seriesContainer = document.querySelector('.series-page-container');
+            if (seriesContainer) {
+                seriesContainer.scrollTop = 0;
+            }
 
-  setTimeout(() => {
-        const navbarEl=document.querySelector("#navbar-root");
+            const navbarEl=document.querySelector("#navbar-root");
 
-    if(navbarEl){
-        navbarEl.style.display="block";
+            if(navbarEl){
+                navbarEl.style.display="block";
+            }
+            
+        } catch (e) {
+            console.log('Scroll to top failed:', e);
+        }
+        
+        removeAllSeriesFocus();
+        saveSeriesNavigationState();
+        localStorage.setItem("navigationFocus", "navbar");
+
+        setTimeout(() => {
+            const seriesNavItem = document.querySelector('.nav-item[data-page="seriesPage"]');
+            if (seriesNavItem) {
+                seriesNavItem.focus();
+                seriesNavItem.classList.add("active");
+            }
+        }, 50);
     }
-    const scrollable = document.querySelector('.series-page-container') || document.scrollingElement || document.documentElement;
-
-    if (scrollable) {
-      scrollable.scrollTop = 0;
-    }
-
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    if (typeof window.scrollTo === "function") {
-      try {
-        window.scrollTo(0, 0);
-      } catch (_) {}
-    }
-
-    const seriesNavItem = document.querySelector('.nav-item[data-page="seriesPage"]');
-    if (seriesNavItem) {
-      seriesNavItem.focus();
-      seriesNavItem.classList.add("active");
-    }
-  }, 50); 
-}
-
 }
 
 function loadMoreSeriesForCategory(categoryIndex) {
     if (seriesChunkLoadingState.isLoading) return;
     
     let categories = window.allseriesCategories || [];
+    if (categoryIndex < 0 || categoryIndex >= categories.length) return;
+    
     let category = categories[categoryIndex];
     if (!category) return;
     
     let loadedCount = getSeriesLoadedChunkCount(categoryIndex);
     let totalSeries = category.series ? category.series.length : 0;
     
-    if (loadedCount >= totalSeries) return;
+    if (loadedCount >= totalSeries) {
+        // Remove loading indicator if no more series to load
+        let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+        if (cardList) {
+            let loadingEl = cardList.querySelector('.series-loading-indicator');
+            if (loadingEl) {
+                loadingEl.remove();
+            }
+        }
+        return;
+    }
     
     seriesChunkLoadingState.isLoading = true;
     
@@ -668,20 +751,62 @@ function loadMoreSeriesForCategory(categoryIndex) {
     
     cardList.insertAdjacentHTML('beforeend', createSeriesLoadingIndicator(categoryIndex));
     
+    // Safety timeout to prevent infinite loading
+    let safetyTimeout = setTimeout(function() {
+        if (seriesChunkLoadingState.isLoading) {
+            console.warn('loadMoreSeriesForCategory: Safety timeout triggered, resetting loading state');
+            seriesChunkLoadingState.isLoading = false;
+            let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+            if (cardList) {
+                let loadingEl = cardList.querySelector('.series-loading-indicator');
+                if (loadingEl) {
+                    loadingEl.remove();
+                }
+            }
+        }
+    }, 3000); // 3 second safety timeout
+    
     setTimeout(function() {
-        let newCardsHTML = loadSeriesChunk(category, categoryIndex);
-        
-        let loadingEl = cardList.querySelector('.series-loading-indicator');
-        if (loadingEl) {
-            loadingEl.remove();
+        try {
+            let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+            if (!cardList) {
+                clearTimeout(safetyTimeout);
+                seriesChunkLoadingState.isLoading = false;
+                return;
+            }
+            
+            let newCardsHTML = loadSeriesChunk(category, categoryIndex);
+            
+            let loadingEl = cardList.querySelector('.series-loading-indicator');
+            if (loadingEl) {
+                loadingEl.remove();
+            }
+            
+            if (newCardsHTML) {
+                cardList.insertAdjacentHTML('beforeend', newCardsHTML);
+                
+                // If this is the category we're trying to restore focus to, update focus
+                if (seriesNavigationState.currentCategoryIndex === categoryIndex) {
+                    updateSeriesFocus();
+                }
+            }
+            
+            clearTimeout(safetyTimeout);
+            seriesChunkLoadingState.isLoading = false;
+        } catch (e) {
+            console.error('Error in loadMoreSeriesForCategory:', e);
+            clearTimeout(safetyTimeout);
+            seriesChunkLoadingState.isLoading = false;
+            
+            // Remove loading indicator on error
+            let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+            if (cardList) {
+                let loadingEl = cardList.querySelector('.series-loading-indicator');
+                if (loadingEl) {
+                    loadingEl.remove();
+                }
+            }
         }
-        
-        if (newCardsHTML) {
-            cardList.insertAdjacentHTML('beforeend', newCardsHTML);
-            updateSeriesFocus();
-        }
-        
-        seriesChunkLoadingState.isLoading = false;
     }, 100);
 }
 
@@ -793,18 +918,59 @@ function restoreSeriesNavigationState() {
             seriesNavigationState.lastFocusedCategory = state.lastFocusedCategory || 0;
             seriesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
             
-            // FIXED: Ensure we start with a category that has series
-            if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
-                let nextCategoryIndex = findNextSeriesCategoryWithSeries(0, 1);
-                if (nextCategoryIndex !== -1) {
-                    seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
-                    seriesNavigationState.currentCardIndex = 0;
-                }
-            }
+            // Wait for content to load before validating
+            setTimeout(() => {
+                validateAndAdjustRestoredSeriesState();
+            }, 100);
         }
     } catch (e) {
         console.log('Error restoring navigation state:', e);
     }
+}
+
+function doesSeriesCardExist(categoryIndex, cardIndex) {
+    let cardList = document.querySelector('.series-card-list[data-category="' + categoryIndex + '"]');
+    if (!cardList) return false;
+    
+    let card = cardList.querySelector('.series-card[data-index="' + cardIndex + '"]');
+    return card !== null;
+}
+
+function validateAndAdjustRestoredSeriesState() {
+    // First, ensure we have at least one category with series
+    if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
+        let nextCategoryIndex = findNextSeriesCategoryWithSeries(0, 1);
+        if (nextCategoryIndex !== -1) {
+            seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
+            seriesNavigationState.currentCardIndex = 0;
+        } else {
+            // No categories with series found, reset to defaults
+            seriesNavigationState.currentCategoryIndex = 0;
+            seriesNavigationState.currentCardIndex = 0;
+        }
+    } else {
+        // Category exists, check if card index is valid
+        let currentCategory = getCurrentSeriesCategory();
+        if (currentCategory) {
+            let loadedCount = getSeriesLoadedChunkCount(seriesNavigationState.currentCategoryIndex);
+            
+            // If the restored card index is beyond loaded count, adjust it
+            if (seriesNavigationState.currentCardIndex >= loadedCount) {
+                seriesNavigationState.currentCardIndex = Math.max(0, loadedCount - 1);
+            }
+            
+            // If the specific card doesn't exist but should be loaded, try to load more
+            if (!doesSeriesCardExist(seriesNavigationState.currentCategoryIndex, seriesNavigationState.currentCardIndex) && 
+                loadedCount < currentCategory.series.length) {
+                loadMoreSeriesForCategory(seriesNavigationState.currentCategoryIndex);
+            }
+        }
+    }
+    
+    // Update focus after state is validated
+    setTimeout(() => {
+        updateSeriesFocus();
+    }, 50);
 }
 
 // === HELPER FUNCTIONS ===
@@ -831,7 +997,6 @@ function cleanupSeriesNavigation() {
     isSeriesNavigationInitialized = false;
 }
 
-// === CHECK IF ANY CATEGORY HAS DATA ===
 function hasAnySeriesCategoryData() {
     let categories = window.allseriesCategories || [];
     for (let i = 0; i < categories.length; i++) {
@@ -842,40 +1007,39 @@ function hasAnySeriesCategoryData() {
     return false;
 }
 
-// === MAIN SERIES PAGE FUNCTION ===
 function SeriesPage() {
-    // Show loading state immediately
-    let loadingHTML = '<div class="series-page-loading">' +
+    let loadingHTML = '<div class="series-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Series...</p>' +
                      '</div>';
     
-    // Update page tracking
     localStorage.setItem("previousPage", localStorage.getItem("currentPage") || "");
     localStorage.setItem("currentPage", "seriesPage");
     localStorage.setItem("navigationFocus", "seriesPage");
     
+    // Initialize favoriteSeriesIds to empty array to prevent the error
+    favoriteSeriesIds = [];
+    
     setTimeout(function() {
-        favoriteSeriesIds = getFavoriteSeries();
+        const currentPlaylist = getCurrentPlaylist();   
+        const currentPlaylistFavIds = currentPlaylist ? currentPlaylist.favouriteSeries : [];   
         
-        let favoriteSeriesData = window.allSeriesStreams.filter(s => {
-            let seriesIdStr = s.series_id ? s.series_id.toString() : '';
-            return favoriteSeriesIds.includes(seriesIdStr);
-        });
+        // Assign to the global variable, don't declare a new one
+        favoriteSeriesIds = currentPlaylistFavIds || [];
+
         
-        console.log(favoriteSeriesData, "FAVORITE SERIES DATA");
-        console.log("Favorite IDs:", favoriteSeriesIds);
-        console.log("Available series IDs:", allSeriesStreamsData.map(s => s.series_id));
-        
-        let popularSeries = getPopularSeries();
-        let recentlyWatchedSeries = getRecentlyWatchedSeries();
+        let favouriteSeries = window.allSeriesStreams && currentPlaylistFavIds ? 
+            window.allSeriesStreams.filter(s => currentPlaylistFavIds.includes(s.series_id)) : [];
+        let popularSeries = window.allSeriesStreams ? 
+            window.allSeriesStreams.filter(s => s.rating_5based > 4).slice(0, 10) : [];
+        let recentlyWatchedSeries = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
+            currentPlaylist.continueWatchingSeries : [];
         let apiCategories = getAPISeriesCategories();
         
-        // Create initial categories array
         let initialCategories = [
             { 
                 title: "My Fav", 
-                series: favoriteSeriesData, // Use the filtered data
+                series: favouriteSeries, 
                 id: "fav", 
                 containerClass: "series-fav-container"
             },
@@ -910,11 +1074,7 @@ function SeriesPage() {
             let noDataHTML = '<div class="series-page-container">' +
                            createNoSeriesDataMessage("series") +
                            '</div>';
-            // FIX: Check if the container exists before setting innerHTML
-            let container = document.querySelector('.series-page-container') || document.querySelector('.series-page-loading');
-            if (container) {
-                container.innerHTML = noDataHTML;
-            }
+            document.querySelector('.series-page-container').innerHTML = noDataHTML;
             return;
         }
         
@@ -929,37 +1089,42 @@ function SeriesPage() {
             }
         }
         
-        if (window.allseriesCategories.length > initialCategories.length) {
-            html += '<div class="series-categories-loading-indicator"><p>Loading more categories...</p></div>';
+        // Only show loading indicator if there are more categories with series to load
+        let hasMoreCategories = false;
+        for (let i = initialCategories.length; i < window.allseriesCategories.length; i++) {
+            let category = window.allseriesCategories[i];
+            if (category && category.series && category.series.length > 0) {
+                hasMoreCategories = true;
+                break;
+            }
+        }
+        
+        if (hasMoreCategories) {
+            html += '<div class="categories-loading-indicator"><p>Loading more categories...</p></div>';
         }
         
         html += '</div>';
         
-        // FIX: Replace loading with actual content - check if container exists
+        // Replace loading with actual content
         let container = document.querySelector('.series-page-loading');
         if (container) {
             container.outerHTML = html;
-        } else {
-            // If loading container doesn't exist, try to find or create the main container
-            let mainContainer = document.querySelector('.series-page-container');
-            if (mainContainer) {
-                mainContainer.innerHTML = html;
-            } else {
-                // Create the container if it doesn't exist
-                document.body.insertAdjacentHTML('beforeend', html);
-            }
         }
+        
+        // Restore navigation state AFTER content is loaded
+        restoreSeriesNavigationState();
         
         // Initialize navigation
         setTimeout(function() {
             initSeriesNavigation();
-            updateSeriesFocus();
+            // Focus will be updated by restoreSeriesNavigationState
         }, 100);
         
     }, 500); 
     
     return loadingHTML;
 }
+
 window.seriesNavigationState = seriesNavigationState;
 window.updateSeriesFocus = updateSeriesFocus;
 window.saveSeriesNavigationState = saveSeriesNavigationState;
