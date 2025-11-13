@@ -182,8 +182,10 @@ function ParentalControl() {
         var password = inputs[0].value;
         
         // Save to localStorage
-        localStorage.setItem("parentalPassword", password);
-        
+              const currentPlaylist=getCurrentPlaylist();
+
+      updatePlaylistData(currentPlaylist.playlistName, "parentalPassword", password);
+
         // Remove focus styles after saving
         removeAllFocusStyles();
         

@@ -189,9 +189,9 @@ function StreamFormat() {
       }
       const currentPlaylist=getCurrentPlaylist();
       console.log(currentPlaylist,"currentPlaylistcurrentPlaylistcurrentPlaylist");
-      
-      // Save to localStorage
-      localStorage.setItem("streamFormat", selectedValue);
+
+      updatePlaylistData(currentPlaylist.playlistName, "streamFormat", selectedValue);
+
       
       // Remove focus styles after saving
       removeAllFocusStyles();
@@ -203,7 +203,6 @@ function StreamFormat() {
         updateFocusStyles();
       }
       
-      alert("Stream format saved: " + selectedValue);
       console.log("Stream format saved:", selectedValue);
     });
 

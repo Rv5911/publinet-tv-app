@@ -189,7 +189,10 @@ function TimeFormat() {
       }
       
       // Save to localStorage
-      localStorage.setItem("timeFormat", selectedValue);
+            const currentPlaylist=getCurrentPlaylist();
+
+      updatePlaylistData(currentPlaylist.playlistName, "timeFormat", selectedValue);
+
       
       // Remove focus styles after saving
       removeAllFocusStyles();
@@ -201,7 +204,6 @@ function TimeFormat() {
         updateFocusStyles();
       }
       
-      alert("Time format saved: " + selectedValue);
       console.log("Time format saved:", selectedValue);
     });
 

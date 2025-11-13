@@ -549,7 +549,6 @@ let lastSelectedCategoryId = "";
     }
             setFlags(false, false, true, false, false);
 
-      saveNavigationState();
   localStorage.setItem("navigationFocus", "navbar");
   }
 
@@ -814,6 +813,7 @@ setTimeout(() => refreshCategoryCountsOnly(), 150);
 };
   
   const keyHandler = (e) => {
+    if(localStorage.getItem("currentPage") !== "liveTvPage") return;
      const backKeys = [10009, "Escape", "Back", "BrowserBack", "XF86Back"];
       if (backKeys.includes(e.key) || backKeys.includes(e.keyCode)) {
       closeDialog();
@@ -1609,7 +1609,7 @@ if (card) {
 }
 
 function keyHandler(e) {
-  if (localStorage.getItem("currentPage") !== "liveTvPage") return;
+  if (localStorage.getItem("currentPage") !== "liveTvPage" || localStorage.getItem("navigationFocus")=== "sidebar") return;
 
 const isFullscreen = document.fullscreenElement || 
                     document.webkitFullscreenElement || 
@@ -1637,7 +1637,6 @@ if (isFullscreen) {
   
   // Handle back/escape keys for exiting fullscreen
   if (backKeys.includes(e.key) || backKeys.includes(e.keyCode)) {
-    setPageOpen(false);
     
     // Enhanced fullscreen detection for Flowplayer
     const isDocumentFullscreen = document.fullscreenElement || 
@@ -1671,19 +1670,7 @@ if (isFullscreen) {
       return;
     }
     
-    // If not in fullscreen, proceed with normal back navigation
-    disposeLivePlayer();
-    
-    if (window.livePlayer) {
-      try {
-        window.livePlayer.dispose();
-        disposeLivePlayer();
-      } catch {}
-      window.livePlayer = null;
-    }
-    
-    localStorage.setItem("currentPage", "dashboard");
-    Router.showPage("dashboard");
+
     return;
   }
   
@@ -1901,7 +1888,6 @@ if (isEnter) {
   const backKeys = [10009, "Escape", "Back", "BrowserBack", "XF86Back"];
   
   if (backKeys.includes(e.key) || backKeys.includes(e.keyCode)) {
-    setPageOpen(false);
     // First check if player is in fullscreen mode - check both document and player
     const isDocumentFullscreen = document.fullscreenElement || 
                                 document.webkitFullscreenElement || 
@@ -1934,19 +1920,7 @@ if (isEnter) {
       return;
     }
     
-    // If not in fullscreen, proceed with normal back navigation
-    disposeLivePlayer();
-    
-    if (window.livePlayer) {
-      try {
-        window.livePlayer.dispose();
-        disposeLivePlayer();
-      } catch {}
-      window.livePlayer = null;
-    }
-    
-    localStorage.setItem("currentPage", "dashboard");
-    Router.showPage("dashboard");
+
     return;
   }
 
