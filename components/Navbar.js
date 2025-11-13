@@ -295,6 +295,7 @@ case "ArrowDown":
         openSidebar();
       } else {
         const page = navItems[currentIndex - 1].getAttribute("data-page");
+        clearMoviesAndSeriesLocalStorage();
         Router.showPage(page);
         updateNavbarActive(page);
       }

@@ -513,6 +513,22 @@ function applyMarqueeEffect(containerSelector, titleSelector, focusedClass) {
   });
 }
 
+function clearMoviesAndSeriesLocalStorage() {
+  localStorage.removeItem("moviesCardIndex");
+  localStorage.removeItem("moviesCategoryIndex");
+  localStorage.removeItem("moviesSelectedCategoryId");
+  localStorage.removeItem("selectedSeason");
+  localStorage.removeItem("selectedSeriesItem");
+  localStorage.removeItem("selectedVideoItemUrl");
+  localStorage.removeItem("seriesCardIndex");
+  localStorage.removeItem("seriesCategoryIndex");
+  localStorage.removeItem("seriesEpisodesData");
+  localStorage.removeItem("seriesSelectedCategoryId");
+  localStorage.removeItem("seriesNavState");
+  localStorage.removeItem("moviesNavState");
+
+}
+
 window.updatePlaylistData = updatePlaylistData;
 window.getPlaylistData = getPlaylistData;
 window.isLoginCancelled = isLoginCancelled;
@@ -532,7 +548,7 @@ window.addItemToHistory = addItemToHistory;
 window.removeItemFromHistoryById = removeItemFromHistoryById;
 window.removeAllFromHistory = removeAllFromHistory;
 window.applyMarqueeEffect = applyMarqueeEffect;
-
+window.clearMoviesAndSeriesLocalStorage = clearMoviesAndSeriesLocalStorage;
 window.decodeBase64 = decodeBase64;
 window.adultsCategories = adultsCategories;
 window.getCurrentPlaylist = getCurrentPlaylist;
