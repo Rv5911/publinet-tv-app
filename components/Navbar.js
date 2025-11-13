@@ -294,6 +294,8 @@ case "ArrowDown":
       } else if (currentIndex === totalItems - 1) {
         openSidebar();
       } else {
+        if (window.cleanupMoviesNavigation){ window.cleanupMoviesNavigation();}
+if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
         const page = navItems[currentIndex - 1].getAttribute("data-page");
         clearMoviesAndSeriesLocalStorage();
         Router.showPage(page);

@@ -41,7 +41,7 @@
 }
 
 /* No Data States */
-.no-series-data-container {
+.no-data-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -50,7 +50,7 @@
   text-align: center;
 }
 
-.no-series-data-content h2 {
+.no-data-content h2 {
   font-size: 48px;
   font-weight: 600;
   color: white;
@@ -58,7 +58,7 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.no-series-data-content p {
+.no-data-content p {
   font-size: 24px;
   font-weight: 300;
   color: rgba(255, 255, 255, 0.8);
@@ -67,7 +67,7 @@
 /* Category Headers */
 .series-fav-container h1,
 .series-popular-container h1,
-.recently-watched-series-container h1,
+.recently-watched-container h1,
 .series-category-container h1 {
   font-size: 30px;
   font-weight: 600;
@@ -480,7 +480,7 @@
 /* Empty category handling */
 .series-fav-container:empty,
 .series-popular-container:empty,
-.recently-watched-series-container:empty,
+.recently-watched-container:empty,
 .series-category-container:empty {
   display: none;
 }

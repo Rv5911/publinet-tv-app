@@ -187,6 +187,8 @@ function StreamFormat() {
           break;
         }
       }
+      const currentPlaylist=getCurrentPlaylist();
+      console.log(currentPlaylist,"currentPlaylistcurrentPlaylistcurrentPlaylist");
       
       // Save to localStorage
       localStorage.setItem("streamFormat", selectedValue);
