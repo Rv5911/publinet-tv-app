@@ -109,6 +109,40 @@ function initNavbar() {
     seriesPage: 3,
   };
 
+    // Add this function to dispose Live TV player
+  const disposeLiveTvPlayer = () => {
+    if (localStorage.getItem("currentPage") === "liveTvPage") {
+      // Call Live TV page cleanup if it exists
+      if (typeof LiveTvPage !== 'undefined' && typeof LiveTvPage.cleanup === 'function') {
+        LiveTvPage.cleanup();
+      }
+      
+      // Additional cleanup for live player
+      if (window.livePlayer) {
+        try {
+          if (typeof window.livePlayer.dispose === 'function') {
+            window.livePlayer.dispose();
+          } else if (typeof window.livePlayer.destroy === 'function') {
+            window.livePlayer.destroy();
+          }
+        } catch (error) {
+          console.log("Error disposing live player:", error);
+        }
+        window.livePlayer = null;
+      }
+      
+      // Clean up video elements
+      const videoWrappers = document.querySelectorAll('.livetv-video-wrapper, .live-video-player-div');
+      videoWrappers.forEach(wrapper => {
+        const videos = wrapper.querySelectorAll('video');
+        videos.forEach(video => {
+          video.pause();
+          video.src = '';
+          video.load();
+        });
+      });
+    }
+  };
   // Initialize search query in window object
   window.searchQuery = window.searchQuery || '';
 
@@ -126,6 +160,8 @@ function initNavbar() {
   navItems.forEach((item) => {
     item.addEventListener("click", () => {
       const page = item.getAttribute("data-page");
+            disposeLiveTvPlayer();
+
       Router.showPage(page);
       updateNavbarActive(page);
     });
@@ -298,6 +334,7 @@ case "ArrowDown":
 if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
         const page = navItems[currentIndex - 1].getAttribute("data-page");
         clearMoviesAndSeriesLocalStorage();
+            disposeLiveTvPlayer();
         Router.showPage(page);
         updateNavbarActive(page);
       }
@@ -364,6 +401,7 @@ if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
 
   function handleLogOut() {
                          localStorage.setItem("isLogin", false);
+
 
     localStorage.setItem("currentPage", "login");
     Router.showPage("login");
@@ -457,15 +495,21 @@ if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
         } else if (text === "Sign Out") {
           handleLogOut();
         } else if (text === "Settings") {
+
+                 disposeLiveTvPlayer();
           localStorage.setItem("currentPage", "settingsPage");
           Router.showPage("settingsPage");
           closeSidebar();
         } else if (text === "List User") {
+                    disposeLiveTvPlayer();
+
                                localStorage.setItem("isLogin", false);
 
           Router.showPage("listPage");
           closeSidebar();
         } else if (text === "My Account") {
+                    disposeLiveTvPlayer();
+
                localStorage.setItem("currentPage", "accountPage");
           Router.showPage("accountPage");
           closeSidebar();
