@@ -1164,11 +1164,7 @@ const renderChannelsContent = (isAppend = false, categoryChangeOnly = false) => 
           <p>No categories found for "${categorySearchQuery}"</p>
         </div>
       </div>
-      <div class="livetv-channels-list-container">
-        <div class="livetv-no-data-channel">
-          <p>Select a category to view channels</p>
-        </div>
-      </div>
+  
       <div class="livetv-video-wrapper">
         ${LiveVideoJsComponent("", "", "", "50vh", "No Channel")}
       </div>`;
@@ -1183,7 +1179,13 @@ const renderChannelsContent = (isAppend = false, categoryChangeOnly = false) => 
 
   // Rebuild container structure if needed - ONLY on initial load
   if (!isAppend && !categoryChangeOnly) {
-    container.innerHTML = `<div class="livetv-channels-list"></div><div class="livetv-channels-list-container"></div><div class="livetv-video-wrapper"></div>`;
+    container.innerHTML = `<div class="livetv-channels-list"></div>
+    
+    <div class="second-livetv-container">
+    <div class="livetv-channels-list-container"></div><div class="livetv-video-wrapper"></div>
+    </div>
+    
+    `;
   }
 
 const categoryList = qs(".livetv-channels-list");
@@ -3643,14 +3645,16 @@ setTimeout(() => {
 
   return `
   <div class="livetvpage-main-container">
+    <!--
     <div class="livetv-search-container">
       <div class="livetv-search-categories">
         <input type="text" id="livetv-category-search" class="livetv-search-input" placeholder="Search categories..." />
       </div>
       <div class="livetv-search-channels">
-        <input type="text" id="livetv-channel-search" class="livetv-search-input" placeholder="Search channels..." />
+        <input type="text" id="livetv-channel-search" class="livetv-search-input" placeholder="Search channels" />
       </div>
     </div>
+    -->
     <div class="livetv-content-container"></div>
   </div>`;
 }

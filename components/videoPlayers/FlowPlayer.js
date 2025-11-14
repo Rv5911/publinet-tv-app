@@ -456,7 +456,8 @@ if (aspectRatioButton) {
   }, 50); 
 
   return `
-    <div class="live-video-player live-video-player-div" style="width:100%; height:50%;">
+    <div class="livetvPlayer-main-container">
+    <div class="live-video-player live-video-player-div" style="width:150%; height:100%;">
 
             <button id="live-play-pause-btn" style="display:none;" class="play-pause-icon" tabindex="-1">
           <i class="fa-solid fa-pause live-play-pause-btn-icon"></i>
@@ -485,13 +486,15 @@ if (aspectRatioButton) {
           <source type="application/x-mpegURL" src="${srcUrl.replace(/\.ts(\?.*)?$/i, function(m, q) { return `.m3u8${q || ""}`; })}">
         </video>
       </div>
-      <div class="livetv-player-epg">
+     
+                <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
+
+    </div>
+     <div class="livetv-player-epg">
         <div class="livetv-player-epg-item">
           <p class="livetv-player-epg-title">Loading EPG...</p>
         </div>
       </div>
-                <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
-
     </div>
   `;
 }

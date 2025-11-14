@@ -102,6 +102,7 @@
   background-color: rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   height: 81vh;
+  margin-top: 50px;
   overflow-y: scroll;
   padding: 10px 15px;
 }
@@ -148,13 +149,16 @@
 
 /* Right: Channels grid */
 .livetv-channels-list-container {
-  width: 30%;
-  max-height: 81vh;
+  width: 100%;
+  max-height: 40.5vh;
   overflow-y: auto;
   padding-top: 20px;
   padding-left: 20px;
   padding-bottom: 20px;
   padding-right: 30px;
+  display: grid;
+  gap: 15px;
+  grid-template-columns: repeat(3,1fr);
   margin-left: 20px;
   border-radius: 10px;
   background-color: rgba(0, 0, 0, 0.4);
@@ -234,11 +238,12 @@
 
 .livetv-video-wrapper {
   margin-left: 20px;
-  width: 45%;
-  height: 81vh;
-  display: flex;
+  width: 100%;
+  margin-bottom: 10px;
+    height: 40.5vh;
+
+  display: flex !important;
   overflow-y: hidden;
-  flex-direction: column;
   border-radius: 10px;
   justify-content: flex-start;
   gap: 17px;
@@ -255,7 +260,8 @@
 .livetv-player-epg {
   width: 100%;
   background: rgba(0, 0, 0, 0.4);
-  height: 100%;  margin-top: 20px; /* Change from 20px to 0 */
+  margin-left: 30px;
+  height: 100%; 
   padding: 20px 22px;
   overflow-y: auto;
   display: flex;
@@ -1463,3 +1469,18 @@ color: red ;
   display: flex;
   width: 100%;
 }
+
+
+.second-livetv-container{
+  display: flex;
+  width: 100%;
+  flex-direction: column-reverse;
+}
+
+.livetvPlayer-main-container{
+  display: flex;
+  width: 100%;
+}
+
+
+

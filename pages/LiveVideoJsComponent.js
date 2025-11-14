@@ -655,7 +655,8 @@ if (aspectRatioButton) {
   };
 
   return `
-    <div class="live-video-player live-video-player-div" style="width:100%; height:50%;">
+  <div class="livetvPlayer-main-container">
+    <div class="live-video-player live-video-player-div" style="width:150%; height:100%;">
                <div class="videojs-aspect-ratio-div">
 <button id="videojs-aspect-ratio" class="videojs-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
       </div>
@@ -685,13 +686,15 @@ if (aspectRatioButton) {
              </video>
            </div>`
         : `<video id="${id}" class="video-js vjs-big-play-centered vjs-fullscreen " playsinline webkit-playsinline style="height:100%; width:100%;"></video>`}
-      <div class="livetv-player-epg">
+
+          <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
+
+    </div>
+          <div class="livetv-player-epg">
         <div class="livetv-player-epg-item">
           <p class="livetv-player-epg-title">Loading EPG...</p>
         </div>
       </div>
-          <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
-
     </div>
   `;
 }
