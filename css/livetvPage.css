@@ -1413,3 +1413,53 @@ color: red ;
   cursor: pointer;
 }
  
+
+/* Search Container Styles */
+.livetv-search-container {
+  display: flex;
+  gap: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+  border-radius: 10px;
+}
+
+.livetv-search-categories,
+.livetv-search-channels {
+  flex: 1;
+}
+
+.livetv-search-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 28px;
+  transition: all 0.3s ease;
+}
+
+.livetv-search-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.livetv-search-input-focused {
+  border-color: var(--gold) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.livetvpage-main-container {
+  padding-top: 140px;
+}
+
+/* Ensure content container adjusts properly */
+.livetv-content-container {
+  display: flex;
+  width: 100%;
+}

@@ -327,6 +327,13 @@ const refreshCategoryCountsOnly = () => {
             const currentPlaylistName = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
             const freshPlaylistData = JSON.parse(localStorage.getItem("playlistsData")).find(pl => pl.playlistName === currentPlaylistName);
             channelCount = (freshPlaylistData && freshPlaylistData.favoritesLiveTV) ? freshPlaylistData.favoritesLiveTV.length : 0;
+            
+            // Apply channel search if active and this category is selected
+            if (channelSearchQuery.trim() && selectedCategoryId === "favorites") {
+              channelCount = freshPlaylistData.favoritesLiveTV.filter(ch => 
+                (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+              ).length;
+            }
           } else if (catId === "channelHistory") {
             const currentPlaylistName = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
             const freshPlaylistData = JSON.parse(localStorage.getItem("playlistsData")).find(pl => pl.playlistName === currentPlaylistName);
@@ -335,6 +342,23 @@ const refreshCategoryCountsOnly = () => {
             channelCount = (continueLimit > 0 && fullHistory) ? 
               Math.min(continueLimit, fullHistory.length) : 
               (fullHistory ? fullHistory.length : 0);
+            
+            // Apply channel search if active and this category is selected
+            if (channelSearchQuery.trim() && selectedCategoryId === "channelHistory") {
+              channelCount = fullHistory.filter(ch => 
+                (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+              ).length;
+              if (continueLimit > 0) {
+                channelCount = Math.min(continueLimit, channelCount);
+              }
+            }
+          } else if (catId === "All") {
+            // Apply channel search if active and "All" category is selected
+            if (channelSearchQuery.trim() && selectedCategoryId === "All") {
+              channelCount = window.allLiveStreams.filter(ch => 
+                (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+              ).length;
+            }
           }
           
           countEl.textContent = channelCount;
@@ -522,35 +546,43 @@ let selectedCategoryId = "All";
     inMenu = false,
     inVideoPlayer = false;
     let isRetryButton=false
-  let searchQuery = "",
+let searchQuery = "",
     currentChunk = 1,
     categoryChunk = 1;
-  const pageSize = 20;
+let categorySearchQuery = "";
+let channelSearchQuery = "";
+let inCategorySearch = false;
+let inChannelSearch = false;
+const pageSize = 20;
 let cachedFilteredCategories = null;
 let lastSearchQuery = "";
 let lastSelectedCategoryId = "";
   const qsa = (s) => [...document.querySelectorAll(s)];
   const qs = (s) => document.querySelector(s);
 
-  const setFlags = (ch, se, me, ca, vp) => {
-    inChannelList = ch;
-    inSearch = se;
-    inMenu = me;
-    inCardList = ca;
-    inVideoPlayer = vp;
-  };
+const setFlags = (ch, se, me, ca, vp, catSearch = false, chanSearch = false) => {
+  inChannelList = ch;
+  inSearch = se;
+  inMenu = me;
+  inCardList = ca;
+  inVideoPlayer = vp;
+  inCategorySearch = catSearch;
+  inChannelSearch = chanSearch;
+};
 
-  const focusOnNavbar = () => {
-    const channelFocused=document.querySelectorAll(".channel-card-focused");
-    const categoryFocused=document.querySelectorAll(".livetv-channel-category-focused");
-    if(channelFocused&& categoryFocused){
-      channelFocused.forEach((e) => e.classList.remove("channel-card-focused"));
-      categoryFocused.forEach((e) => e.classList.remove("livetv-channel-category-focused"));
-    }
-            setFlags(false, false, true, false, false);
-
-  localStorage.setItem("navigationFocus", "navbar");
+const focusOnNavbar = () => {
+  const channelFocused = document.querySelectorAll(".channel-card-focused");
+  const categoryFocused = document.querySelectorAll(".livetv-channel-category-focused");
+  
+  if (channelFocused && categoryFocused) {
+    channelFocused.forEach((e) => e.classList.remove("channel-card-focused"));
+    categoryFocused.forEach((e) => e.classList.remove("livetv-channel-category-focused"));
   }
+  
+  clearSearchFocus(); // Clear search focus when going to navbar
+  setFlags(false, false, true, false, false, false, false);
+  localStorage.setItem("navigationFocus", "navbar");
+};
 
   const scrollToElement = (el) => {
     const container =
@@ -617,6 +649,39 @@ const setFocus = (list, idx, cls) => {
     setFocus(cards, focusedCardIndex, "channel-card-focused");
   };
 
+  const focusCategorySearch = () => {
+  setFlags(false, false, false, false, false, true, false);
+  qsa(".channel-card, .livetv-channel-category-focused").forEach((e) =>
+    e.classList.remove("channel-card-focused", "livetv-channel-category-focused")
+  );
+  const searchInput = qs("#livetv-category-search");
+  if (searchInput) {
+    searchInput.classList.add("livetv-search-input-focused");
+    searchInput.focus();
+  }
+};
+
+const focusChannelSearch = () => {
+  setFlags(false, false, false, false, false, false, true);
+  qsa(".channel-card, .livetv-channel-category-focused").forEach((e) =>
+    e.classList.remove("channel-card-focused", "livetv-channel-category-focused")
+  );
+  const searchInput = qs("#livetv-channel-search");
+  if (searchInput) {
+    searchInput.classList.add("livetv-search-input-focused");
+    searchInput.focus();
+  }
+};
+
+const clearSearchFocus = () => {
+  qsa(".livetv-search-input").forEach(input => {
+    input.classList.remove("livetv-search-input-focused");
+    input.blur();
+  });
+  inCategorySearch = false;
+  inChannelSearch = false;
+};
+
   const showVideoPlayerControls = () => {
   if(document.querySelector('.play-pause-icon')){
     document.querySelector('.play-pause-icon').style.display = 'block';
@@ -646,18 +711,15 @@ const setFocus = (list, idx, cls) => {
   // };
 
 const getFilteredCategories = () => {
-    if (selectedCategoryId === "favorites" || selectedCategoryId === "channelHistory") {
+  // Force cache invalidation for special categories
+  if (selectedCategoryId === "favorites" || selectedCategoryId === "channelHistory") {
     cachedFilteredCategories = null;
   }
   
   if (cachedFilteredCategories && 
-      (selectedCategoryId === "favorites" || selectedCategoryId === "channelHistory")) {
-    cachedFilteredCategories = null;
-  }
-  
-  if (cachedFilteredCategories && 
-      searchQuery === lastSearchQuery && 
-      selectedCategoryId === lastSelectedCategoryId) {
+      categorySearchQuery === lastSearchQuery && 
+      selectedCategoryId === lastSelectedCategoryId &&
+      channelSearchQuery === lastSearchQuery) {
     return cachedFilteredCategories;
   }
 
@@ -683,6 +745,15 @@ const getFilteredCategories = () => {
   const filteredCategories = categories
     .filter(c => {
       if (!c) return false;
+      
+      // Apply category search filter
+      if (categorySearchQuery.trim()) {
+        const categoryName = (c.category_name || "").toLowerCase();
+        if (!categoryName.includes(categorySearchQuery.toLowerCase())) {
+          return false;
+        }
+      }
+      
       // Remove duplicates by checking category_id
       if (seenCategoryIds.has(c.category_id)) {
         return false;
@@ -693,9 +764,10 @@ const getFilteredCategories = () => {
     .map(c => {
       let categoryChannels = allStreams.filter(s => s.category_id === c.category_id) || [];
       
-      if (searchQuery.trim() && selectedCategoryId === c.category_id) {
+      // Apply channel search filter ONLY if we're in this category OR no category is selected
+      if (channelSearchQuery.trim() && (selectedCategoryId === "All" || selectedCategoryId === c.category_id)) {
         categoryChannels = categoryChannels.filter(ch => 
-          (ch.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+          (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
         );
       }
       
@@ -705,46 +777,63 @@ const getFilteredCategories = () => {
       };
     });
 
-  const allLiveStreams = searchQuery.trim() && selectedCategoryId === "All" 
-    ? window.allLiveStreams.filter(ch => 
-        (ch.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : window.allLiveStreams;
+  // Handle special categories with channel search
+  let allLiveStreams = window.allLiveStreams;
+  let favoritesChannels = updatedFavorites;
+  let historyChannels = channelHistory;
 
-  const favoritesChannels = searchQuery.trim() && selectedCategoryId === "favorites"
-    ? updatedFavorites.filter(ch => 
-        (ch.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : updatedFavorites;
+  // Apply channel search to special categories ONLY if they are selected
+  if (channelSearchQuery.trim()) {
+    if (selectedCategoryId === "All") {
+      allLiveStreams = window.allLiveStreams.filter(ch => 
+        (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+      );
+    }
+    
+    if (selectedCategoryId === "favorites") {
+      favoritesChannels = updatedFavorites.filter(ch => 
+        (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+      );
+    }
+    
+    if (selectedCategoryId === "channelHistory") {
+      historyChannels = channelHistory.filter(ch => 
+        (ch.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+      );
+    }
+  }
 
-  const historyChannels = searchQuery.trim() && selectedCategoryId === "channelHistory"
-    ? channelHistory.filter(ch => 
-        (ch.name || "").toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : channelHistory;
-
-  const result = [
-    {
-      category_id: "All",
-      category_name: "All",
-      channels: allLiveStreams || []
-    },
-    {
-      category_id: "favorites",
-      category_name: "Favorites", 
-      channels: favoritesChannels || []
-    },
-    {
-      category_id: "channelHistory",
-      category_name: "Channel History",
-      channels: historyChannels || []
-    },
-    ...filteredCategories
-  ];
+  // Only include special categories when NOT searching categories
+  let result = [];
+  
+  if (!categorySearchQuery.trim()) {
+    // No category search - include special categories
+    result = [
+      {
+        category_id: "All",
+        category_name: "All",
+        channels: allLiveStreams || []
+      },
+      {
+        category_id: "favorites",
+        category_name: "Favorites", 
+        channels: favoritesChannels || []
+      },
+      {
+        category_id: "channelHistory",
+        category_name: "Channel History",
+        channels: historyChannels || []
+      },
+      ...filteredCategories
+    ];
+  } else {
+    // Category search active - ONLY show matching regular categories, exclude special categories
+    result = filteredCategories;
+  }
 
   // Cache the result
   cachedFilteredCategories = result;
-  lastSearchQuery = searchQuery;
+  lastSearchQuery = categorySearchQuery + channelSearchQuery;
   lastSelectedCategoryId = selectedCategoryId;
 
   return result;
@@ -1070,18 +1159,21 @@ const renderChannelsContent = (isAppend = false, categoryChangeOnly = false) => 
   // Handle empty state - no categories found
   if (!filtered.length) {
     container.innerHTML = `
-      <div class="livetv-channels-list"></div>
+      <div class="livetv-channels-list">
+        <div class="livetv-no-data-category">
+          <p>No categories found for "${categorySearchQuery}"</p>
+        </div>
+      </div>
       <div class="livetv-channels-list-container">
         <div class="livetv-no-data-channel">
-          <p>No Items Found For "${searchQuery}"</p>
+          <p>Select a category to view channels</p>
         </div>
       </div>
       <div class="livetv-video-wrapper">
-        ${LiveVideoJsComponent("", "", "", "30vh", "No Channel")}
+        ${LiveVideoJsComponent("", "", "", "50vh", "No Channel")}
       </div>`;
     return;
   }
-
   // Find the best category to select
   let selectedCat = filtered.find((c) => c.category_id === selectedCategoryId);
   // if (!selectedCat) {
@@ -1097,6 +1189,17 @@ const renderChannelsContent = (isAppend = false, categoryChangeOnly = false) => 
 const categoryList = qs(".livetv-channels-list");
 if (categoryList && (!isAppend || searchQuery.trim())) {
   const filtered = getFilteredCategories();
+  
+  // Check if we have any categories to show
+  if (filtered.length === 0) {
+    categoryList.innerHTML = `
+      <div class="livetv-no-data-category">
+        <p>No categories found for "${categorySearchQuery}"</p>
+      </div>
+    `;
+    return;
+  }
+  
   const categoriesToShow = filtered.slice(0, categoryChunk * categoryPageSize);
   
   // Store current focus before rendering
@@ -1105,7 +1208,6 @@ if (categoryList && (!isAppend || searchQuery.trim())) {
   // Build HTML string
   let categoryHTML = '';
   categoriesToShow.forEach(c => {
-    // FIX: Remove active class logic from here too - just render basic category
     categoryHTML += `
       <div class="livetv-channel-category-container">
         <div class="livetv-channel-category" 
@@ -1119,7 +1221,7 @@ if (categoryList && (!isAppend || searchQuery.trim())) {
               : ""
           }
           <p class="livetv-channel-category-name">${c.category_name}</p>
-<p class="livetv-channel-category-count">${c.channels ? c.channels.length : 0}</p>
+          <p class="livetv-channel-category-count">${c.channels ? c.channels.length : 0}</p>
         </div>
       </div>`;
   });
@@ -2520,6 +2622,18 @@ if (isDown) {
 if (isRight) {
   const focusedFav = qs(".channel-fav-btn-focused");
   const focusedRemove = qs(".channel-remove-btn-focused");
+
+    if (inCategorySearch) {
+    focusChannelSearch();
+    e.preventDefault();
+    return;
+  }
+  
+  if (inChannelSearch) {
+    focusCategories(0);
+    e.preventDefault();
+    return;
+  }
   
   // Check if aspect ratio buttons are focused
   const focusedVideoJsAspect = qs("#videojs-aspect-ratio.videojs-aspect-ratio-btn-focused");
@@ -2678,6 +2792,17 @@ focusOnNavbar();
 if (isLeft) {
   const focusedFav = qs(".channel-fav-btn-focused");
   const focusedRemove = qs(".channel-remove-btn-focused");
+    if (inChannelSearch) {
+    focusCategorySearch();
+    e.preventDefault();
+    return;
+  }
+  
+  if (inCategorySearch) {
+    focusOnNavbar();
+    e.preventDefault();
+    return;
+  }
   
   const focusedPlayPause = qs(".play-pause-btn-focused");
   const isPlayPauseFocused = document.getElementById("live-play-pause-btn") ? 
@@ -3317,7 +3442,36 @@ document.addEventListener("keyup", scopedLongPressKeyupHandler);
 
 
 
+  const categorySearchInput = qs("#livetv-category-search");
+  const channelSearchInput = qs("#livetv-channel-search");
 
+  if (categorySearchInput) {
+    categorySearchInput.addEventListener("input", (e) => {
+      categorySearchQuery = e.target.value;
+      categoryChunk = 1;
+      cachedFilteredCategories = null;
+      renderChannels();
+      
+      // Maintain focus on category search
+      setTimeout(() => {
+        focusCategorySearch();
+      }, 100);
+    });
+  }
+
+  if (channelSearchInput) {
+    channelSearchInput.addEventListener("input", (e) => {
+      channelSearchQuery = e.target.value;
+      currentChunk = 1;
+      cachedFilteredCategories = null;
+      renderChannels();
+      
+      // Maintain focus on channel search
+      setTimeout(() => {
+        focusChannelSearch();
+      }, 100);
+    });
+  }
 
     // Listen for channel change events from video player controls
     document.addEventListener("liveChannelChange", (e) => {
@@ -3489,7 +3643,14 @@ setTimeout(() => {
 
   return `
   <div class="livetvpage-main-container">
-
+    <div class="livetv-search-container">
+      <div class="livetv-search-categories">
+        <input type="text" id="livetv-category-search" class="livetv-search-input" placeholder="Search categories..." />
+      </div>
+      <div class="livetv-search-channels">
+        <input type="text" id="livetv-channel-search" class="livetv-search-input" placeholder="Search channels..." />
+      </div>
+    </div>
     <div class="livetv-content-container"></div>
   </div>`;
 }
