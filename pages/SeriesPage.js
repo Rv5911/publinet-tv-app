@@ -445,7 +445,7 @@ function handleSeriesSimpleEnter() {
 
         const selectedSeriesItem =  window.allSeriesStreams.find(item => item.series_id == seriesId);
         if (selectedSeriesItem) {
-            localStorage.setItem("selectedSeriesData", JSON.stringify(selectedSeriesItem));
+            localStorage.setItem("selectedSeriesItem", JSON.stringify(selectedSeriesItem));
         }
 
         cleanupSeriesNavigation();

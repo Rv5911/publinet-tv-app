@@ -4,8 +4,8 @@
 <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"></SignatureMethod>
 <Reference URI="config.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>Ari3bHsjZqI0xERM52RpGVwVzXXA4iKOUZUS/uns1B9NkrsTsUufwE7IjtHtk4E37iAb6AfFyiOc
-BGPwCWHLGg==</DigestValue>
+<DigestValue>lNRvoMlKLeUY78dPjDMcylOaYf0xFAQsK/3GoSi/II1BSx16VACstOeThh1PELEUS1s1tQEcfCQb
+a5L3jMR8bw==</DigestValue>
 </Reference>
 <Reference URI="megatv-icon.png">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
@@ -22,11 +22,11 @@ QY10fG1EWQ==</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-C5LHSEwODPKk5BiWoohOQA8A1QdFK6CCqqZ80M7m+aPRW3Cf32AfwvXyga35nS3iJA+O+r/3sZ3D
-uzYaE+/2gorCVCUFFzY0kRWMRY8P+JC+W9aBY52sTcSZPjPxMIcrYkfJyid3ZBz2ow7k7mON1R+x
-cyUuYarBbKivQTb0WaW70AydkBHyjChVq26jUFPHJlTvH2hfU2PMh8VhhaP7jnYcmT1Y61LV8Oaf
-Qfl8QwkiidF+JjbbiM+0sUI19uHx+cnsjQjLwysb9bOF8e0N2/JWIfPnZaLM2CMnH5RdEJL18oqc
-OHhF7WWC2NlrHUpqpJD8sGFdiuNA/Q4HdU6hsQ==
+wmX0HvekrMLBEbp9uZCcjbSOtEHRU5ROYLt/4TWc4bHnEkzuAVgbLILk0iOWn4OyYHcC28Tr+dJR
+mv7679VZa3u/O323hsQiE3XjTs/GVYnSB6+NH16RPo3O5fReGQ6jq6Sxf/q2YRLGoQR2qiE60YRN
++Opf0B/gxm/KzbER+4i34wD33xB9cN6Bobhi5himnxGLSi7uhb2g7pD7e/Q+F920nERG6iIxQjNw
+1wPQPBsR22mTUAEKOntyGjiS+1K7dyBgCzS0e2I+N62wVkHpXKinnNxFoiM6Pt2E033kAGaOvSbJ
+QpQ0w5TYHkOdp2MK8QZ8cPxiv+5dnEdTifW3Vg==
 </SignatureValue>
 <KeyInfo>
 <X509Data>

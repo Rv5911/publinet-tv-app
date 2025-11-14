@@ -51,6 +51,21 @@ setTimeout(function () {
     }
  
     document.addEventListener("keydown", homePageKeydownEvents);
+            document.addEventListener("keydown", (e) => {
+      if (localStorage.getItem("currentPage") == "dashboard") {
+                const backKeys = [10009, "Escape", "Back", "BrowserBack", "XF86Back"];
+  if (
+    (e.key === "XF86Exit" || e.key === "XF86Home" || e.keyCode === 10071 || backKeys.includes(e.keyCode) || backKeys.includes(e.key)) &&
+    typeof tizen !== "undefined"
+  ) {
+    e.preventDefault();
+    localStorage.setItem("currentPage", "exitPage");
+    Router.showPage("exitModal");
+  }
+      }
+
+
+  });
  
     HomePage.cleanup = function () {
       document.removeEventListener("keydown", homePageKeydownEvents);

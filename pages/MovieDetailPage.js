@@ -209,7 +209,7 @@ async function MovieDetailPage() {
   }
 
   function moviesDetailPageKeydownHandler(e) {
-    if(localStorage.getItem("currentPage")!="movieDetailPage"){
+    if(localStorage.getItem("currentPage")!="movieDetailPage"||localStorage.getItem("navigationFocus")!="navbar"){
       return;
     }
     var focused = focusableEls[currentFocusIndex];
@@ -329,14 +329,12 @@ async function MovieDetailPage() {
     if (e.key === "ArrowLeft" && currentFocusIndex > 0) currentFocusIndex--;
     if (e.key === "ArrowUp") {
       if (
-        [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) &&
-        menuBtn
-      )
-{
-        alert("menuBtn")
-        currentFocusIndex = focusableEls.indexOf(menuBtn);
-}
-      else if (Array.from(castItems).includes(focused) && playBtn) 
+        [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) 
+      ){
+         localStorage.setItem("navigationFocus", "navbar");
+
+      }
+      else if (Array.from(castItems).includes(focused) && playBtn)
         currentFocusIndex = focusableEls.indexOf(playBtn);
     }
     if (e.key === "ArrowDown") {

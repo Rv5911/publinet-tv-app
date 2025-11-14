@@ -13,6 +13,8 @@ const Router = (function() {
         movieDetailPage: { el: document.getElementById("movies-detail-page"), render: MovieDetailPage },
                 videoJsPlayer: { el: document.getElementById("videojs-player"), render: VideoJsPlayer },
                 seriesDetailPage: { el: document.getElementById("series-detail-page"), render: SeriesDetailPage },
+                        exitModal: { el: document.getElementById("exit-modal"), render: ExitModal },
+
 
 
 

@@ -124,9 +124,6 @@ function ParentalControl() {
           if (saveButton && typeof saveButton.blur === "function") {
             saveButton.blur();
           }
-          document.removeEventListener("keydown", parentalControlKeydownEvents);
-         localStorage.setItem("currentPage", "homePage");
-          Router.showPage("homePage");
           break;
 
         default:
@@ -212,12 +209,12 @@ function ParentalControl() {
       <div class="parental-input-group">
         <label class="parental-field">
           <div class="parental-input-container">
-            <input type="password" class="parental-input" placeholder="Enter password">
+            <input type="number" class="parental-input" placeholder="Enter password">
           </div>
         </label>
         <label class="parental-field">
           <div class="parental-input-container">
-            <input type="password" class="parental-input" placeholder="Confirm password">
+            <input type="number" class="parental-input" placeholder="Confirm password">
           </div>
         </label>
       </div>
