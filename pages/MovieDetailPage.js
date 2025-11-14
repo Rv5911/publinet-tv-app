@@ -209,7 +209,7 @@ async function MovieDetailPage() {
   }
 
   function moviesDetailPageKeydownHandler(e) {
-    if(localStorage.getItem("currentPage")!="movieDetailPage"||localStorage.getItem("navigationFocus")!="navbar"){
+    if(localStorage.getItem("currentPage")!="movieDetailPage"){
       return;
     }
     var focused = focusableEls[currentFocusIndex];
