@@ -32,8 +32,10 @@ let moviesNavigationDebounce = {
     isDebouncing: false
 };
 
+
 function formatMovieData(movieStream) {
     if (!movieStream) return null;
+
     
     return {
         id: movieStream.stream_id || movieStream.num,
@@ -42,8 +44,9 @@ function formatMovieData(movieStream) {
         genre: movieStream.category_name || "Movie",
         year: formatMovieYear(movieStream.added),
         image: movieStream.stream_icon || "./assets/demo-img-card.png",
-        rating: movieStream.rating || "0",
-        duration: formatMovieDuration(movieStream)
+        duration: formatMovieDuration(movieStream),
+        rating:movieStream.rating_5based ? movieStream.rating_5based : "0",
+        category_id: movieStream.category_id ? movieStream.category_id : null
     };
 }
 
@@ -69,7 +72,6 @@ function getFavoriteMovies() {
         const playlist = playlists.find(p => p.playlistName === username);
         
         if (playlist && playlist.movies) {
-            console.log(playlist.movies, "PLAYLIST MOVIES");
             return playlist.movies.map(id => id.toString());
         }
         
@@ -103,7 +105,6 @@ function getPopularMovies() {
         if (allMoviesStreamsData.length === 0) return [];
         
         let sorted = allMoviesStreamsData.slice(0, 50);
-        console.log(sorted,"SORTED")
         sorted.sort(function(a, b) {
             return (parseFloat(b.rating_5based) || 0) - (parseFloat(a.rating_5based) || 0);
         });
@@ -158,6 +159,8 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
     let imageUrl = movieData.image || "./assets/demo-img-card.png";
     let titleClass = 'movie-title-marquee';
     
+    let currentCardCategory=window.moviesCategories.filter((cat)=>cat.category_id==movieData.category_id);
+
     return `<div class="${cardClass}" 
             data-category="${categoryIndex}" 
             data-index="${movieIndex}" 
@@ -175,12 +178,12 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
                 </div>
                 <div class="movie-card-bottom">
                     <div class="movie-card-bottom-left">
-                        <h3>${movieData.genre || "Movie"}</h3>
+                        <h3>${currentCardCategory ? currentCardCategory[0].category_name : ""}</h3>
                         <h2 class="${titleClass}">${movieData.title || "Unknown"}</h2>
                     </div>
                     <div class="movie-card-bottom-right">
                         <h3>${movieData.duration || "2h 0m"}</h3>
-                        <h2>${movieData.year || "Unknown"}</h2>
+                        <span class="movie-card-rating"> <img src="./assets/rating-star.png" class="movie-card-star-icon" />${movieData.rating ? movieData.rating : "0"}</span>
                     </div>
                 </div>
             </div>
@@ -950,6 +953,7 @@ function hasAnyMoviesCategoryData() {
 }
 
 function MoviesPage() {
+
     let loadingHTML = '<div class="movies-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Movies...</p>' +

@@ -110,10 +110,8 @@ function ParentalControl() {
           e.preventDefault();
           break;
 
-        case "Backspace":
         case "Escape":
         case "Back":
-        case "BrowserBack":
         case "XF86Back":
         case "10009":
           // Remove all focus styles before exiting
