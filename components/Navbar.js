@@ -32,7 +32,7 @@ function Navbar() {
           <li class="sidebar-link" tabindex="0"><img src="/assets/sidebar-list-user.png" alt="Logo" class="sidebar-link-logo" />List User</li>
           <li class="account-navbar sidebar-link" tabindex="0"><img src="/assets/sidebar-account.png" alt="Logo" class="sidebar-link-logo" />My Account</li>
           
-          <!-- ✅ Sort with expandable submenu -->
+          <!-- Sort with expandable submenu -->
           <li class="sidebar-link sidebar-sort" tabindex="0">
             <span class="sidebar-link-sort-container">
               <img src="/assets/sidebar-sort.png" alt="Logo" class="sidebar-link-logo" />
@@ -80,11 +80,156 @@ function Navbar() {
             </ul>
           </div>
 
+          <!-- Dynamic page-specific options will be injected here -->
+          
           <li class="logout-navbar sidebar-link" tabindex="0">Sign Out</li>
         </ul>
       </div>
     </div>
   `;
+}
+
+// Helper: build page-specific sidebar options
+function buildDynamicSidebarOptions() {
+  try {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+    const list = sidebar.querySelector("ul");
+    if (!list) return;
+
+    // Remove existing dynamic options
+    list.querySelectorAll(".dynamic-sidebar-option").forEach((el) => el.remove());
+
+    const currentPage = localStorage.getItem("currentPage");
+    let label = "";
+    let action = "";
+
+    if (currentPage === "moviesPage") {
+      label = "Remove All Movies";
+      action = "remove-all-movies";
+    } else if (currentPage === "seriesPage") {
+      label = "Remove All Series";
+      action = "remove-all-series";
+    } else if (currentPage === "movieDetailPage" || currentPage === "moviesDetailPage") {
+      label = "Remove Movie";
+      action = "remove-movie";
+    } else if (currentPage === "seriesDetailPage") {
+      label = "Remove Serie";
+      action = "remove-series";
+    }
+
+    if (!action) return;
+
+    const li = document.createElement("li");
+    li.className = "sidebar-link dynamic-sidebar-option";
+    li.setAttribute("tabindex", "0");
+    li.dataset.action = action;
+    li.innerHTML = `<img src="/assets/sidebar-settings.png" alt="Logo" class="sidebar-link-logo" />${label}`;
+
+    const logoutItem = list.querySelector(".logout-navbar");
+    if (logoutItem) list.insertBefore(li, logoutItem);
+    else list.appendChild(li);
+  } catch (e) {
+    console.error("buildDynamicSidebarOptions error", e);
+  }
+}
+
+// Helpers to update favourites in localStorage
+function getSelectedPlaylistName() {
+  try {
+    const sel = JSON.parse(localStorage.getItem("selectedPlaylist") || "null");
+    return sel && sel.playlistName ? sel.playlistName : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function updatePlaylistsData(updateFn) {
+  try {
+    const playlists = JSON.parse(localStorage.getItem("playlistsData") || "[]");
+    const name = getSelectedPlaylistName();
+    if (!name) return { success: false };
+    const updated = playlists.map((pl) => {
+      if (pl.playlistName === name) {
+        return updateFn(pl);
+      }
+      return pl;
+    });
+    localStorage.setItem("playlistsData", JSON.stringify(updated));
+    return { success: true };
+  } catch (e) {
+    console.error("updatePlaylistsData error", e);
+    return { success: false, error: e };
+  }
+}
+
+function removeAllFavoriteMovies() {
+  const res = updatePlaylistsData((pl) => ({ ...pl, favouriteMovies: [] }));
+  if (res.success) {
+    if (typeof refreshMoviesFavoritesList === "function") refreshMoviesFavoritesList();
+    document.querySelectorAll(".movie-card-heart").forEach((h) => (h.style.display = "none"));
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("success", "Removed all favorite movies");
+    }
+  }
+}
+
+function removeAllFavoriteSeries() {
+  const res = updatePlaylistsData((pl) => ({ ...pl, favouriteSeries: [] }));
+  if (res.success) {
+    if (typeof refreshSeriesFavoritesList === "function") refreshSeriesFavoritesList();
+    document.querySelectorAll(".series-card-heart").forEach((h) => (h.style.display = "none"));
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("success", "Removed all favorite series");
+    }
+  }
+}
+
+function removeFavoriteMovieById(streamId) {
+  if (!streamId) return;
+  const res = updatePlaylistsData((pl) => {
+    const fav = Array.isArray(pl.favouriteMovies) ? pl.favouriteMovies : [];
+    const filtered = fav.filter((id) => String(id) !== String(streamId));
+    return { ...pl, favouriteMovies: filtered };
+  });
+  if (res.success) {
+    // Update detail page button if present
+    const favBtn = document.querySelector(".movie-detail-fav-button");
+    if (favBtn) {
+      const heartIcon = favBtn.querySelector(".heart-icon");
+      const favText = favBtn.querySelector(".fav-text");
+      if (heartIcon) heartIcon.innerHTML = '<i class="fa-regular fa-heart"></i>';
+      if (favText) favText.textContent = "Add to Favorites";
+    }
+    document.querySelectorAll('.movie-card[data-stream-id="' + streamId + '"] .movie-card-heart').forEach((h) => (h.style.display = "none"));
+    if (typeof refreshMoviesFavoritesList === "function") refreshMoviesFavoritesList();
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("success", "Removed movie from favorites");
+    }
+  }
+}
+
+function removeFavoriteSeriesById(seriesId) {
+  if (!seriesId) return;
+  const res = updatePlaylistsData((pl) => {
+    const fav = Array.isArray(pl.favouriteSeries) ? pl.favouriteSeries : [];
+    const filtered = fav.filter((id) => String(id) !== String(seriesId));
+    return { ...pl, favouriteSeries: filtered };
+  });
+  if (res.success) {
+    const favBtn = document.querySelector(".series-detail-fav-button");
+    if (favBtn) {
+      const heartIcon = favBtn.querySelector(".heart-icon");
+      const favText = favBtn.querySelector(".fav-text");
+      if (heartIcon) heartIcon.innerHTML = '<i class="fa-regular fa-heart"></i>';
+      if (favText) favText.textContent = "Add to Favorites";
+    }
+    document.querySelectorAll('.series-card[data-series-id="' + seriesId + '"] .series-card-heart').forEach((h) => (h.style.display = "none"));
+    if (typeof refreshSeriesFavoritesList === "function") refreshSeriesFavoritesList();
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("success", "Removed series from favorites");
+    }
+  }
 }
 
 function initNavbar() {
@@ -109,7 +254,7 @@ function initNavbar() {
     seriesPage: 3,
   };
 
-    // Add this function to dispose Live TV player
+  // Add this function to dispose Live TV player
   const disposeLiveTvPlayer = () => {
     if (localStorage.getItem("currentPage") === "liveTvPage") {
       // Call Live TV page cleanup if it exists
@@ -149,21 +294,21 @@ function initNavbar() {
   setSortOption("default");
 
   updateNavbarActive(localStorage.getItem("currentPage"));
+  buildDynamicSidebarOptions();
 
   // Add search input event listener to save query
   searchInput.addEventListener('input', (e) => {
     window.searchQuery = e.target.value;
-  console.log(window.searchQuery,"window.searchQuerywindow.searchQuery")
-
+    console.log(window.searchQuery,"window.searchQuerywindow.searchQuery")
   });
 
   navItems.forEach((item) => {
     item.addEventListener("click", () => {
       const page = item.getAttribute("data-page");
-            disposeLiveTvPlayer();
-
+      disposeLiveTvPlayer();
       Router.showPage(page);
       updateNavbarActive(page);
+      buildDynamicSidebarOptions();
     });
   });
 
@@ -427,6 +572,7 @@ if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
   }
 
   function openSidebar() {
+    buildDynamicSidebarOptions();
     sidebar.classList.remove("hidden");
     sidebar.style.right = "40px";
     localStorage.setItem("navigationFocus", "sidebar");
@@ -542,27 +688,41 @@ if (window.cleanupSeriesNavigation){ window.cleanupSeriesNavigation();}
         updateSidebarSelection(items, activeIndex);
         break;
       case "Enter":
+        // Handle dynamic page-specific options
+        if (activeItem.classList.contains("dynamic-sidebar-option")) {
+          const action = activeItem.dataset.action;
+          if (action === "remove-all-movies") {
+            removeAllFavoriteMovies();
+          } else if (action === "remove-all-series") {
+            removeAllFavoriteSeries();
+          } else if (action === "remove-movie") {
+            const id = localStorage.getItem("selectedMovieId");
+            if (id) removeFavoriteMovieById(id);
+          } else if (action === "remove-series") {
+            const id = localStorage.getItem("selectedSeriesId");
+            if (id) removeFavoriteSeriesById(id);
+          }
+          closeSidebar();
+          break;
+        }
+
         if (text === "Sort") {
           openSortMenu();
         } else if (text === "Sign Out") {
           handleLogOut();
         } else if (text === "Settings") {
-
-                 disposeLiveTvPlayer();
+          disposeLiveTvPlayer();
           localStorage.setItem("currentPage", "settingsPage");
           Router.showPage("settingsPage");
           closeSidebar();
         } else if (text === "List User") {
-                    disposeLiveTvPlayer();
-
-                               localStorage.setItem("isLogin", false);
-
+          disposeLiveTvPlayer();
+          localStorage.setItem("isLogin", false);
           Router.showPage("listPage");
           closeSidebar();
         } else if (text === "My Account") {
-                    disposeLiveTvPlayer();
-
-               localStorage.setItem("currentPage", "accountPage");
+          disposeLiveTvPlayer();
+          localStorage.setItem("currentPage", "accountPage");
           Router.showPage("accountPage");
           closeSidebar();
         }
