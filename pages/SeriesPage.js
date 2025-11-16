@@ -33,6 +33,9 @@ let seriesNavigationDebounce = {
 
 function formatSeriesData(seriesStream) {
     if (!seriesStream) return null;
+
+
+    console.log(seriesStream,"seriesStreamseriesStream")
     
     return {
         id: seriesStream.series_id || seriesStream.num,
@@ -41,8 +44,9 @@ function formatSeriesData(seriesStream) {
         genre: seriesStream.category_name || "Series",
         year: formatSeriesYear(seriesStream.added),
         image: seriesStream.cover || seriesStream.stream_icon || "./assets/demo-img-card.png",
-        rating: seriesStream.rating || "0",
-        seasons: seriesStream.seasons || "1"
+        rating: seriesStream.rating_5based ? seriesStream.rating_5based : "0",
+        seasons: seriesStream.seasons || "1",
+        category_id:seriesStream.category_id? seriesStream.category_id : null
     };
 }
 
@@ -156,6 +160,14 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
     
     let imageUrl = seriesData.image || "./assets/demo-img-card.png";
     let titleClass = 'series-title-marquee';
+
+        let currentCardCategory = window.allseriesCategories ? 
+        window.allseriesCategories.filter((cat) => cat.category_id == seriesData.category_id) : 
+        [];
+    
+    let categoryName = currentCardCategory.length > 0 ? 
+        currentCardCategory[0].category_name : 
+        seriesData.genre || "Series"; 
     
     return `<div class="${cardClass}" 
             data-category="${categoryIndex}" 
@@ -174,12 +186,12 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
                 </div>
                 <div class="series-card-bottom">
                     <div class="series-card-bottom-left">
-                        <h3>${seriesData.genre || "Series"}</h3>
+                        <h3>${categoryName}</h3>
                         <h2 class="${titleClass}">${seriesData.title || "Unknown"}</h2>
                     </div>
                     <div class="series-card-bottom-right">
-                        <h3>${seriesData.seasons || "1 Season"}</h3>
-                        <h2>${seriesData.year || "Unknown"}</h2>
+                        <h3>-</h3>
+                    <span class="movie-card-rating"> <img src="./assets/rating-star.png" class="movie-card-star-icon" />${seriesData.rating ? seriesData.rating : "0"}</span>
                     </div>
                 </div>
             </div>
@@ -971,8 +983,12 @@ function SeriesPage() {
             window.allSeriesStreams.filter(s => currentPlaylistFavIds.includes(s.series_id)) : [];
         let popularSeries = window.allSeriesStreams ? 
             window.allSeriesStreams.filter(s => s.rating_5based > 4).slice(0, 10) : [];
-        let recentlyWatchedSeries = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
-            currentPlaylist.continueWatchingSeries : [];
+
+            let recentlyWatchedSeriesIds = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
+    currentPlaylist.continueWatchingSeries.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
+
+    let recentSeriesArray=window.allSeriesStreams && recentlyWatchedSeriesIds ? window.allSeriesStreams.filter(m => recentlyWatchedSeriesIds.includes(m.series_id.toString())) : [];
+    console.log(recentSeriesArray,"recentSeriesArrayrecentSeriesArray")
         let apiCategories = getAPISeriesCategories();
         
         let initialCategories = [
@@ -990,7 +1006,7 @@ function SeriesPage() {
             },
             { 
                 title: "Recently Watched", 
-                series: recentlyWatchedSeries, 
+                series: recentSeriesArray, 
                 id: "recent", 
                 containerClass: "recently-watched-container"
             }

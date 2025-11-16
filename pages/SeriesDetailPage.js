@@ -124,7 +124,9 @@ if (getAllSeriesCastResults && getAllSeriesCastResults.results) {
 
 let getSeriesCastData = [];
 if (getSerieByName && getSerieByName.id) {
-  const seriesCast = await getSeriesCast(getSerieByName.id);
+  // const seriesCast = await getSeriesCast(getSerieByName.id);
+  const seriesCast = [];
+
   getSeriesCastData = seriesCast || []; 
     if (navigationInterrupted) {
     document.removeEventListener("keydown", handleBackNavigationDuringLoading);
