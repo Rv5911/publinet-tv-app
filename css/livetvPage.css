@@ -121,7 +121,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 18px;
+  padding: 16px 18px;
   color: #e3e2ff;
   cursor: pointer;
   border-radius: 8px;
@@ -135,7 +135,7 @@
 
 .livetv-channel-category-focused {
   background-color: var(--gold) !important;
-  color: white !important;
+  color: black !important;
 }
 
 .livetv-channel-category-active {
@@ -168,10 +168,11 @@
   padding-right: 30px;
   display: grid;
   gap: 15px;
+  background: linear-gradient(180deg, #090667 0%, rgba(23, 23, 23, 0) 100%);
+
   grid-template-columns: repeat(3,1fr);
   margin-left: 20px;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.4);
       mask-image: linear-gradient(to bottom,
     black 0%,
     black 85%,
