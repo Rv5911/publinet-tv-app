@@ -993,7 +993,15 @@ function validateMoviesData() {
 
 function MoviesPage() {
 validateMoviesData();
-    let loadingHTML = '<div class="movies-page-loading">' + 
+    let loadingHTML =
+        window.moviesCategories.length==0||window.allMoviesStreams.length==0?
+`
+<div class="movies-page-no-data">
+<p>No Movies Data Available</p>
+</div>
+`
+:
+    '<div class="movies-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Movies...</p>' +
                      '</div>';

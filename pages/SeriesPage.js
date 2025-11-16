@@ -961,7 +961,18 @@ function hasAnySeriesCategoryData() {
 }
 
 function SeriesPage() {
-    let loadingHTML = '<div class="series-page-loading">' + 
+
+    let loadingHTML = 
+    window.allSeriesStreams.length==0||window.allseriesCategories.length==0?
+`
+<div class="series-page-no-data">
+<p>No Series Data Available</p>
+</div>
+
+
+`
+    :
+'<div class="series-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Series...</p>' +
                      '</div>';

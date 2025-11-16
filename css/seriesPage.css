@@ -491,3 +491,18 @@
   outline: 3px solid #FDBD0F;
   outline-offset: 2px;
 }
+
+.series-page-no-data{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 250px 60px 100px;
+  animation: fadeInOut 1s ease-in-out;
+  color: white;
+  background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+}
+
+.series-page-no-data p{
+  font-size: 60px;
+}

@@ -510,3 +510,19 @@
   height: 16px;
   margin-right: 3px;
 }
+
+
+.movies-page-no-data{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 250px 60px 100px;
+  animation: fadeInOut 1s ease-in-out;
+  color: white;
+  background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+}
+
+.movies-page-no-data p{
+  font-size: 60px;
+}
