@@ -485,9 +485,127 @@ function handleSeriesLongPressEnter() {
     
     if (currentCard) {
         let seriesId = currentCard.getAttribute('data-series-id');
-        console.log("seriesId",seriesId)
-        toggleFavoriteItem(seriesId, "series", getCurrentPlaylistUsername());
+        const result = toggleFavoriteItem(Number(seriesId), "favouriteSeries", getCurrentPlaylistUsername());
+        const heartEl = currentCard.querySelector('.series-card-heart');
+        if (heartEl) {
+            heartEl.style.display = result.isFav ? 'block' : 'none';
+        }
+        
+        // Also update hearts on all duplicate series cards across categories
+        document.querySelectorAll('.series-card[data-series-id="' + seriesId + '"] .series-card-heart').forEach(function(h){
+            h.style.display = result.isFav ? 'block' : 'none';
+        });
+        
+        if (typeof Toaster !== 'undefined' && Toaster.showToast) {
+            Toaster.showToast(result.isFav ? 'success' : 'error', result.isFav ? 'Added to Favorites' : 'Removed from Favorites');
+        }
+        
+        // Refresh My Fav list in real time
+        if (typeof refreshSeriesFavoritesList === 'function') {
+            refreshSeriesFavoritesList();
+        }
+        
+        const listEl = currentCard.closest('.series-card-list');
+        const isFavCategory = listEl && listEl.classList.contains('fav-list');
+        if (isFavCategory && !result.isFav) {
+            // Remove from DOM and adjust focus when removing from My Fav
+            currentCard.remove();
+            const remainingCards = listEl.querySelectorAll('.series-card');
+            seriesNavigationState.currentCardIndex = Math.min(seriesNavigationState.currentCardIndex, Math.max(remainingCards.length - 1, 0));
+            
+            // If last item removed, delete the entire My Fav category section
+            if (remainingCards.length === 0) {
+                const favContainer = listEl.closest('.series-fav-container');
+                if (favContainer) {
+                    favContainer.remove();
+                }
+                // Reset loaded chunk count for this category index
+                const categoryIdxAttr = listEl.getAttribute('data-category');
+                const favIdx = categoryIdxAttr ? parseInt(categoryIdxAttr, 10) : seriesNavigationState.currentCategoryIndex;
+                setSeriesLoadedChunkCount(favIdx, 0);
+                
+                // If focus was on the fav category, move to the next available category
+                if (seriesNavigationState.currentCategoryIndex === favIdx) {
+                    const nextIdx = findNextSeriesCategoryWithSeries(favIdx + 1, 1);
+                    seriesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+                    seriesNavigationState.currentCardIndex = 0;
+                }
+            }
+        }
+        
+        updateSeriesFocus();
+        saveSeriesNavigationState();
     }
+}
+
+function refreshSeriesFavoritesList() {
+    const currentPlaylist = getCurrentPlaylist();
+    const favIdsRaw = currentPlaylist ? (currentPlaylist.favouriteSeries || []) : [];
+    const favIds = Array.isArray(favIdsRaw) ? favIdsRaw.map(id => String(id)) : [];
+    favoriteSeriesIds = favIds; // used by createSeriesCard heart display
+
+    const favouriteSeries = (window.allSeriesStreams && favIds.length)
+        ? window.allSeriesStreams.filter(s => s && favIds.includes(String(s.series_id)))
+        : [];
+
+    // If there are no favorites, remove the entire My Fav category section
+    if (!favouriteSeries.length) {
+        const favContainer = document.querySelector('.series-fav-container');
+        const favListForIdx = document.querySelector('.series-card-list.fav-list');
+        if (favListForIdx) {
+            const categoryIndexAttr = favListForIdx.getAttribute('data-category');
+            const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+            setSeriesLoadedChunkCount(categoryIndex, 0);
+        }
+        if (favContainer) {
+            favContainer.remove();
+        }
+        // If focus points to a non-existent list, shift focus
+        const currentList = document.querySelector('.series-card-list[data-category="' + seriesNavigationState.currentCategoryIndex + '"]');
+        if (!currentList) {
+            const nextIdx = findNextSeriesCategoryWithSeries(seriesNavigationState.currentCategoryIndex + 1, 1);
+            seriesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+            seriesNavigationState.currentCardIndex = 0;
+            updateSeriesFocus();
+            saveSeriesNavigationState();
+        }
+        return;
+    }
+
+    // Ensure My Fav container exists; if not, create it at the top
+    let favContainer = document.querySelector('.series-fav-container');
+    let favList = document.querySelector('.series-card-list.fav-list');
+
+    if (!favContainer || !favList) {
+        const pageContainer = document.querySelector('.series-page-container');
+        if (pageContainer) {
+            const favCategory = {
+                title: "My Fav",
+                series: favouriteSeries,
+                id: "fav",
+                containerClass: "series-fav-container"
+            };
+            const favHTML = createSeriesCategorySection(favCategory, 0);
+            pageContainer.insertAdjacentHTML('afterbegin', favHTML);
+            favContainer = document.querySelector('.series-fav-container');
+            favList = document.querySelector('.series-card-list.fav-list');
+        }
+    }
+
+    if (!favList) return;
+
+    const categoryIndexAttr = favList.getAttribute('data-category');
+    const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+
+    let html = '';
+    for (let i = 0; i < favouriteSeries.length; i++) {
+        const seriesData = formatSeriesData(favouriteSeries[i]);
+        if (!seriesData) continue;
+        html += createSeriesCard(seriesData, 'normal', categoryIndex, i);
+    }
+
+    favList.innerHTML = html;
+    setSeriesLoadedChunkCount(categoryIndex, favouriteSeries.length);
 }
 
 function handleSeriesKeyNavigation(e) {

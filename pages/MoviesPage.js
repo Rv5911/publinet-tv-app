@@ -495,10 +495,129 @@ function handleMoviesLongPressEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-        console.log("streamId",streamId)
-        toggleFavoriteItem(streamId, "movies", getCurrentPlaylistUsername());
+        const result = toggleFavoriteItem(Number(streamId), "favouriteMovies", getCurrentPlaylistUsername());
+        const heartEl = currentCard.querySelector('.movie-card-heart');
+        if (heartEl) {
+            heartEl.style.display = result.isFav ? 'block' : 'none';
+        }
+        
+        // Also update hearts on all duplicate cards across categories
+        document.querySelectorAll('.movie-card[data-stream-id="' + streamId + '"] .movie-card-heart').forEach(function(h){
+            h.style.display = result.isFav ? 'block' : 'none';
+        });
+        
+        if (typeof Toaster !== 'undefined' && Toaster.showToast) {
+            Toaster.showToast(result.isFav ? 'success' : 'error', result.isFav ? 'Added to Favorites' : 'Removed from Favorites');
+        }
+        
+        // Refresh My Fav list in real time
+        if (typeof refreshMoviesFavoritesList === 'function') {
+            refreshMoviesFavoritesList();
+        }
+        
+        const listEl = currentCard.closest('.movies-card-list');
+        const isFavCategory = listEl && listEl.classList.contains('fav-list');
+        if (isFavCategory && !result.isFav) {
+            // Remove from DOM and adjust focus when removing from My Fav
+            currentCard.remove();
+            const remainingCards = listEl.querySelectorAll('.movie-card');
+            moviesNavigationState.currentCardIndex = Math.min(moviesNavigationState.currentCardIndex, Math.max(remainingCards.length - 1, 0));
+            
+            // If last item removed, delete the entire My Fav category section
+            if (remainingCards.length === 0) {
+                const favContainer = listEl.closest('.movies-fav-container');
+                if (favContainer) {
+                    favContainer.remove();
+                }
+                // Reset loaded chunk count for this category index
+                const categoryIdxAttr = listEl.getAttribute('data-category');
+                const favIdx = categoryIdxAttr ? parseInt(categoryIdxAttr, 10) : moviesNavigationState.currentCategoryIndex;
+                setMoviesLoadedChunkCount(favIdx, 0);
+                
+                // If focus was on the fav category, move to the next available category
+                if (moviesNavigationState.currentCategoryIndex === favIdx) {
+                    const nextIdx = findNextMoviesCategoryWithMovies(favIdx + 1, 1);
+                    moviesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+                    moviesNavigationState.currentCardIndex = 0;
+                }
+            }
+        }
+        
+        updateMoviesFocus();
+        saveMoviesNavigationState();
     }
 }
+
+function refreshMoviesFavoritesList() {
+    const currentPlaylist = getCurrentPlaylist();
+    const favIdsRaw = currentPlaylist ? (currentPlaylist.favouriteMovies || []) : [];
+    const favIds = Array.isArray(favIdsRaw) ? favIdsRaw.map(id => String(id)) : [];
+    favoriteMoviesIds = favIds; // used by createMovieCard heart display
+
+    const favouriteMovies = (window.allMoviesStreams && favIds.length)
+        ? window.allMoviesStreams.filter(m => m && favIds.includes(String(m.stream_id)))
+        : [];
+
+    // If there are no favorites, remove the entire My Fav category section
+    if (!favouriteMovies.length) {
+        const favContainer = document.querySelector('.movies-fav-container');
+        const favListForIdx = document.querySelector('.movies-card-list.fav-list');
+        if (favListForIdx) {
+            const categoryIndexAttr = favListForIdx.getAttribute('data-category');
+            const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+            setMoviesLoadedChunkCount(categoryIndex, 0);
+        }
+        if (favContainer) {
+            favContainer.remove();
+        }
+        // If focus points to a non-existent list, shift focus
+        const currentList = document.querySelector('.movies-card-list[data-category="' + moviesNavigationState.currentCategoryIndex + '"]');
+        if (!currentList) {
+            const nextIdx = findNextMoviesCategoryWithMovies(moviesNavigationState.currentCategoryIndex + 1, 1);
+            moviesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+            moviesNavigationState.currentCardIndex = 0;
+            updateMoviesFocus();
+            saveMoviesNavigationState();
+        }
+        return;
+    }
+
+    // Ensure My Fav container exists; if not, create it at the top
+    let favContainer = document.querySelector('.movies-fav-container');
+    let favList = document.querySelector('.movies-card-list.fav-list');
+
+    if (!favContainer || !favList) {
+        const pageContainer = document.querySelector('.movies-page-container');
+        if (pageContainer) {
+            const favCategory = {
+                title: "My Fav",
+                movies: favouriteMovies,
+                id: "fav",
+                containerClass: "movies-fav-container"
+            };
+            const favHTML = createMoviesCategorySection(favCategory, 0);
+            pageContainer.insertAdjacentHTML('afterbegin', favHTML);
+            favContainer = document.querySelector('.movies-fav-container');
+            favList = document.querySelector('.movies-card-list.fav-list');
+        }
+    }
+
+    if (!favList) return;
+
+    const categoryIndexAttr = favList.getAttribute('data-category');
+    const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+
+    let html = '';
+    for (let i = 0; i < favouriteMovies.length; i++) {
+        const movieData = formatMovieData(favouriteMovies[i]);
+        if (!movieData) continue;
+        html += createMovieCard(movieData, 'normal', categoryIndex, i);
+    }
+
+    favList.innerHTML = html;
+    setMoviesLoadedChunkCount(categoryIndex, favouriteMovies.length);
+}
+
 
 function handleMoviesKeyNavigation(e) {
     let currentPage = localStorage.getItem("currentPage");

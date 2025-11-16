@@ -285,38 +285,90 @@ case "ArrowDown":
       }, 10);
     }
     
-    // Existing moviesPage logic
+    // MoviesPage: prioritize My Fav on initial down from navbar
     if (currentPage === "moviesPage" && window.moviesNavigationState) {
-      window.moviesNavigationState.currentCategoryIndex = 0;
-      window.moviesNavigationState.currentCardIndex = 0;
-      if (window.saveNavigationState) {
-        window.saveNavigationState(); 
-      }
-      
+      // Move focus from navbar to movies page
+      localStorage.setItem("navigationFocus", "moviesPage");
+
       setTimeout(() => {
-        const firstCard = document.querySelector(".movie-card");
-        if (firstCard) {
-          firstCard.focus();
-          if (window.updateFocus) {
-            window.updateFocus();
+        const favList = document.querySelector('.movies-card-list.fav-list');
+        let targetCard = null;
+
+        // Try My Fav first
+        if (favList) {
+          const favFirstCard = favList.querySelector('.movie-card');
+          if (favFirstCard) {
+            targetCard = favFirstCard;
+            const favCategoryIndex = parseInt(favList.getAttribute('data-category') || '0', 10);
+            window.moviesNavigationState.currentCategoryIndex = favCategoryIndex;
+            window.moviesNavigationState.currentCardIndex = 0;
+          }
+        }
+
+        // Fallback: first card in DOM order
+        if (!targetCard) {
+          const firstCard = document.querySelector('.movie-card');
+          if (firstCard) {
+            targetCard = firstCard;
+            const listEl = firstCard.closest('.movies-card-list');
+            const catIndex = parseInt((listEl && listEl.getAttribute('data-category')) || '0', 10);
+            window.moviesNavigationState.currentCategoryIndex = catIndex;
+            window.moviesNavigationState.currentCardIndex = 0;
+          }
+        }
+
+        // Persist and update focus using MoviesPage helpers
+        if (typeof window.saveMoviesNavigationState === 'function') {
+          window.saveMoviesNavigationState();
+        }
+        if (targetCard) {
+          targetCard.focus();
+          if (typeof window.updateMoviesFocus === 'function') {
+            window.updateMoviesFocus();
           }
         }
       }, 10);
     }
     
-    // SeriesPage logic
+    // SeriesPage: prioritize My Fav on initial down from navbar
     if (currentPage === "seriesPage" && window.seriesNavigationState) {
-      window.seriesNavigationState.currentCategoryIndex = 0;
-      window.seriesNavigationState.currentCardIndex = 0;
-      if (window.saveSeriesNavigationState) {
-        window.saveSeriesNavigationState(); 
-      }
-      
+      // Move focus from navbar to series page
+      localStorage.setItem("navigationFocus", "seriesPage");
+
       setTimeout(() => {
-        const firstCard = document.querySelector(".series-card");
-        if (firstCard) {
-          firstCard.focus();
-          if (window.updateSeriesFocus) {
+        const favList = document.querySelector('.series-card-list.fav-list');
+        let targetCard = null;
+
+        // Try My Fav first
+        if (favList) {
+          const favFirstCard = favList.querySelector('.series-card');
+          if (favFirstCard) {
+            targetCard = favFirstCard;
+            const favCategoryIndex = parseInt(favList.getAttribute('data-category') || '0', 10);
+            window.seriesNavigationState.currentCategoryIndex = favCategoryIndex;
+            window.seriesNavigationState.currentCardIndex = 0;
+          }
+        }
+
+        // Fallback: first card in DOM order
+        if (!targetCard) {
+          const firstCard = document.querySelector('.series-card');
+          if (firstCard) {
+            targetCard = firstCard;
+            const listEl = firstCard.closest('.series-card-list');
+            const catIndex = parseInt((listEl && listEl.getAttribute('data-category')) || '0', 10);
+            window.seriesNavigationState.currentCategoryIndex = catIndex;
+            window.seriesNavigationState.currentCardIndex = 0;
+          }
+        }
+
+        // Persist and update focus using SeriesPage helpers
+        if (typeof window.saveSeriesNavigationState === 'function') {
+          window.saveSeriesNavigationState();
+        }
+        if (targetCard) {
+          targetCard.focus();
+          if (typeof window.updateSeriesFocus === 'function') {
             window.updateSeriesFocus();
           }
         }
