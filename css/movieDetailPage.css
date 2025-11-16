@@ -315,7 +315,7 @@ border-radius: 58px;
 }
 
 .movie-detail-image{
-  width: 30%;
+  width: 25%;
 }
 
 .movie-detail-image img{
@@ -326,7 +326,7 @@ border-radius: 58px;
 }
 
 .movie-detail-info-div{
-  width: 70%;
+  width: 75%;
 padding-top: 40px;
 padding-bottom: 40px;
   display: flex;
@@ -376,10 +376,21 @@ border-radius: 32px;
   display: flex;
   margin-top: 40px;
   margin-bottom: 40px;
-  justify-content: space-between;
   align-items: center;
-  width: 80%;
   font-size: 26px;
+}
+
+.moviedetail-movie-directed-and-genre div{
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+
+  justify-content: space-between;
+}
+
+
+.moviedetail-directed{
+  margin-right: 40px;
 }
 
 .moviedetail-directed span{
@@ -388,6 +399,7 @@ border-radius: 32px;
 
 .moviedetail-genre span{
   font-weight: 700;
+  
 }
 
 .moviedetail-movie-description{

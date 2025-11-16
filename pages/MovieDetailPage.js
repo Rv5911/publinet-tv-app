@@ -455,8 +455,10 @@ if (
 
 
 <div class="moviedetail-movie-directed-and-genre">
+<div>
 <p class="moviedetail-directed"><span>Directed by:</span> ${director}</p>
 <p class="moviedetail-genre"><span>Genre:</span> ${genre}</p>
+</div>
 </div>
 
 <div>
