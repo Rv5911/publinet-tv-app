@@ -99,12 +99,22 @@
 
 .livetv-channels-list {
   width: 25%;
-  background-color: rgba(0, 0, 0, 0.4);
+  /* background-color: rgba(0, 0, 0, 0.4); */
   border-radius: 10px;
   height: 81vh;
   margin-top: 50px;
   overflow-y: scroll;
   padding: 10px 15px;
+    mask-image: linear-gradient(to bottom,
+    black 0%,
+    black 20%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom,
+    black 0%,
+    black 90%,
+    transparent 100%
+  );
 }
 
 .livetv-channel-category {
@@ -150,7 +160,7 @@
 /* Right: Channels grid */
 .livetv-channels-list-container {
   width: 100%;
-  max-height: 40.5vh;
+  height: 40.5vh;
   overflow-y: auto;
   padding-top: 20px;
   padding-left: 20px;
@@ -162,12 +172,23 @@
   margin-left: 20px;
   border-radius: 10px;
   background-color: rgba(0, 0, 0, 0.4);
+      mask-image: linear-gradient(to bottom,
+    black 0%,
+    black 85%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(to bottom,
+    black 0%,
+    black 85%,
+    transparent 100%
+  );
 }
 
 .channel-card {
   padding-top: 18px;
   padding-bottom: 18px;
   display: flex;
+  height: 100px !important;
   align-items: center;
   margin-bottom: 10px;
   padding-left: 24px;
