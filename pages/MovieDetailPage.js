@@ -73,7 +73,6 @@ async function MovieDetailPage() {
   // var getMovieCastData = await getMovieCast(tmdbId);
   var getMovieCastData = []
 
-
   // Check again if navigation was interrupted during second await
   if (navigationInterrupted) {
     document.removeEventListener("keydown", handleBackNavigationDuringLoading);
@@ -373,8 +372,8 @@ async function MovieDetailPage() {
     document.removeEventListener("keydown", moviesDetailPageKeydownHandler);
   };
 
-  // --- Render Movie Detail Page Function ---
   function renderMovieDetailPage(data) {
+    console.log(data,"DATA")
     var isFav =
       data.movie_data && data.movie_data.stream_id
         ? isItemFavoriteForPlaylist(
@@ -429,19 +428,42 @@ if (
 
     document.querySelector("#movies-detail-page").innerHTML = `
 <div class="movie-detail-page-container">
-  <div class="movie-detail-page-content-container">
-    
-    </div>
     <div class="movie-detail-content-container">
-      <div class="movie-detail-content">
-        <div class="first-content">
-          <div class="first-item"><p class="first">Directed By:</p><p class="second">${director}</p></div>
-          <div class="first-item"><p class="first">Release Date:</p><p class="second">${releaseDate}</p></div>
-          <div class="first-item"><p class="first">Duration:</p><p class="second">${duration}</p></div>
-          <div class="first-item"><p class="first">Genre:</p><p class="second">${genre}</p></div>
-          <div class="first-item">
-            <p class="first"></p>
-            <div class="movie-detail-buttons">
+<div class="movie-detail-content-main">
+
+<div class="movie-detail-image">
+   <img src="${poster}" />
+</div>
+<div class="movie-detail-info-div">
+
+
+<div class="moviedetail-movie-name">
+<p >${movieName}</p>
+</div>
+
+<div class="moviedetail-movie-rating-time">
+<p class="moviedetail-rating"><img src="./assets/rating-star.png">3.3</p>
+<p class="moviedetail-duration">
+  ${data.info.duration_secs ? 
+    `${Math.floor(data.info.duration_secs / 3600)}h ${Math.floor((data.info.duration_secs % 3600) / 60)}m` :
+    "N/A"}
+  </p>
+<p class="moviedetail-date"> ${releaseDate}</p>
+
+
+</div>
+
+
+<div class="moviedetail-movie-directed-and-genre">
+<p class="moviedetail-directed"><span>Directed by:</span> ${director}</p>
+<p class="moviedetail-genre"><span>Genre:</span> ${genre}</p>
+</div>
+
+<div>
+<p class="moviedetail-movie-description">${description}</p>
+</div>
+
+    <div class="movie-detail-buttons">
               <button class="movie-detail-play-button" tabindex="0">${
                 isContinueWatchingMovie ? "Resume" : "Play Now"
               }</button>
@@ -462,24 +484,17 @@ if (
                 }</span>
               </button>
             </div>
-          </div>
-        </div>
-        <div class="second-item">
-          <div class="inner-card">
-            <img src="${poster}" class="movie-detail-card-poster"/>
-            <div class="card-rating">
-              ${Array.from(
-                { length: Math.min(Math.floor(data.info.rating || 0), 5) },
-                () =>
-                  '<img src="./assets/start-icon.png" alt="Logo" class="movie-card-start-icon"/>'
-              ).join("")}
-            </div>
-          </div>
-        </div>
-      </div>
+
+
+</div>
+
+
+
+</div>
     </div>
-    <div class="movie-detail-description"><p>${description}</p></div>
-    <div class="movie-detail-cast">${castHtml}</div>
+    <div class="movie-detail-cast">
+    <p class="moviedetail-cast-title">Cast & Crew</p>
+    ${castHtml}</div>
   </div>
 </div>
 `;

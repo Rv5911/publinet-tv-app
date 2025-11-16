@@ -6,7 +6,8 @@
   padding: 100px 60px 100px;
   width: 100%;
   color: white;
-  /* height: 100vh; */
+  overflow-y: auto;
+  height: 100vh;
   animation: fadeInOut 1s ease-in-out;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
   /* overflow: hidden; */
@@ -142,7 +143,7 @@
   outline: none;
   text-wrap: nowrap;
   font-size: 24px;
-  border-radius: 10px;
+  border-radius: 58px;
   background: rgba(0, 0, 0, 0.6);
 
   padding-right: 28px;
@@ -160,7 +161,7 @@
   outline: none;
     white-space: nowrap;
   font-size: 24px;
-  border-radius: 10px;
+border-radius: 58px;
   background: rgba(0, 0, 0, 0.6);
 
   padding-right: 28px;
@@ -177,7 +178,7 @@
   font-weight: 600;
   outline: none;
   font-size: 24px;
-  border-radius: 10px;
+border-radius: 58px;
   background: rgba(0, 0, 0, 0.6);
 
   padding-right: 28px;
@@ -270,7 +271,7 @@
   white-space: nowrap;
   /* text-wrap: nowrap; */
   font-size: 24px;
-  border-radius: 10px;
+  border-radius: 58px;
   background: rgba(0, 0, 0, 0.6);
 
   padding-right: 28px;
@@ -279,6 +280,8 @@
   font-size: 18px;
   line-height: 1;
 }
+
+
 
 
 
@@ -297,5 +300,103 @@
     right: 58px;
     left: 50;
     z-index: 9999;
+
+}
+
+
+.movie-detail-content-main{
+  padding-top: 100px;
+}
+
+.movie-detail-content-main{
+  display: flex;
+  width: 100%;
+
+}
+
+.movie-detail-image{
+  width: 30%;
+}
+
+.movie-detail-image img{
+
+  margin-right: 70px;
+  height: 641px;
+  width: 550px;
+}
+
+.movie-detail-info-div{
+  width: 70%;
+padding-top: 40px;
+padding-bottom: 40px;
+  display: flex;
+  flex-direction: column;
+}
+.moviedetail-movie-name p {
+  font-size: 72px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 70%;
+  margin-bottom: 12px;
+}
+
+.moviedetail-movie-rating-time{
+  display: flex;
+  align-items: center;
+  font-size: 26px;
+}
+
+.moviedetail-rating{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 12px;
+  background: #FFFFFF2E;
+border-radius: 32px;
+  padding-right: 12px;
+}
+
+.moviedetail-rating img{
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+}
+
+.moviedetail-duration{
+  margin-right: 10px;
+}
+
+
+.moviedetail-movie-directed-and-genre{
+  display: flex;
+  margin-top: 40px;
+  margin-bottom: 40px;
+  justify-content: space-between;
+  align-items: center;
+  width: 80%;
+  font-size: 26px;
+}
+
+.moviedetail-directed span{
+  font-weight: 700;
+}
+
+.moviedetail-genre span{
+  font-weight: 700;
+}
+
+.moviedetail-movie-description{
+  width: 70%;
+  margin-bottom: 50px;
+  font-size: 28px;
+}
+
+.moviedetail-cast-title{
+  font-size: 30px;
 
 }

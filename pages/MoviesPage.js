@@ -36,16 +36,18 @@ let moviesNavigationDebounce = {
 function formatMovieData(movieStream) {
     if (!movieStream) return null;
 
+    // Safely get category_name with fallback
+    const categoryName = movieStream.category_name || "Movie";
     
     return {
         id: movieStream.stream_id || movieStream.num,
         stream_id: movieStream.stream_id,
         title: movieStream.name || "Unknown",
-        genre: movieStream.category_name || "Movie",
+        genre: categoryName,
         year: formatMovieYear(movieStream.added),
         image: movieStream.stream_icon || "./assets/demo-img-card.png",
         duration: formatMovieDuration(movieStream),
-        rating:movieStream.rating_5based ? movieStream.rating_5based : "0",
+        rating: movieStream.rating_5based ? movieStream.rating_5based : "0",
         category_id: movieStream.category_id ? movieStream.category_id : null
     };
 }
@@ -126,10 +128,14 @@ function getAPICategories() {
     let categories = [];
     for (let i = 0; i < allMoviesCategoriesData.length; i++) {
         let category = allMoviesCategoriesData[i];
+        if (!category) continue; // Skip if category is undefined
+        
         let movies = [];
         
         for (let j = 0; j < allMoviesStreamsData.length; j++) {
             let stream = allMoviesStreamsData[j];
+            if (!stream) continue; // Skip if stream is undefined
+            
             if (stream.category_id == category.category_id) {
                 movies.push(stream);
                 if (movies.length >= 50) break;
@@ -149,6 +155,8 @@ function getAPICategories() {
 }
 
 function createMovieCard(movieData, size, categoryIndex, movieIndex) {
+    if (!movieData) return ''; // Add safety check
+    
     let isLarge = size === "large";
     let cardClass = isLarge ? "movie-card movie-card-large" : "movie-card";
     let movieId = String(movieData.stream_id || movieData.id);
@@ -159,7 +167,14 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
     let imageUrl = movieData.image || "./assets/demo-img-card.png";
     let titleClass = 'movie-title-marquee';
     
-    let currentCardCategory=window.moviesCategories.filter((cat)=>cat.category_id==movieData.category_id);
+    // Safely get category name
+    let currentCardCategory = window.moviesCategories ? 
+        window.moviesCategories.filter((cat) => cat.category_id == movieData.category_id) : 
+        [];
+    
+    let categoryName = currentCardCategory.length > 0 ? 
+        currentCardCategory[0].category_name : 
+        movieData.genre || "Movie"; // Use genre as fallback
 
     return `<div class="${cardClass}" 
             data-category="${categoryIndex}" 
@@ -178,7 +193,7 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
                 </div>
                 <div class="movie-card-bottom">
                     <div class="movie-card-bottom-left">
-                        <h3>${currentCardCategory ? currentCardCategory[0].category_name : ""}</h3>
+                        <h3>${categoryName}</h3>
                         <h2 class="${titleClass}">${movieData.title || "Unknown"}</h2>
                     </div>
                     <div class="movie-card-bottom-right">
@@ -200,7 +215,7 @@ function getMoviesLoadedChunkCount(categoryIndex) {
     return moviesChunkLoadingState.loadedChunks[categoryIndex] || 0;
 }
 
-function setMoviesLoadedChunkCount(categoryIndex, count) {
+function setMoviesLoadedChunkCount(categoryIndex, count) {``
     moviesChunkLoadingState.loadedChunks[categoryIndex] = count;
 }
 
@@ -217,7 +232,10 @@ function loadMoviesChunk(category, categoryIndex) {
     let cardsHTML = '';
     
     for (let i = loadedCount; i < endIndex; i++) {
-        let movieData = formatMovieData(category.movies[i]);
+        let movieStream = category.movies[i];
+        if (!movieStream) continue; // Skip if movie stream is undefined
+        
+        let movieData = formatMovieData(movieStream);
         if (!movieData) continue;
         
         let size = category.id === "popular" ? "large" : "normal";
@@ -952,8 +970,29 @@ function hasAnyMoviesCategoryData() {
     return false;
 }
 
-function MoviesPage() {
 
+function validateMoviesData() {
+    // Clean up window.allMoviesStreams
+    if (window.allMoviesStreams && Array.isArray(window.allMoviesStreams)) {
+        window.allMoviesStreams = window.allMoviesStreams.filter(movie => 
+            movie !== null && 
+            movie !== undefined && 
+            typeof movie === 'object'
+        );
+    }
+    
+    // Clean up window.moviesCategories
+    if (window.moviesCategories && Array.isArray(window.moviesCategories)) {
+        window.moviesCategories = window.moviesCategories.filter(category => 
+            category !== null && 
+            category !== undefined && 
+            typeof category === 'object'
+        );
+    }
+}
+
+function MoviesPage() {
+validateMoviesData();
     let loadingHTML = '<div class="movies-page-loading">' + 
                      '<div class="loading-spinner"></div>' +
                      '<p>Loading Movies...</p>' +
@@ -972,12 +1011,17 @@ function MoviesPage() {
         favoriteMoviesIds = currentPlaylistFavIds || [];
 
         
-        let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
-            window.allMoviesStreams.filter(m => currentPlaylistFavIds.includes(m.stream_id)) : [];
-        let popularMovies = window.allMoviesStreams ? 
-            window.allMoviesStreams.filter(m => m.rating_5based > 4).slice(0, 10) : [];
-        let recentlyWatchedMovies = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
-            currentPlaylist.continueWatchingMovies : [];
+let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
+    window.allMoviesStreams.filter(m => m && currentPlaylistFavIds.includes(m.stream_id)) : [];
+
+let popularMovies = window.allMoviesStreams ? 
+    window.allMoviesStreams.filter(m => m && m.rating_5based > 4).slice(0, 10) : []; 
+
+let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
+    currentPlaylist.continueWatchingMovies.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
+
+    let recentMoviesArray=window.allMoviesStreams && recentlyWatchedMoviesIds ? window.allMoviesStreams.filter(m => recentlyWatchedMoviesIds.includes(m.stream_id.toString())) : [];
+    console.log(recentMoviesArray,"recentMoviesArrayrecentMoviesArray")
         let apiCategories = getAPICategories();
         
         let initialCategories = [
@@ -995,7 +1039,7 @@ function MoviesPage() {
             },
             { 
                 title: "Recently Watched", 
-                movies: recentlyWatchedMovies, 
+                movies:recentMoviesArray,
                 id: "recent", 
                 containerClass: "recently-watched-container"
             }
