@@ -77,7 +77,7 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = ""
 ) {
-  const defaultDns = "http://nubiatv.live/";
+  const defaultDns = "http://mega2025.site:8080/";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {

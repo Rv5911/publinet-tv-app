@@ -1,12 +1,11 @@
 var firebaseConfig = {
-  apiKey: "AIzaSyDK5uF-816i4_R9UlT0v5_BD12qu3rpF8E",
-  authDomain: "smarttvapp-5f8ca.firebaseapp.com",
-  projectId: "smarttvapp-5f8ca",
-  storageBucket: "smarttvapp-5f8ca.firebasestorage.app",
-  messagingSenderId: "430801978001",
-  appId: "1:430801978001:web:74d60528a2d1c37dfdb530",
-  measurementId: "G-3G73FDKF4B"
-};
+    apiKey: "AIzaSyC_pzuTpAnFz3mAbiFlQOb7PBt63l0Bm50",
+    authDomain: "smarttv-megatv.firebaseapp.com",
+    projectId: "smarttv-megatv",
+    storageBucket: "smarttv-megatv.firebasestorage.app",
+    messagingSenderId: "740889747008",
+    appId: "1:740889747008:web:d950dafeece58808d109a5"
+  };
 
 firebase.initializeApp(firebaseConfig);
 firebase.analytics();
