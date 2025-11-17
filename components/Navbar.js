@@ -375,10 +375,29 @@ function initNavbar() {
   updateNavbarActive(localStorage.getItem("currentPage"));
   buildDynamicSidebarOptions();
 
-  // Add search input event listener to save query
   searchInput.addEventListener("input", (e) => {
-    window.searchQuery = e.target.value;
-    console.log(window.searchQuery, "window.searchQuerywindow.searchQuery");
+    window.searchQuery = e.target.value || "";
+    window.dispatchEvent(
+      new CustomEvent("global-search", { detail: window.searchQuery })
+    );
+    const currentPage = localStorage.getItem("currentPage");
+    if (currentPage === "moviesPage") {
+      try {
+        if (typeof window.rerenderMoviesPage === "function") {
+          Router.showPage("moviesPage");
+          localStorage.setItem("navigationFocus", "navbar");
+          searchInput.focus();
+        }
+      } catch (err) {}
+    } else if (currentPage === "seriesPage") {
+      try {
+        if (typeof window.rerenderSeriesPage === "function") {
+          Router.showPage("seriesPage");
+          localStorage.setItem("navigationFocus", "navbar");
+          searchInput.focus();
+        }
+      } catch (err) {}
+    }
   });
 
   navItems.forEach((item) => {
@@ -414,6 +433,11 @@ function initNavbar() {
     const navigationFocus = localStorage.getItem("navigationFocus");
     const currentPage = localStorage.getItem("currentPage");
     const key = e.key;
+
+    const isSearchFocused = document.activeElement === searchInput;
+    if (isSearchFocused && key !== "ArrowDown") {
+      return;
+    }
 
     if (currentPage === "moviesDetailPage") {
       return;
@@ -492,6 +516,7 @@ function initNavbar() {
             currentPage === "seriesPage") &&
           navigationFocus === "navbar"
         ) {
+          searchInput.blur();
           localStorage.setItem("navigationFocus", currentPage);
 
           navItems.forEach((item) => item.classList.remove("active"));

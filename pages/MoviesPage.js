@@ -33,6 +33,20 @@ let moviesNavigationDebounce = {
 };
 
 
+function normalizeText(s) {
+    return (s || "").toLowerCase();
+}
+
+function getMoviesSearchQuery() {
+    return normalizeText(window.searchQuery || "");
+}
+
+function filterStreamsByQuery(streams) {
+    const q = getMoviesSearchQuery();
+    if (!q) return streams;
+    return (streams || []).filter(s => normalizeText(s && s.name).includes(q));
+}
+
 function formatMovieData(movieStream) {
     if (!movieStream) return null;
 
@@ -138,9 +152,9 @@ function getAPICategories() {
             
             if (stream.category_id == category.category_id) {
                 movies.push(stream);
-                if (movies.length >= 50) break;
             }
         }
+        movies = filterStreamsByQuery(movies).slice(0, 50);
         
         categories.push({
             title: category.category_name || "Category",
@@ -408,6 +422,15 @@ function createMoviesNoDataMessage(categoryTitle) {
            '</div>';
 }
 
+function createMoviesNoSearchMessage() {
+    return '<div class="no-data-container">' +
+           '<div class="no-data-content">' +
+           '<h2>No Search Results Found</h2>' +
+           '<p>Try a different query</p>' +
+           '</div>' +
+           '</div>';
+}
+
 function handleMoviesEnterKey(e) {
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
@@ -634,6 +657,9 @@ function handleMoviesKeyNavigation(e) {
     let navigationFocus = localStorage.getItem("navigationFocus");
     
     if (currentPage !== "moviesPage" || navigationFocus !== "moviesPage") {
+        return;
+    }
+    if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
         return;
     }
     
@@ -1137,7 +1163,11 @@ validateMoviesData();
     
     localStorage.setItem("previousPage", localStorage.getItem("currentPage") || "");
     localStorage.setItem("currentPage", "moviesPage");
-    localStorage.setItem("navigationFocus", "moviesPage");
+    const activeEl = document.activeElement;
+    const isSearchFocused = activeEl && activeEl.id === "search-input";
+    if (!isSearchFocused) {
+        localStorage.setItem("navigationFocus", "moviesPage");
+    }
     
     favoriteMoviesIds = [];
     
@@ -1149,15 +1179,15 @@ validateMoviesData();
 
         
 let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
-    window.allMoviesStreams.filter(m => m && currentPlaylistFavIds.includes(m.stream_id)) : [];
+    filterStreamsByQuery(window.allMoviesStreams.filter(m => m && currentPlaylistFavIds.includes(m.stream_id))) : [];
 
 let popularMovies = window.allMoviesStreams ? 
-    window.allMoviesStreams.filter(m => m && m.rating_5based > 4).slice(0, 10) : []; 
+    filterStreamsByQuery(window.allMoviesStreams.filter(m => m && m.rating_5based > 4)).slice(0, 10) : []; 
 
 let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
     currentPlaylist.continueWatchingMovies.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
 
-    let recentMoviesArray=window.allMoviesStreams && recentlyWatchedMoviesIds ? window.allMoviesStreams.filter(m => recentlyWatchedMoviesIds.includes(m.stream_id.toString())) : [];
+    let recentMoviesArray=window.allMoviesStreams && recentlyWatchedMoviesIds ? filterStreamsByQuery(window.allMoviesStreams.filter(m => recentlyWatchedMoviesIds.includes(m.stream_id.toString()))) : [];
     console.log(recentMoviesArray,"recentMoviesArrayrecentMoviesArray")
         let apiCategories = getAPICategories();
         
@@ -1193,9 +1223,15 @@ let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchi
         
         if (!hasAnyMoviesCategoryData()) {
             let noDataHTML = '<div class="movies-page-container">' +
-                           createMoviesNoDataMessage("movies") +
+                           (getMoviesSearchQuery() ? createMoviesNoSearchMessage() : createMoviesNoDataMessage("movies")) +
                            '</div>';
-            document.querySelector('.movies-page-container').innerHTML = noDataHTML;
+            const loadingEl = document.querySelector('.movies-page-loading');
+            if (loadingEl) {
+                loadingEl.outerHTML = noDataHTML;
+            } else {
+                const pageEl = document.getElementById('movies-page');
+                if (pageEl) pageEl.innerHTML = noDataHTML;
+            }
             return;
         }
         

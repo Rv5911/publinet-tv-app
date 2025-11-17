@@ -31,6 +31,19 @@ let seriesNavigationDebounce = {
     isDebouncing: false
 };
 
+function normalizeTextSeries(s) {
+    return (s || "").toLowerCase();
+}
+
+function getSeriesSearchQuery() {
+    return normalizeTextSeries(window.searchQuery || "");
+}
+
+function filterSeriesByQuery(streams) {
+    const q = getSeriesSearchQuery();
+    if (!q) return streams;
+    return (streams || []).filter(s => normalizeTextSeries(s && s.name).includes(q));
+}
 function formatSeriesData(seriesStream) {
     if (!seriesStream) return null;
 
@@ -134,9 +147,9 @@ function getAPISeriesCategories() {
             let stream = allSeriesStreamsData[j];
             if (stream.category_id == category.category_id) {
                 series.push(stream);
-                if (series.length >= 50) break;
             }
         }
+        series = filterSeriesByQuery(series).slice(0, 50);
         
         categories.push({
             title: category.category_name || "Category",
@@ -398,6 +411,15 @@ function createSeriesNoDataMessage(categoryTitle) {
            '</div>';
 }
 
+function createSeriesNoSearchMessage() {
+    return '<div class="no-data-container">' +
+           '<div class="no-data-content">' +
+           '<h2>No Search Results Found</h2>' +
+           '<p>Try a different query</p>' +
+           '</div>' +
+           '</div>';
+}
+
 function handleSeriesEnterKey(e) {
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
@@ -613,6 +635,9 @@ function handleSeriesKeyNavigation(e) {
     let navigationFocus = localStorage.getItem("navigationFocus");
     
     if (currentPage !== "seriesPage" || navigationFocus !== "seriesPage") {
+        return;
+    }
+    if (e && e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
         return;
     }
     
@@ -1097,7 +1122,11 @@ function SeriesPage() {
     
     localStorage.setItem("previousPage", localStorage.getItem("currentPage") || "");
     localStorage.setItem("currentPage", "seriesPage");
-    localStorage.setItem("navigationFocus", "seriesPage");
+    const activeEl = document.activeElement;
+    const isSearchFocused = activeEl && activeEl.id === "search-input";
+    if (!isSearchFocused) {
+        localStorage.setItem("navigationFocus", "seriesPage");
+    }
     
     favoriteSeriesIds = [];
     
@@ -1109,14 +1138,14 @@ function SeriesPage() {
 
         
         let favouriteSeries = window.allSeriesStreams && currentPlaylistFavIds ? 
-            window.allSeriesStreams.filter(s => currentPlaylistFavIds.includes(s.series_id)) : [];
+            filterSeriesByQuery(window.allSeriesStreams.filter(s => currentPlaylistFavIds.includes(s.series_id))) : [];
         let popularSeries = window.allSeriesStreams ? 
-            window.allSeriesStreams.filter(s => s.rating_5based > 4).slice(0, 10) : [];
+            filterSeriesByQuery(window.allSeriesStreams.filter(s => s.rating_5based > 4)).slice(0, 10) : [];
 
             let recentlyWatchedSeriesIds = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
     currentPlaylist.continueWatchingSeries.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
 
-    let recentSeriesArray=window.allSeriesStreams && recentlyWatchedSeriesIds ? window.allSeriesStreams.filter(m => recentlyWatchedSeriesIds.includes(m.series_id.toString())) : [];
+    let recentSeriesArray=window.allSeriesStreams && recentlyWatchedSeriesIds ? filterSeriesByQuery(window.allSeriesStreams.filter(m => recentlyWatchedSeriesIds.includes(m.series_id.toString()))) : [];
     console.log(recentSeriesArray,"recentSeriesArrayrecentSeriesArray")
         let apiCategories = getAPISeriesCategories();
         
@@ -1152,9 +1181,15 @@ function SeriesPage() {
         
         if (!hasAnySeriesCategoryData()) {
             let noDataHTML = '<div class="series-page-container">' +
-                           createSeriesNoDataMessage("series") +
+                           (getSeriesSearchQuery() ? createSeriesNoSearchMessage() : createSeriesNoDataMessage("series")) +
                            '</div>';
-            document.querySelector('.series-page-container').innerHTML = noDataHTML;
+            const loadingEl = document.querySelector('.series-page-loading');
+            if (loadingEl) {
+                loadingEl.outerHTML = noDataHTML;
+            } else {
+                const pageEl = document.getElementById('series-page');
+                if (pageEl) pageEl.innerHTML = noDataHTML;
+            }
             return;
         }
         
