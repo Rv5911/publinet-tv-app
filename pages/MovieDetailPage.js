@@ -70,8 +70,8 @@ async function MovieDetailPage() {
     movieDetailData.info && movieDetailData.info.tmdb_id
       ? movieDetailData.info.tmdb_id
       : 0;
-  // var getMovieCastData = await getMovieCast(tmdbId);
-  var getMovieCastData = []
+  var getMovieCastData = await getMovieCast(tmdbId);
+  // var getMovieCastData = []
 
   // Check again if navigation was interrupted during second await
   if (navigationInterrupted) {
@@ -495,7 +495,9 @@ if (
 </div>
     </div>
     <div class="movie-detail-cast">
-    <p class="moviedetail-cast-title">Cast & Crew</p>
+    <div>
+
+    </div>
     ${castHtml}</div>
   </div>
 </div>

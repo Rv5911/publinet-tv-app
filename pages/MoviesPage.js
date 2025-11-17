@@ -411,7 +411,6 @@ function createMoviesNoDataMessage(categoryTitle) {
 function handleMoviesEnterKey(e) {
     let currentPage = localStorage.getItem("currentPage");
     let navigationFocus = localStorage.getItem("navigationFocus");
-    
     if (currentPage !== "moviesPage" || navigationFocus !== "moviesPage") {
         return;
     }
@@ -458,14 +457,25 @@ function handleMoviesSimpleEnter() {
     
     if (currentCard) {
         let streamId = currentCard.getAttribute('data-stream-id');
-
+        let isContinueWatchingMovie = false;
         localStorage.setItem("moviesCategoryIndex", categoryIndex);
         localStorage.setItem("moviesCardIndex", cardIndex);
         localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
         
         localStorage.setItem("selectedMovieId", streamId);
+        const currentPlaylist = getCurrentPlaylist();
+        const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
+        if(allRecentlyWatchedMovies && Array.isArray(allRecentlyWatchedMovies)){
+            isContinueWatchingMovie = allRecentlyWatchedMovies.some(movie => 
+                movie && movie.itemId == streamId
+            );
+        }
+        
+        localStorage.setItem("isContinueWatchingMovie", isContinueWatchingMovie.toString());
+        
+        buildDynamicSidebarOptions();
 
-        const selectedMovieItem =  window.allMoviesStreams.find(item => item.stream_id == streamId);
+        const selectedMovieItem = window.allMoviesStreams.find(item => item.stream_id == streamId);
         if (selectedMovieItem) {
             localStorage.setItem("selectedMovieData", JSON.stringify(selectedMovieItem));
         }

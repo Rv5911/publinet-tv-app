@@ -82,7 +82,6 @@
   overflow-y: hidden;
   margin-bottom: 40px;
   padding: 10px;
-  scroll-behavior: smooth;
 }
 
 .series-card-list::-webkit-scrollbar {

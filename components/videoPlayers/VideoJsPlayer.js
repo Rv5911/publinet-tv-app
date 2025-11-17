@@ -525,7 +525,12 @@ function VideoJsPlayer(poster = "") {
     });
 
     function goBack() {
+        const currentPlaylist = getCurrentPlaylist();
+        const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
+        const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries;
+        const selectedMovieId = localStorage.getItem("selectedMovieId");
 
+       
                      const navbarEl=document.querySelector("#navbar-root");
     if(navbarEl){
         navbarEl.style.display="block";
@@ -668,9 +673,23 @@ function VideoJsPlayer(poster = "") {
         }
 
         if (fromValue == "movie") {
+
+           const isContinueWatchingMovie = allRecentlyWatchedMovies.some(movie => 
+            movie && movie.itemId === localStorage.getItem("selectedMovieId")
+        );
+
+        localStorage.setItem("isContinueWatchingMovie", isContinueWatchingMovie==false ? "true" : "false");
+
+        buildDynamicSidebarOptions();
           localStorage.setItem("currentPage", "movieDetailPage");
           Router.showPage("movieDetailPage");
         } else {
+            const isContinueWatchingSeries = allRecentlyWatchedSeries.some(series => 
+            series && series.itemId === localStorage.getItem("selectedSeriesId")
+        );
+
+        localStorage.setItem("isContinueWatchingSeries", isContinueWatchingSeries===false ? "true" : "false");
+        buildDynamicSidebarOptions();
           localStorage.setItem("currentPage", "seriesDetailPage");
           Router.showPage("seriesDetailPage");
         }

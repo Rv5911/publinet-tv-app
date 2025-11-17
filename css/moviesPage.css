@@ -1,6 +1,5 @@
 /* Movies Page Container */
 .movies-page-container {
-  height: 100vh;
   width: 100%;
   padding: 250px 60px 100px;
   overflow-x: hidden;
@@ -82,7 +81,6 @@
   overflow-y: hidden;
   margin-bottom: 40px;
   padding: 10px;
-  scroll-behavior: smooth;
 }
 
 .movies-card-list::-webkit-scrollbar {
