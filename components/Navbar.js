@@ -435,7 +435,7 @@ function initNavbar() {
     const key = e.key;
 
     const isSearchFocused = document.activeElement === searchInput;
-    if (isSearchFocused && key !== "ArrowDown") {
+    if (isSearchFocused && !["ArrowLeft", "ArrowRight", "ArrowDown"].includes(key)) {
       return;
     }
 
@@ -677,6 +677,17 @@ function initNavbar() {
     }
   });
 
+  // Ensure search input focus manages navbar active classes correctly
+  searchInput.addEventListener("focus", () => {
+    localStorage.setItem("navigationFocus", "navbar");
+    currentIndex = 0;
+    highlightNavItem(currentIndex);
+  });
+
+  searchInput.addEventListener("blur", () => {
+    searchInput.classList.remove("active");
+  });
+
   function highlightNavItem(index) {
     searchInput.classList.remove("active");
     navItems.forEach((i) => i.classList.remove("active"));
@@ -684,7 +695,6 @@ function initNavbar() {
 
     if (index === 0) {
       searchInput.classList.add("active");
-      searchInput.focus();
     } else if (index === totalItems - 1) {
       profileIcon.classList.add("active");
       profileIcon.focus();

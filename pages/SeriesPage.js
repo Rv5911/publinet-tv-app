@@ -628,6 +628,20 @@ function refreshSeriesFavoritesList() {
 
     favList.innerHTML = html;
     setSeriesLoadedChunkCount(categoryIndex, favouriteSeries.length);
+
+    // After rendering, restore or set focus on My Fav cards
+    const navigationFocus = localStorage.getItem("navigationFocus");
+    if (navigationFocus === "seriesPage") {
+        const hasFocused = document.querySelector('.series-card.focused');
+        if (!hasFocused) {
+            seriesNavigationState.currentCategoryIndex = categoryIndex;
+            seriesNavigationState.currentCardIndex = Math.max(0, Math.min(seriesNavigationState.currentCardIndex, favouriteSeries.length - 1));
+        } else if (seriesNavigationState.currentCategoryIndex === categoryIndex) {
+            seriesNavigationState.currentCardIndex = Math.max(0, Math.min(seriesNavigationState.currentCardIndex, favouriteSeries.length - 1));
+        }
+        updateSeriesFocus();
+        saveSeriesNavigationState();
+    }
 }
 
 function handleSeriesKeyNavigation(e) {
