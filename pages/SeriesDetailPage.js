@@ -886,7 +886,7 @@ if (e.key === "ArrowUp") {
   } 
   else if (seriesDetailButtons && seriesDetailButtons.contains(focused)) {
     // If focused element is inside series-detail-buttons, go to menu
-    currentFocusIndex = focusableEls.indexOf(menuBtn);
+    alert("here")
   } 
   else if (episodeItems.includes(focused)) {
     currentFocusIndex = focusableEls.indexOf(seasonsBtn);

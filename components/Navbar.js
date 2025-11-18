@@ -531,7 +531,8 @@ function initNavbar() {
           (currentPage === "moviesPage" ||
             currentPage === "liveTvPage" ||
             currentPage == "movieDetailPage" ||
-            currentPage === "seriesPage") &&
+            currentPage === "seriesPage" ||
+            currentPage === "homePage") &&
           navigationFocus === "navbar"
         ) {
           searchInput.blur();
@@ -626,6 +627,50 @@ function initNavbar() {
                 targetCard.focus();
                 if (typeof window.updateMoviesFocus === "function") {
                   window.updateMoviesFocus();
+                }
+              }
+            }, 10);
+          }
+
+          if (currentPage === "homePage" && window.homeNavigationState) {
+            localStorage.setItem("navigationFocus", "homePage");
+            setTimeout(() => {
+              const favList = document.querySelector(
+                ".home-card-list.home-fav-list"
+              );
+              let targetCard = null;
+
+              if (favList) {
+                const favFirstCard = favList.querySelector(".home-card");
+                if (favFirstCard) {
+                  targetCard = favFirstCard;
+                  const favCategoryIndex = parseInt(
+                    favList.getAttribute("data-category") || "0",
+                    10
+                  );
+                  window.homeNavigationState.currentCategoryIndex = favCategoryIndex;
+                  window.homeNavigationState.currentCardIndex = 0;
+                }
+              }
+
+              if (!targetCard) {
+                const firstCard = document.querySelector(".home-card");
+                if (firstCard) {
+                  targetCard = firstCard;
+                  const listEl = firstCard.closest(".home-card-list");
+                  const catIndex = parseInt(
+                    (listEl && listEl.getAttribute("data-category")) || "0",
+                    10
+                  );
+                  window.homeNavigationState.currentCategoryIndex = catIndex;
+                  window.homeNavigationState.currentCardIndex = 0;
+                }
+              }
+
+              if (targetCard) {
+                targetCard.focus();
+                if (typeof window.updateHomeFocus === "function") {
+                  window.updateHomeFocus();
                 }
               }
             }, 10);
@@ -1002,6 +1047,14 @@ function initNavbar() {
       activeItem.focus();
     }
   }
+  window.focusNavbarHome = function() {
+    try {
+      const index = pageIndexMap["homePage"] || 0;
+      currentIndex = index + 1;
+      highlightNavItem(currentIndex);
+      localStorage.setItem("navigationFocus", "navbar");
+    } catch (e) {}
+  };
 }
 
 window.buildDynamicSidebarOptions = buildDynamicSidebarOptions;
