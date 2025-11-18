@@ -697,6 +697,11 @@ else if (focused === startOverBtn) {
 
       // Navigate to videoJsPlayer page
       localStorage.setItem("currentPage", "videojsPlayer");
+
+                     const navbarEl=document.querySelector("#navbar-root");
+    if(navbarEl){
+        navbarEl.style.display="none";
+    }
       Router.showPage("videoJsPlayer");
 
       document.body.style.backgroundImage = "none";

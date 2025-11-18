@@ -157,7 +157,7 @@ function getAPICategories() {
         movies = filterStreamsByQuery(movies).slice(0, 50);
         
         categories.push({
-            title: category.category_name || "Category",
+            title: category.category_name ? category.category_name.replace(/[*]/g, "") : "Category",
             movies: movies,
             id: category.category_id,
             containerClass: "movies-category-container",

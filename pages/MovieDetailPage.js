@@ -1,6 +1,6 @@
 async function MovieDetailPage() {
-      localStorage.setItem("currentPage", "moviesDetailPage");
-  localStorage.setItem("navigationFocus", "moviesDetailPage");
+      localStorage.setItem("currentPage", "movieDetailPage");
+  localStorage.setItem("navigationFocus", "movieDetailPage");
   if (MovieDetailPage.cleanup) MovieDetailPage.cleanup();
 
   const castImageUrl = "https://image.tmdb.org/t/p/w500";
@@ -12,7 +12,7 @@ async function MovieDetailPage() {
   function handleBackNavigationDuringLoading(e) {
     if ((e.keyCode === 10009 || e.key === "Escape" || e.key === "Back" || 
          e.key === "BrowserBack" || e.key === "XF86Back") &&
-        localStorage.getItem("currentPage") === "moviesDetailPage") {
+        localStorage.getItem("currentPage") === "movieDetailPage") {
       
       e.preventDefault();
       e.stopPropagation();
@@ -210,9 +210,21 @@ async function MovieDetailPage() {
   }
 
   function moviesDetailPageKeydownHandler(e) {
-    if(localStorage.getItem("currentPage")!="movieDetailPage"){
+    if (
+      e.keyCode === 10009 ||
+      e.key === "Escape" ||
+      e.key === "Back" ||
+      e.key === "BrowserBack" ||
+      e.key === "XF86Back"
+    ) {
+      localStorage.removeItem("selectedMovieId");
+      localStorage.setItem("currentPage", "moviesPage");
+      Router.showPage("moviesPage");
+      document.body.style.backgroundImage = "none";
+      document.body.style.backgroundColor = "black";
       return;
     }
+    if(localStorage.getItem("currentPage")=="movieDetailPage"&&localStorage.getItem("navigationFocus")=="movieDetailPage"){
     var focused = focusableEls[currentFocusIndex];
     if (!focused) return;
 
@@ -328,16 +340,23 @@ async function MovieDetailPage() {
     if (e.key === "ArrowRight" && currentFocusIndex < focusableEls.length - 1)
       currentFocusIndex++;
     if (e.key === "ArrowLeft" && currentFocusIndex > 0) currentFocusIndex--;
-    if (e.key === "ArrowUp") {
-      if (
-        [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) 
-      ){
-         localStorage.setItem("navigationFocus", "navbar");
-
-      }
-      else if (Array.from(castItems).includes(focused) && playBtn)
-        currentFocusIndex = focusableEls.indexOf(playBtn);
-    }
+if (e.key === "ArrowUp") {
+  const allDetailBtns = document.querySelectorAll(".movie-detail-button-focused");
+  allDetailBtns.forEach(btn => {
+    btn.classList.remove("movie-detail-button-focused"); 
+  });
+  
+  if ([playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused)) {
+    localStorage.setItem("navigationFocus", "navbar");
+    e.preventDefault(); 
+    e.stopPropagation();
+    return;
+  }
+  else if (Array.from(castItems).includes(focused) && playBtn) {
+    currentFocusIndex = focusableEls.indexOf(playBtn);
+    setFocus(focusableEls[currentFocusIndex]);
+  }
+}
     if (e.key === "ArrowDown") {
       if (focused === menuBtn && playBtn)
         currentFocusIndex = focusableEls.indexOf(playBtn);
@@ -348,23 +367,13 @@ async function MovieDetailPage() {
         currentFocusIndex = focusableEls.indexOf(castItems[0]);
     }
 
-    // --- Back / Exit ---
-    if (
-      e.keyCode === 10009 ||
-      e.key === "Escape" ||
-      e.key === "Back" ||
-      e.key === "BrowserBack" ||
-      e.key === "XF86Back"
-    ) {
-      localStorage.removeItem("selectedMovieId");
-      localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("moviesPage");
-      document.body.style.backgroundImage = "none";
-      document.body.style.backgroundColor = "black";
+
+
+    setFocus(focusableEls[currentFocusIndex]);
+    }else{
       return;
     }
 
-    setFocus(focusableEls[currentFocusIndex]);
   }
 
   document.addEventListener("keydown", moviesDetailPageKeydownHandler);
@@ -512,23 +521,6 @@ if (movieContentContainer) {
   }
 }
 
-    function removeItemfromContiueWatching() {
-      removeItemFromHistoryById(
-        selectedMovieItem.stream_id,
-        "continueWatchingMovies"
-      );
-      localStorage.setItem(
-        "selectedMovieId",
-        selectedMovieItem.stream_id.toString()
-      );
-      localStorage.setItem("currentPage", "moviesDetailPage");
-      localStorage.setItem(
-        "selectedMovieData",
-        JSON.stringify(selectedMovieItem)
-      );
-      var loader = document.querySelector("#loading-progress");
-      if (loader) loader.style.display = "none";
-      Router.showPage("movieDetail");
-    }
+
   }
 }

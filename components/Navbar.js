@@ -306,7 +306,7 @@ function removeFavoriteSeriesById(seriesId) {
   }
 }
 
-  function initNavbar() {
+function initNavbar() {
   const navItems = Array.from(document.querySelectorAll(".nav-item"));
   const sidebar = document.getElementById("sidebar");
   const profileIcon = document.getElementById("profileIcon");
@@ -446,7 +446,10 @@ function removeFavoriteSeriesById(seriesId) {
     const key = e.key;
 
     const isSearchFocused = document.activeElement === searchInput;
-    if (isSearchFocused && !["ArrowLeft", "ArrowRight", "ArrowDown"].includes(key)) {
+    if (
+      isSearchFocused &&
+      !["ArrowLeft", "ArrowRight", "ArrowDown"].includes(key)
+    ) {
       return;
     }
 
@@ -527,6 +530,7 @@ function removeFavoriteSeriesById(seriesId) {
         if (
           (currentPage === "moviesPage" ||
             currentPage === "liveTvPage" ||
+            currentPage == "movieDetailPage" ||
             currentPage === "seriesPage") &&
           navigationFocus === "navbar"
         ) {
@@ -541,7 +545,7 @@ function removeFavoriteSeriesById(seriesId) {
           if (currentPage === "liveTvPage") {
             setTimeout(() => {
               if (typeof focusCategories === "function") {
-                focusCategories(0); // Focus on first category
+                focusCategories(0);
               }
               const firstCategory = document.querySelector(
                 ".livetv-channel-category"
@@ -551,6 +555,26 @@ function removeFavoriteSeriesById(seriesId) {
                 firstCategory.classList.add("livetv-channel-category-focused");
               }
             }, 10);
+          }
+
+          if (currentPage === "movieDetailPage") {
+            setTimeout(() => {
+              const firstDetailPlayBtn = document.querySelector(
+                ".movie-detail-play-button"
+              );
+              if (firstDetailPlayBtn) {
+                document
+                  .querySelectorAll(".movie-detail-button-focused")
+                  .forEach((btn) => btn.classList.remove("movie-detail-button-focused"));
+                firstDetailPlayBtn.classList.add("movie-detail-button-focused");
+                firstDetailPlayBtn.focus();
+                localStorage.setItem("navigationFocus", "movieDetailPage");
+                localStorage.setItem("currentPage", "movieDetailPage");
+              }
+            }, 0);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
           }
 
           // MoviesPage: prioritize My Fav on initial down from navbar

@@ -317,7 +317,8 @@ border-radius: 58px;
 
 
 .movie-detail-image img{
-
+object-fit: cover;
+height: 500px;
   margin-right: 70px;
   width: 400px;
 }
@@ -334,9 +335,8 @@ padding-bottom: 40px;
   font-size: 72px;
   font-weight: 600;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 70%;
+  text-wrap: wrap;
+  width: 100%;
   margin-bottom: 12px;
 }
 
