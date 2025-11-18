@@ -132,9 +132,10 @@ function ListUsersPage() {
         case "BrowserBack":
         case "XF86Back":
         case 10009:
-          localStorage.setItem("currentPage", "loginPage");
-          ListUsersPage.cleanup();
-          Router.showPage("login");
+          
+          // localStorage.setItem("currentPage", "loginPage");
+          // ListUsersPage.cleanup();
+          // Router.showPage("login");
           break;
       }
     }

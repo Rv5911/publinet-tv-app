@@ -1,4 +1,5 @@
 function LiveTvPage() {
+
   const categories = window.liveCategories || [];
   const allStreams = window.allLiveStreams || [];
   let isEpgDivFocused = false;

@@ -306,7 +306,7 @@ function removeFavoriteSeriesById(seriesId) {
   }
 }
 
-function initNavbar() {
+  function initNavbar() {
   const navItems = Array.from(document.querySelectorAll(".nav-item"));
   const sidebar = document.getElementById("sidebar");
   const profileIcon = document.getElementById("profileIcon");
@@ -375,28 +375,39 @@ function initNavbar() {
   updateNavbarActive(localStorage.getItem("currentPage"));
   buildDynamicSidebarOptions();
 
+  let searchDebounceTimer = null;
+  const SEARCH_DEBOUNCE_MS = 150;
   searchInput.addEventListener("input", (e) => {
     window.searchQuery = e.target.value || "";
     window.dispatchEvent(
       new CustomEvent("global-search", { detail: window.searchQuery })
     );
     const currentPage = localStorage.getItem("currentPage");
-    if (currentPage === "moviesPage") {
-      try {
-        if (typeof window.rerenderMoviesPage === "function") {
-          Router.showPage("moviesPage");
-          localStorage.setItem("navigationFocus", "navbar");
-          searchInput.focus();
-        }
-      } catch (err) {}
-    } else if (currentPage === "seriesPage") {
-      try {
-        if (typeof window.rerenderSeriesPage === "function") {
-          Router.showPage("seriesPage");
-          localStorage.setItem("navigationFocus", "navbar");
-          searchInput.focus();
-        }
-      } catch (err) {}
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      if (currentPage === "moviesPage") {
+        try {
+          if (typeof window.rerenderMoviesPage === "function") {
+            Router.showPage("moviesPage");
+            localStorage.setItem("navigationFocus", "navbar");
+            searchInput.focus();
+          }
+        } catch (err) {}
+      } else if (currentPage === "seriesPage") {
+        try {
+          if (typeof window.rerenderSeriesPage === "function") {
+            Router.showPage("seriesPage");
+            localStorage.setItem("navigationFocus", "navbar");
+            searchInput.focus();
+          }
+        } catch (err) {}
+      }
+    }, SEARCH_DEBOUNCE_MS);
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Backspace" || e.key === "Delete") {
+      e.stopPropagation();
     }
   });
 
@@ -497,12 +508,15 @@ function initNavbar() {
         }
       case "ArrowLeft":
         if (searchInput.classList.contains("active")) {
-          // Blur input first so it no longer looks focused
+          querySelectorAll(".nav-item").forEach((item) =>
+            item.classList.remove("active")
+          );
+          profileIcon.classList.remove("active");
           searchInput.blur();
 
           // Move to Home
-          currentIndex = 1;
-          highlightNavItem(currentIndex);
+          // currentIndex = 1;
+          // highlightNavItem(currentIndex);
         } else {
           currentIndex = (currentIndex - 1 + totalItems) % totalItems;
           highlightNavItem(currentIndex);

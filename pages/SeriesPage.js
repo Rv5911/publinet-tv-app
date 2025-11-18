@@ -286,6 +286,20 @@ function loadMoreSeriesCategories() {
     
     let allCategories = window.allSeriesCategories || [];
     let currentLoaded = seriesChunkLoadingState.loadedCategories;
+
+    // If searching and no remaining categories have items, remove any indicator and stop
+    const remainingHasItems = allCategories.slice(currentLoaded).some(function(cat){
+        return cat && cat.series && cat.series.length > 0;
+    });
+    if (!remainingHasItems) {
+        let container = document.querySelector('.series-page-container');
+        if (container) {
+            let categoriesLoading = container.querySelector('.categories-loading-indicator');
+            if (categoriesLoading) categoriesLoading.remove();
+        }
+        seriesChunkLoadingState.isLoading = false;
+        return;
+    }
     
     if (currentLoaded >= allCategories.length) {
         let container = document.querySelector('.series-page-container');
@@ -356,7 +370,7 @@ function loadMoreSeriesCategories() {
             }
             
             if (hasMoreCategories) {
-                container.insertAdjacentHTML('beforeend', '<div class="categories-loading-indicator"><p>Loading more categories...</p></div>');
+                container.insertAdjacentHTML('beforeend', '<div class="categories-loading-indicator" style="display: none;"><p>Loading more categories...</p></div>');
             }
             
             seriesChunkLoadingState.loadedCategories = nextChunk;
@@ -570,6 +584,31 @@ function refreshSeriesFavoritesList() {
         ? window.allSeriesStreams.filter(s => s && favIds.includes(String(s.series_id)))
         : [];
 
+    // If in search mode, do not show My Fav section; keep page focused on search results
+    const isSearchMode = !!getSeriesSearchQuery();
+    if (isSearchMode) {
+        const favContainerSearch = document.querySelector('.series-fav-container');
+        const favListSearch = document.querySelector('.series-card-list.fav-list');
+        if (favListSearch) {
+            const categoryIndexAttr = favListSearch.getAttribute('data-category');
+            const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+            setSeriesLoadedChunkCount(categoryIndex, 0);
+        }
+        if (favContainerSearch) {
+            favContainerSearch.remove();
+        }
+        // If focus points to removed fav category, shift to next available category
+        const currentList = document.querySelector('.series-card-list[data-category="' + seriesNavigationState.currentCategoryIndex + '"]');
+        if (!currentList) {
+            const nextIdx = findNextSeriesCategoryWithSeries(seriesNavigationState.currentCategoryIndex + 1, 1);
+            seriesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+            seriesNavigationState.currentCardIndex = 0;
+            updateSeriesFocus();
+            saveSeriesNavigationState();
+        }
+        return;
+    }
+
     // If there are no favorites, remove the entire My Fav category section
     if (!favouriteSeries.length) {
         const favContainer = document.querySelector('.series-fav-container');
@@ -782,7 +821,7 @@ function moveSeriesDown() {
             let loadedCount = getSeriesLoadedChunkCount(seriesNavigationState.currentCategoryIndex);
             
             let visiblePosition = getSeriesCurrentVisibleIndex(currentIndex, currentCardIndex);
-            seriesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
+            seriesNavigationState.currentCardIndex = loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
         } else {
             seriesNavigationState.currentCardIndex = 0;
         }
@@ -817,7 +856,7 @@ function moveSeriesUp() {
             let loadedCount = getSeriesLoadedChunkCount(seriesNavigationState.currentCategoryIndex);
             
             let visiblePosition = getSeriesCurrentVisibleIndex(currentIndex, currentCardIndex);
-            seriesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
+            seriesNavigationState.currentCardIndex = loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
         } else {
             seriesNavigationState.currentCardIndex = 0;
         }
@@ -1163,26 +1202,27 @@ function SeriesPage() {
     console.log(recentSeriesArray,"recentSeriesArrayrecentSeriesArray")
         let apiCategories = getAPISeriesCategories();
         
-        let initialCategories = [
-            { 
+        let initialCategories = [];
+        if (!getSeriesSearchQuery()) {
+            initialCategories.push({ 
                 title: "My Fav", 
                 series: favouriteSeries, 
                 id: "fav", 
                 containerClass: "series-fav-container"
-            },
-            { 
-                title: "Popular Series", 
-                series: popularSeries, 
-                id: "popular", 
-                containerClass: "series-popular-container"
-            },
-            { 
-                title: "Recently Watched", 
-                series: recentSeriesArray, 
-                id: "recent", 
-                containerClass: "recently-watched-container"
-            }
-        ];
+            });
+        }
+        initialCategories.push({ 
+            title: "Popular Series", 
+            series: popularSeries, 
+            id: "popular", 
+            containerClass: "series-popular-container"
+        });
+        initialCategories.push({ 
+            title: "Recently Watched", 
+            series: recentSeriesArray, 
+            id: "recent", 
+            containerClass: "recently-watched-container"
+        });
         
         let apiCategoriesToLoad = apiCategories.slice(0, 3);
         initialCategories = initialCategories.concat(apiCategoriesToLoad);
@@ -1226,7 +1266,7 @@ function SeriesPage() {
         }
         
         if (hasMoreCategories) {
-            html += '<div class="categories-loading-indicator"><p>Loading more categories...</p></div>';
+            html += '<div class="categories-loading-indicator" style="display: none;"><p>Loading more categories...</p></div>';
         }
         
         html += '</div>';

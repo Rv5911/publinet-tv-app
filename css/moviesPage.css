@@ -3,6 +3,7 @@
   width: 100%;
   padding: 250px 60px 100px;
   overflow-x: hidden;
+height: 100vh;
   animation: fadeInOut 1s ease-in-out;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
@@ -49,6 +50,13 @@
   text-align: center;
 }
 
+.no-search-data-container{
+    display: flex;
+  justify-content: center;
+  zoom: 2.4;
+  width: 100%;
+  text-align: center;
+}
 .no-data-content h2 {
   font-size: 48px;
   font-weight: 600;

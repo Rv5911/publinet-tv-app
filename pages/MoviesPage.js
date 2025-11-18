@@ -426,7 +426,6 @@ function createMoviesNoSearchMessage() {
     return '<div class="no-data-container">' +
            '<div class="no-data-content">' +
            '<h2>No Search Results Found</h2>' +
-           '<p>Try a different query</p>' +
            '</div>' +
            '</div>';
 }
@@ -590,6 +589,31 @@ function refreshMoviesFavoritesList() {
     const favouriteMovies = (window.allMoviesStreams && favIds.length)
         ? window.allMoviesStreams.filter(m => m && favIds.includes(String(m.stream_id)))
         : [];
+
+    // If in search mode, do not show My Fav section; keep page focused on search results
+    const isSearchMode = !!getMoviesSearchQuery();
+    if (isSearchMode) {
+        const favContainerSearch = document.querySelector('.movies-fav-container');
+        const favListSearch = document.querySelector('.movies-card-list.fav-list');
+        if (favListSearch) {
+            const categoryIndexAttr = favListSearch.getAttribute('data-category');
+            const categoryIndex = categoryIndexAttr ? parseInt(categoryIndexAttr, 10) : 0;
+            setMoviesLoadedChunkCount(categoryIndex, 0);
+        }
+        if (favContainerSearch) {
+            favContainerSearch.remove();
+        }
+        // If focus points to removed fav category, shift to next available category
+        const currentList = document.querySelector('.movies-card-list[data-category="' + moviesNavigationState.currentCategoryIndex + '"]');
+        if (!currentList) {
+            const nextIdx = findNextMoviesCategoryWithMovies(moviesNavigationState.currentCategoryIndex + 1, 1);
+            moviesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
+            moviesNavigationState.currentCardIndex = 0;
+            updateMoviesFocus();
+            saveMoviesNavigationState();
+        }
+        return;
+    }
 
     // If there are no favorites, remove the entire My Fav category section
     if (!favouriteMovies.length) {
@@ -790,7 +814,7 @@ function moveMoviesDown() {
             let loadedCount = getMoviesLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
             
             let visiblePosition = getMoviesCurrentVisibleIndex(currentIndex, currentCardIndex);
-            moviesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
+            moviesNavigationState.currentCardIndex = loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
         } else {
             moviesNavigationState.currentCardIndex = 0;
         }
@@ -825,7 +849,7 @@ function moveMoviesUp() {
             let loadedCount = getMoviesLoadedChunkCount(moviesNavigationState.currentCategoryIndex);
             
             let visiblePosition = getMoviesCurrentVisibleIndex(currentIndex, currentCardIndex);
-            moviesNavigationState.currentCardIndex = Math.min(visiblePosition, loadedCount - 1);
+            moviesNavigationState.currentCardIndex = loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
         } else {
             moviesNavigationState.currentCardIndex = 0;
         }
@@ -1191,26 +1215,27 @@ let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchi
     console.log(recentMoviesArray,"recentMoviesArrayrecentMoviesArray")
         let apiCategories = getAPICategories();
         
-        let initialCategories = [
-            { 
+        let initialCategories = [];
+        if (!getMoviesSearchQuery()) {
+            initialCategories.push({ 
                 title: "My Fav", 
                 movies: favouriteMovies, 
                 id: "fav", 
                 containerClass: "movies-fav-container"
-            },
-            { 
-                title: "Popular Movies", 
-                movies: popularMovies, 
-                id: "popular", 
-                containerClass: "movies-popular-container"
-            },
-            { 
-                title: "Recently Watched", 
-                movies:recentMoviesArray,
-                id: "recent", 
-                containerClass: "recently-watched-container"
-            }
-        ];
+            });
+        }
+        initialCategories.push({ 
+            title: "Popular Movies", 
+            movies: popularMovies, 
+            id: "popular", 
+            containerClass: "movies-popular-container"
+        });
+        initialCategories.push({ 
+            title: "Recently Watched", 
+            movies:recentMoviesArray,
+            id: "recent", 
+            containerClass: "recently-watched-container"
+        });
         
         let apiCategoriesToLoad = apiCategories.slice(0, 3);
         initialCategories = initialCategories.concat(apiCategoriesToLoad);
