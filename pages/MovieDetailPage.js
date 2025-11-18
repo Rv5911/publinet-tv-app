@@ -210,20 +210,7 @@ async function MovieDetailPage() {
   }
 
   function moviesDetailPageKeydownHandler(e) {
-    if (
-      e.keyCode === 10009 ||
-      e.key === "Escape" ||
-      e.key === "Back" ||
-      e.key === "BrowserBack" ||
-      e.key === "XF86Back"
-    ) {
-      localStorage.removeItem("selectedMovieId");
-      localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("moviesPage");
-      document.body.style.backgroundImage = "none";
-      document.body.style.backgroundColor = "black";
-      return;
-    }
+
     if(localStorage.getItem("currentPage")=="movieDetailPage"&&localStorage.getItem("navigationFocus")=="movieDetailPage"){
     var focused = focusableEls[currentFocusIndex];
     if (!focused) return;
@@ -367,6 +354,20 @@ if (e.key === "ArrowUp") {
         currentFocusIndex = focusableEls.indexOf(castItems[0]);
     }
 
+        if (
+      e.keyCode === 10009 ||
+      e.key === "Escape" ||
+      e.key === "Back" ||
+      e.key === "BrowserBack" ||
+      e.key === "XF86Back"
+    ) {
+      localStorage.removeItem("selectedMovieId");
+      localStorage.setItem("currentPage", "moviesPage");
+      Router.showPage("moviesPage");
+      document.body.style.backgroundImage = "none";
+      document.body.style.backgroundColor = "black";
+      return;
+    }
 
 
     setFocus(focusableEls[currentFocusIndex]);

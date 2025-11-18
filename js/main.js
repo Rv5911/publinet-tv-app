@@ -79,6 +79,7 @@ function renderNavbarVisibility() {
     "settingsPage",
     "accountPage",
     "preLoginPage",
+    "videoJsPlayer"
   ];
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;

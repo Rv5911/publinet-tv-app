@@ -585,7 +585,11 @@ const playEpisode = (episodeId, episodeIndex, startFromBeginning = false) => {
     localStorage.setItem("selectedVideoItemUrl", seriesEpisodeVideoUrl);
     localStorage.setItem("from", "series");
 
-    localStorage.setItem("currentPage", "videojsPlayer");
+    localStorage.setItem("currentPage", "videojsPlayer")
+                   const navbarEl=document.querySelector("#navbar-root");
+    if(navbarEl){
+        navbarEl.style.display="none";
+    };
     Router.showPage("videoJsPlayer");
     document.body.style.backgroundImage = "none";
     document.body.style.backgroundColor = "black";
