@@ -30,8 +30,8 @@ function VideoJsPlayer(poster = "") {
     localStorage.getItem("playlistsData")
   ).filter((pl) => pl.playlistName === currentPlaylistName)[0];
 
-  const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies;
-  const continueWatchingSeriesData = currentPlaylist.continueWatchingSeries;
+  const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies ? currentPlaylist.continueWatchingMovies : [];
+  const continueWatchingSeriesData = currentPlaylist.continueWatchingSeries ? currentPlaylist.continueWatchingSeries : [];
 
   const isLive = localStorage.getItem("isLive") === "true";
 
@@ -287,25 +287,25 @@ function VideoJsPlayer(poster = "") {
     let resumeTime = 0;
 
     if (!isLive) {
-      if (fromValue === "movie") {
-        const movieId = localStorage.getItem("selectedMovieId");
-        const matched = (continueWatchingMoviesData || []).find(
-          (item) => item.itemId === movieId
-        );
-        if (matched && matched.resumeTime) {
-          resumeTime = matched.resumeTime;
-        }
-      } else {
-        const seriesId = localStorage.getItem("selectedSeriesId");
-        const episodeId = localStorage.getItem("selectedEpisodeId");
+if (fromValue === "movie") {
+  const movieId = localStorage.getItem("selectedMovieId");
+  const matched = continueWatchingMoviesData.find(
+    (item) => item.itemId === movieId
+  );
+  if (matched && matched.resumeTime) {
+    resumeTime = matched.resumeTime;
+  }
+} else {
+  const seriesId = localStorage.getItem("selectedSeriesId");
+  const episodeId = localStorage.getItem("selectedEpisodeId");
 
-        const matched = (continueWatchingSeriesData || []).find(
-          (item) => item.itemId === seriesId && item.episodeId === episodeId
-        );
-        if (matched && matched.resumeTime) {
-          resumeTime = matched.resumeTime;
-        }
-      }
+  const matched = continueWatchingSeriesData.find(
+    (item) => item.itemId === seriesId && item.episodeId === episodeId
+  );
+  if (matched && matched.resumeTime) {
+    resumeTime = matched.resumeTime;
+  }
+}
     }
 
     player = videojs(videoElement, options);
@@ -526,8 +526,8 @@ function VideoJsPlayer(poster = "") {
 
     function goBack() {
         const currentPlaylist = getCurrentPlaylist();
-        const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
-        const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries;
+        const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies ? currentPlaylist.continueWatchingMovies : [];
+        const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries ? currentPlaylist.continueWatchingSeries : [];
         const selectedMovieId = localStorage.getItem("selectedMovieId");
 
        
