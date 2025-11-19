@@ -1293,7 +1293,7 @@ if (categoryList && (!isAppend || searchQuery.trim())) {
 
   // Render channel cards in chunks
   const alreadyLoaded = (currentChunk - 1) * pageSize;
-  const sortValue = localStorage.getItem("movieSortValue") || "default";
+  const sortValue = localStorage.getItem("sortValue") || "default";
   const sortedChannels = (() => {
     switch (sortValue) {
       case "recent":
@@ -1449,34 +1449,70 @@ setTimeout(() => {
 
     removeVolumeHandlers();
 
-    // Prevent Enter key from triggering play/pause when video container is focused
-const preventVideoEnter = (e) => {
+  const preventVideoEnter = (e) => {
     if (localStorage.getItem("currentPage") !== "liveTvPage") return;
 
-  if (e.key === "Enter" || e.keyCode === 13) {
-    const videoContainer = document.querySelector(".live-video-player-div");
-    if (videoContainer && videoContainer.style.border === "6px solid var(--gold)") {
-const isPlayPauseFocused = document.getElementById("live-play-pause-btn") ? 
-  document.getElementById("live-play-pause-btn").classList.contains("play-pause-btn-focused") : 
-  false;
-      
-      // If video container has gold border AND play/pause is NOT focused, prevent Enter
-      if (!isPlayPauseFocused) {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        // Trigger fullscreen instead
-        const fullscreenBtn = document.getElementById("live-fullscreen-btn");
-        if (fullscreenBtn) {
-          fullscreenBtn.click();
+    if (e.key === "Enter" || e.keyCode === 13) {
+      const videoContainer = document.querySelector(".live-video-player-div");
+      if (videoContainer && videoContainer.style.border === "6px solid var(--gold)") {
+        const isPlayPauseFocused = document.getElementById("live-play-pause-btn") ? 
+          document.getElementById("live-play-pause-btn").classList.contains("play-pause-btn-focused") : 
+          false;
+            
+        // If video container has gold border AND play/pause is NOT focused, prevent Enter
+        if (!isPlayPauseFocused) {
+          e.stopPropagation();
+          e.preventDefault();
+          
+          // Trigger fullscreen instead
+          const fullscreenBtn = document.getElementById("live-fullscreen-btn");
+          if (fullscreenBtn) {
+            fullscreenBtn.click();
+          }
+          return;
         }
-        return;
       }
     }
-  }
-};
+  };
 
-document.addEventListener('keydown', preventVideoEnter, true); // Capture phase
+  document.addEventListener('keydown', preventVideoEnter, true); // Capture phase
+
+  // ======== ADD THE SORT EVENT LISTENER RIGHT HERE ========
+  document.addEventListener('sortChanged', (e) => {
+    if (localStorage.getItem("currentPage") !== "liveTvPage") return;
+    
+    const { sortType, page } = e.detail;
+    
+    if (page === "liveTvPage") {
+      console.log("Live TV sort changed to:", sortType);
+      
+      // Map navbar sort values to Live TV internal sort values
+      const sortMap = {
+        'default': 'default',
+        'recently-added': 'recent', 
+        'a-z': 'az',
+        'z-a': 'za',
+        'top-rated': 'top'
+      };
+      
+      const liveTvSortValue = sortMap[sortType] || 'default';
+      localStorage.setItem("sortValue", liveTvSortValue);
+      
+      // Invalidate cache and re-render
+      cachedFilteredCategories = null;
+      currentChunk = 1;
+      
+      // Re-render channels with new sort
+      renderChannels(false, true);
+      
+      // Restore focus
+      if (inChannelList) {
+        setTimeout(() => focusCategories(focusedCategoryIndex), 100);
+      } else if (inCardList) {
+        setTimeout(() => focusCards(focusedCardIndex), 100);
+      }
+    }
+  });
 
    function clickHandler(e) {
   if (localStorage.getItem("currentPage") !== "liveTvPage") return;
@@ -3565,6 +3601,7 @@ LiveTvPage.cleanup = () => {
   document.removeEventListener("keyup", longPressKeyupHandler);
 
   document.removeEventListener('keydown', preventVideoEnter, true);
+  document.removeEventListener('sortChanged', () => {});
 
   // Remove fullscreen listeners
   document.removeEventListener('fullscreenchange', handleFullscreenBorder);

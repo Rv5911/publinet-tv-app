@@ -432,13 +432,22 @@ function initNavbar() {
 
   sortItem.addEventListener("click", toggleSortMenu);
 
-  sortCheckboxes.forEach((checkbox) => {
-    checkbox.addEventListener("change", (e) => {
-      if (e.target.checked) {
-        setSortOption(e.target.dataset.sort);
-      }
-    });
+sortCheckboxes.forEach((checkbox) => {
+  checkbox.addEventListener("change", (e) => {
+    if (e.target.checked) {
+      setSortOption(e.target.dataset.sort);
+      
+      // Dispatch custom event for sort change
+      const sortEvent = new CustomEvent('sortChanged', {
+        detail: { 
+          sortType: e.target.dataset.sort,
+          page: localStorage.getItem("currentPage")
+        }
+      });
+      document.dispatchEvent(sortEvent);
+    }
   });
+});
 
   document.addEventListener("keydown", (e) => {
     const navigationFocus = localStorage.getItem("navigationFocus");
@@ -851,24 +860,32 @@ function initNavbar() {
       updateSidebarSelection(sidebarItems, sortIndex);
     }
   }
-  function setSortOption(sortType) {
-    // Uncheck all checkboxes
-    sortCheckboxes.forEach((checkbox) => {
-      checkbox.checked = false;
-    });
+function setSortOption(sortType) {
+  sortCheckboxes.forEach((checkbox) => {
+    checkbox.checked = false;
+  });
 
-    // Check the selected one
-    const selectedCheckbox = document.querySelector(
-      `.sort-checkbox[data-sort="${sortType}"]`
-    );
-    if (selectedCheckbox) {
-      selectedCheckbox.checked = true;
-    }
-
-    // Here you can implement the actual sorting logic
-    console.log(`Sorting by: ${sortType}`);
-    // Implement your sorting logic based on sortType
+  // Check the selected one
+  const selectedCheckbox = document.querySelector(
+    `.sort-checkbox[data-sort="${sortType}"]`
+  );
+  if (selectedCheckbox) {
+    selectedCheckbox.checked = true;
   }
+
+  localStorage.setItem("sortvalue", sortType);
+  
+  // Dispatch sort changed event
+  const sortEvent = new CustomEvent('sortChanged', {
+    detail: { 
+      sortType: sortType,
+      page: localStorage.getItem("currentPage")
+    }
+  });
+  document.dispatchEvent(sortEvent);
+  
+  console.log(`Sorting by: ${sortType}`);
+}
 
   function handleSidebarKeys(e) {
     if (isSortOptionsOpen) return;
@@ -984,14 +1001,17 @@ function initNavbar() {
           (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
         updateSortOptionsSelection(sortOptionItems, activeIndex);
         break;
-      case "Enter":
-        const activeSortItem = sortOptionItems[activeIndex];
-        const checkbox = activeSortItem.querySelector(".sort-checkbox");
-        if (checkbox) {
-          checkbox.checked = true;
-          setSortOption(checkbox.dataset.sort);
-        }
-        break;
+     case "Enter":
+  const activeSortItem = sortOptionItems[activeIndex];
+  const checkbox = activeSortItem.querySelector(".sort-checkbox");
+  if (checkbox) {
+    checkbox.checked = true;
+    setSortOption(checkbox.dataset.sort);
+    
+    // Close sort menu after selection
+    closeSortMenu();
+  }
+  break;
       case "Escape":
       case "Backspace":
       case "XF86Back":
