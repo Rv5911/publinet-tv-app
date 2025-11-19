@@ -1,4 +1,9 @@
 function HomeCarousel() {
+    let filteredItems = window.allMoviesStreams.filter(item => !window.adultsCategories.some(category => (item.name || "").toLowerCase().includes(category.toLowerCase())));
+    let randomIndex = Math.floor(Math.random() * filteredItems.length);
+    let sliderData = filteredItems.slice(randomIndex, randomIndex + 5);
+
+    console.log(sliderData,"SLDIEDDATA")
   setTimeout(function () {
     if (HomeCarousel.cleanup) HomeCarousel.cleanup();
 
@@ -60,10 +65,10 @@ function HomeCarousel() {
   return `
     <div class="carousel-container">
       <div class="carousel-slides">
-        <div class="slide"><img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 1"/></div>
-        <div class="slide"><img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 2"/></div>
-        <div class="slide"><img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 3"/></div>
-        <div class="slide"><img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 4"/></div>
+        <div class="slide"><img loading="lazy" src="${sliderData[0].stream_icon}" alt="Slide 1"/></div>
+        <div class="slide"><img loading="lazy" src="${sliderData[1].stream_icon}" alt="Slide 2"/></div>
+        <div class="slide"><img loading="lazy"  src="${sliderData[2].stream_icon}"alt="Slide 3"/></div>
+        <div class="slide"><img loading="lazy"  src="${sliderData[3].stream_icon}"alt="Slide 4"/></div>
       </div>
 
       <div class="carousel-dots">

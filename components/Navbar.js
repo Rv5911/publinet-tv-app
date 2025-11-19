@@ -531,6 +531,8 @@ function initNavbar() {
           (currentPage === "moviesPage" ||
             currentPage === "liveTvPage" ||
             currentPage == "movieDetailPage" ||
+            currentPage == "seriesDetailPage" ||
+
             currentPage === "seriesPage") &&
           navigationFocus === "navbar"
         ) {
@@ -556,6 +558,29 @@ function initNavbar() {
               }
             }, 10);
           }
+
+
+        if (currentPage === "seriesDetailPage") {
+    localStorage.setItem("navigationFocus", "seriesDetailPage");
+    
+    setTimeout(() => {
+      // Remove navbar focus
+      navItems.forEach(item => item.classList.remove("active"));
+      searchInput.classList.remove("active");
+      profileIcon.classList.remove("active");
+      
+      // Focus on play button in series detail
+      const playBtn = document.querySelector(".series-detail-play-button");
+      if (playBtn) {
+        playBtn.classList.add("series-detail-button-focused");
+        playBtn.focus();
+      }
+    }, 10);
+    
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    return;
+  }
 
           if (currentPage === "movieDetailPage") {
             setTimeout(() => {

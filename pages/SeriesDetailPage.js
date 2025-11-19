@@ -597,9 +597,9 @@ const playEpisode = (episodeId, episodeIndex, startFromBeginning = false) => {
 };
 
 const seriesDetailPageKeydownHandler = (e) => {
-  if (localStorage.getItem("currentPage") !== "seriesDetailPage") return;
+if (localStorage.getItem("currentPage") == "seriesDetailPage"&&localStorage.getItem("navigationFocus")=="seriesDetailPage") {
 
-  const playBtn = document.querySelector(".series-detail-play-button");
+      const playBtn = document.querySelector(".series-detail-play-button");
   const startOverBtn = document.querySelector(".series-detail-start-over-button");
   const trailerBtn = document.querySelector(".series-detail-more-info-button");
   const menuBtn = document.querySelector(".series-detail-page-header-menu");
@@ -876,17 +876,36 @@ if (e.key === "ArrowLeft") {
 if (e.key === "ArrowUp") {
   e.preventDefault();
   
+  const focused = focusableEls[currentFocusIndex];
   const seriesDetailButtons = document.querySelector('.series-detail-buttons');
   
+  // If we're on top row buttons, move to navbar
+  if (seriesDetailButtons && seriesDetailButtons.contains(focused)) {
+    // Clear all focus from series detail
+    focusableEls.forEach(el => {
+      if (el) el.classList.remove("series-detail-button-focused");
+    });
+    
+    // Move focus to navbar
+    localStorage.setItem("navigationFocus", "navbar");
+    
+    // Focus on Series nav item
+    const seriesNavItem = document.querySelector('.nav-item[data-page="seriesPage"]');
+    if (seriesNavItem) {
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      seriesNavItem.classList.add('active');
+      seriesNavItem.focus();
+    }
+    
+    return;
+  }
+  
+  // Normal navigation within series detail page
   if (focused === seasonsBtn) {
     currentFocusIndex = focusableEls.indexOf(favBtn);
   } 
   else if (focused === castBtn) {
     currentFocusIndex = focusableEls.indexOf(seasonsBtn);
-  } 
-  else if (seriesDetailButtons && seriesDetailButtons.contains(focused)) {
-    // If focused element is inside series-detail-buttons, go to menu
-    alert("here")
   } 
   else if (episodeItems.includes(focused)) {
     currentFocusIndex = focusableEls.indexOf(seasonsBtn);
@@ -894,9 +913,9 @@ if (e.key === "ArrowUp") {
   else if (castItems.includes(focused)) {
     currentFocusIndex = focusableEls.indexOf(castBtn);
   }
+  
   setFocus(focusableEls[currentFocusIndex]);
 }
-
   // ✅ ArrowDown
 if (e.key === "ArrowDown") {
   e.preventDefault();
@@ -958,7 +977,13 @@ if (e.key === "ArrowDown") {
     document.body.style.backgroundImage = "none";
     document.body.style.backgroundColor = "black";
     return;
-  }}
+  }
+  }else{
+    return;
+  }
+
+
+}
 
   document.addEventListener("keydown", seriesDetailPageKeydownHandler);
   SeriesDetailPage.cleanup = () =>
