@@ -130,7 +130,7 @@ function getPopularSeries() {
     }
 }
 
-function getAPISeriesCategories() {
+function getAPISeriesCategories(sortType = "default") {
     let allSeriesCategoriesData = window.allseriesCategories || [];
     let allSeriesStreamsData = window.allSeriesStreams || [];
     
@@ -160,7 +160,62 @@ function getAPISeriesCategories() {
         });
     }
     
-    return categories;
+    // Apply sorting based on selected sort option
+    return sortSeriesCategories(categories, sortType);
+}
+
+function sortSeriesCategories(categories, sortType) {
+    if (!categories || categories.length === 0) return categories;
+    
+    // Separate categories into two groups: alphabetic and non-alphabetic
+    let alphabeticCategories = [];
+    let nonAlphabeticCategories = [];
+    
+    for (let i = 0; i < categories.length; i++) {
+        let category = categories[i];
+        let firstChar = category.title.charAt(0);
+        
+        // Check if first character is a letter (A-Z, a-z)
+        if (/^[A-Za-z]$/.test(firstChar)) {
+            alphabeticCategories.push(category);
+        } else {
+            nonAlphabeticCategories.push(category);
+        }
+    }
+    
+    // Sort based on selected sort option
+    switch(sortType) {
+        case "a-z":
+            // A-Z: Alphabetic A-Z first, then non-alphabetic A-Z
+            alphabeticCategories.sort((a, b) => (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase()));
+            nonAlphabeticCategories.sort((a, b) => (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase()));
+            return alphabeticCategories.concat(nonAlphabeticCategories);
+            
+        case "z-a":
+            // Z-A: Alphabetic Z-A first, then non-alphabetic Z-A
+            alphabeticCategories.sort((a, b) => (b.title || "").toLowerCase().localeCompare((a.title || "").toLowerCase()));
+            nonAlphabeticCategories.sort((a, b) => (b.title || "").toLowerCase().localeCompare((a.title || "").toLowerCase()));
+            return alphabeticCategories.concat(nonAlphabeticCategories);
+            
+        case "recently-added":
+            // Recently Added - sort by category_id descending (assuming higher IDs are newer)
+            return categories.sort((a, b) => (b.category_id || 0) - (a.category_id || 0));
+            
+        case "top-rated":
+            // Top Rated - sort by average rating of series in category
+            return categories.sort((a, b) => {
+                const avgRatingA = a.series && a.series.length > 0 ? 
+                    a.series.reduce((sum, series) => sum + (parseFloat(series.rating_5based) || 0), 0) / a.series.length : 0;
+                const avgRatingB = b.series && b.series.length > 0 ? 
+                    b.series.reduce((sum, series) => sum + (parseFloat(series.rating_5based) || 0), 0) / b.series.length : 0;
+                return avgRatingB - avgRatingA;
+            });
+            
+        case "default":
+        default:
+            // Default - return as is (no sorting)
+            return categories;
+    }
 }
 
 function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
@@ -1425,7 +1480,30 @@ function hasAnySeriesCategoryData() {
     return false;
 }
 
+function validateSeriesData() {
+    // Clean up window.allSeriesStreams
+    if (window.allSeriesStreams && Array.isArray(window.allSeriesStreams)) {
+        window.allSeriesStreams = window.allSeriesStreams.filter(series => 
+            series !== null && 
+            series !== undefined && 
+            typeof series === 'object'
+        );
+    }
+    
+    // Clean up window.allseriesCategories
+    if (window.allseriesCategories && Array.isArray(window.allseriesCategories)) {
+        window.allseriesCategories = window.allseriesCategories.filter(category => 
+            category !== null && 
+            category !== undefined && 
+            typeof category === 'object'
+        );
+    }
+}
+
 function SeriesPage() {
+        validateSeriesData();
+
+    const currentSort = localStorage.getItem("sortvalue") || "default";
 
     let loadingHTML = 
     window.allSeriesStreams.length==0||window.allseriesCategories.length==0?
@@ -1433,8 +1511,6 @@ function SeriesPage() {
 <div class="series-page-no-data">
 <p>No Series Data Available</p>
 </div>
-
-
 `
     :
 '<div class="series-page-loading">' + 
@@ -1458,44 +1534,52 @@ function SeriesPage() {
         
         favoriteSeriesIds = currentPlaylistFavIds || [];
 
-        
         let favouriteSeries = window.allSeriesStreams && currentPlaylistFavIds ? 
             filterSeriesByQuery(window.allSeriesStreams.filter(s => currentPlaylistFavIds.includes(s.series_id))) : [];
         let popularSeries = window.allSeriesStreams ? 
             filterSeriesByQuery(window.allSeriesStreams.filter(s => s.rating_5based > 4)).slice(0, 10) : [];
 
-            let recentlyWatchedSeriesIds = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
-    currentPlaylist.continueWatchingSeries.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
+        let recentlyWatchedSeriesIds = currentPlaylist && currentPlaylist.continueWatchingSeries ? 
+            currentPlaylist.continueWatchingSeries.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
 
-    let recentSeriesArray=window.allSeriesStreams && recentlyWatchedSeriesIds ? filterSeriesByQuery(window.allSeriesStreams.filter(m => recentlyWatchedSeriesIds.includes(m.series_id.toString()))) : [];
-    console.log(recentSeriesArray,"recentSeriesArrayrecentSeriesArray")
-        let apiCategories = getAPISeriesCategories();
+        let recentSeriesArray=window.allSeriesStreams && recentlyWatchedSeriesIds ? filterSeriesByQuery(window.allSeriesStreams.filter(m => recentlyWatchedSeriesIds.includes(m.series_id.toString()))) : [];
         
-        let initialCategories = [];
-        if (!getSeriesSearchQuery()) {
-            initialCategories.push({ 
+        // Pass current sort option to getAPISeriesCategories
+        let apiCategories = getAPISeriesCategories(currentSort);
+        
+        // ALWAYS show these three categories at the top, in this specific order
+        let fixedTopCategories = [
+            { 
                 title: "My Fav", 
                 series: favouriteSeries, 
                 id: "fav", 
                 containerClass: "series-fav-container"
-            });
-        }
-        initialCategories.push({ 
-            title: "Popular Series", 
-            series: popularSeries, 
-            id: "popular", 
-            containerClass: "series-popular-container"
-        });
-        initialCategories.push({ 
-            title: "Recently Watched", 
-            series: recentSeriesArray, 
-            id: "recent", 
-            containerClass: "recently-watched-container"
+            },
+            { 
+                title: "Popular Series", 
+                series: popularSeries, 
+                id: "popular", 
+                containerClass: "series-popular-container"
+            },
+            { 
+                title: "Recently Watched", 
+                series: recentSeriesArray, 
+                id: "recent", 
+                containerClass: "recently-watched-container"
+            }
+        ];
+        
+        // Remove any fixed categories that have no series (except My Fav which can be empty)
+        let initialCategories = fixedTopCategories.filter(category => {
+            if (category.id === "fav") return true; // Always show My Fav even if empty
+            return category.series && category.series.length > 0;
         });
         
+        // Add the first few API categories after the fixed ones
         let apiCategoriesToLoad = apiCategories.slice(0, 3);
         initialCategories = initialCategories.concat(apiCategoriesToLoad);
         
+        // Set up the complete categories list (fixed top + all API categories)
         window.allSeriesCategories = initialCategories.concat(apiCategories.slice(3));
         
         seriesChunkLoadingState.loadedCategories = initialCategories.length;
@@ -1520,7 +1604,7 @@ function SeriesPage() {
         
         for (let i = 0; i < initialCategories.length; i++) {
             let category = initialCategories[i];
-            if (category.series && category.series.length > 0) {
+            if (category.series && category.series.length > 0 || category.id === "fav") {
                 html += createSeriesCategorySection(category, i);
             }
         }
@@ -1556,7 +1640,20 @@ function SeriesPage() {
     return loadingHTML;
 }
 
-// Export cleanup function for global access
+
+document.addEventListener('sortChanged', function(e) {
+    const { sortType, page } = e.detail;
+    
+    if (page === "moviesPage") {
+        if (typeof window.rerenderMoviesPage === "function") {
+            Router.showPage("moviesPage");
+        }
+    } else if (page === "seriesPage") {
+        if (typeof window.rerenderSeriesPage === "function") {
+            Router.showPage("seriesPage");
+        }
+    }
+});
 window.cleanupSeriesNavigation = cleanupSeriesNavigation;
 window.seriesNavigationState = seriesNavigationState;
 window.updateSeriesFocus = updateSeriesFocus;

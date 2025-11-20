@@ -962,6 +962,7 @@ function setSortOption(sortType) {
           closeSidebar();
         } else if (text === "List User") {
           disposeLiveTvPlayer();
+          localStorage.setItem("navigationFocus", "");
           localStorage.setItem("isLogin", false);
           Router.showPage("listPage");
           closeSidebar();
