@@ -1,5 +1,8 @@
-const adultsCategories=["Adult","XXX","18+","18 +","Erotica","Adult Movies","Adult Series","Nude","Nudity","Sex","Sexual"];
-
+const adultsCategories = [
+  "adult", "xxx", "18+", "18 +", "18 plus", "erotic", "erotica",
+  "adult movie", "adult series", "nude", "nudity", "sex", "sexual",
+  "hot", "porn", "xnxx", "xvideos", "xvideo"
+].map(w => w.toLowerCase());
 function clearLocalStorageExcept(keepKeys) {
   var temp = {};
 

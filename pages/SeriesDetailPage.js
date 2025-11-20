@@ -197,52 +197,51 @@ document.removeEventListener("keydown", handleBackNavigationDuringLoading);
     .sort((a, b) => a.season_number - b.season_number);
   const seriesInfo = seriesDetailData.info || {};
 
-  const setFocus = (el, skipScroll = false) => {
-    if (lastFocused)
-      lastFocused.classList.remove("series-detail-button-focused");
-    if (!el) return;
+const setFocus = (el, skipScroll = false) => {
+  if (lastFocused)
+    lastFocused.classList.remove("series-detail-button-focused");
+  if (!el) return;
 
-    el.classList.add("series-detail-button-focused");
+  el.classList.add("series-detail-button-focused");
 
-    if (!skipScroll) {
-      if (
-        el.id === "seasons-button" ||
-        el.id === "cast-button" ||
-        el.classList.contains("seasons-episodes-item")
-      ) {
-        const container = document.querySelector(
-          ".series-detail-page-content-container"
+  // Don't scroll for seasons button specifically
+  if (!skipScroll && el.id !== "seasons-button") {
+    if (
+      el.classList.contains("seasons-episodes-item")
+    ) {
+      const container = document.querySelector(
+        ".series-detail-page-content-container"
+      );
+      if (container) container.scrollTop = container.scrollHeight;
+
+      if (el.classList.contains("seasons-episodes-item")) {
+        const episodesContainer = document.querySelector(
+          ".series-detail-cast"
         );
-        if (container) container.scrollTop = container.scrollHeight;
+        if (episodesContainer) {
+          const elementLeft = el.offsetLeft;
+          const elementWidth = el.offsetWidth;
+          const containerWidth = episodesContainer.clientWidth;
+          const currentScrollLeft = episodesContainer.scrollLeft;
 
-        if (el.classList.contains("seasons-episodes-item")) {
-          const episodesContainer = document.querySelector(
-            ".series-detail-cast"
-          );
-          if (episodesContainer) {
-            const elementLeft = el.offsetLeft;
-            const elementWidth = el.offsetWidth;
-            const containerWidth = episodesContainer.clientWidth;
-            const currentScrollLeft = episodesContainer.scrollLeft;
-
-            if (elementLeft < currentScrollLeft) {
-              episodesContainer.scrollLeft = elementLeft - 30;
-            } else if (
-              elementLeft + elementWidth >
-              currentScrollLeft + containerWidth
-            ) {
-              episodesContainer.scrollLeft =
-                elementLeft + elementWidth - containerWidth + 30;
-            }
+          if (elementLeft < currentScrollLeft) {
+            episodesContainer.scrollLeft = elementLeft - 30;
+          } else if (
+            elementLeft + elementWidth >
+            currentScrollLeft + containerWidth
+          ) {
+            episodesContainer.scrollLeft =
+              elementLeft + elementWidth - containerWidth + 30;
           }
         }
-      } else {
-        scrollToElement(el);
       }
+    } else {
+      scrollToElement(el);
     }
+  }
 
-    lastFocused = el;
-  };
+  lastFocused = el;
+};
 
 const rebuildFocusable = () => {
   const playBtn = document.querySelector(".series-detail-play-button");
@@ -469,7 +468,7 @@ const updatePlayButton = () => {
         <div class="episode-card-top-content">
           ${episode.info.rating_5based || seriesInfo.rating_5based || "N/A"}
         </div>
-        <div class="play-icon"><img src="./assets/play-icon.png" /></div>
+        <div class="play-icon"><img src="./assets/playicon.png" /></div>
         <div class="episode-card-bottom-content">
           <p class="episode-card-title">${
             episode.title || `Episode ${episode.episode_num}`
@@ -1057,17 +1056,17 @@ if (e.key === "ArrowDown") {
       })
       .join("");
 
-    document.querySelector("#series-detail-page").innerHTML = `
+    document.querySelector("#series-detail-page").innerHTML =  `
 <div class="series-detail-page-container" style="background-image: linear-gradient(
   113.67deg,
   rgba(21, 42, 34, 0.9) 3.4%,
   rgba(11, 30, 33, 0.8) 68.19%,
   rgba(231, 161, 1, 0.7) 132.98%
 ), url('${
-      (seriesInfo.backdrop_path && seriesInfo.backdrop_path[0]) ||
-      seriesInfo.cover ||
-      "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png"
-    }'); background-size: cover; background-position: center;">
+  (seriesInfo.backdrop_path && seriesInfo.backdrop_path[0]) ||
+  seriesInfo.cover ||
+  "https://developers.elementor.com/docs/assets/img/elementor-placeholder-image.png"
+}'); background-size: cover; background-position: center;">
   <div class="series-detail-page-content-container">
     
     <div class="series-detail-content-container">
@@ -1184,8 +1183,13 @@ if (e.key === "ArrowDown") {
       }
     </span>
   </button>
-</div>
 
+  <!-- ADDED: Seasons button container within series-detail-buttons -->
+  <div class="seasons-button-container">
+    <button class="seasons-button" id="seasons-button" tabindex="0">Season 01</button>
+    <div class="seasons-dropdown" style="display: none;">${seasonsDropdownHtml}</div>
+  </div>
+</div>
 
           </div>
         </div>
@@ -1218,16 +1222,12 @@ if (e.key === "ArrowDown") {
 
     <div class="seasons-and-cast-container">
       <div class="seasons-and-cast-buttons">
-        <div class="seasons-button-container">
-          <button class="seasons-button" id="seasons-button" tabindex="0">Season 01</button>
-          <div class="seasons-dropdown" style="display: none;">${seasonsDropdownHtml}</div>
-        </div>
-             <button class="cast-button" id="cast-button" tabindex="0">Cast</button>
+        <button class="cast-button" id="cast-button" style="display: none;" tabindex="0">Cast</button>
       </div>
       <div class="series-detail-cast"></div>
     </div>
   </div>
-</div>
-`;
+
+</div>`;
   }
 }

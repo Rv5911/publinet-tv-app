@@ -3,10 +3,10 @@
   background-repeat: no-repeat;
   background-position: center;
   position: relative;
-  padding: 0 60px;
   width: 100%;
   color: white;
   height: 100vh;
+      background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
   animation: fadeInOut 1s ease-in-out;
 }
 
@@ -28,7 +28,7 @@
   width: 100%;
   padding-left: 50px;
   padding-right: 50px;
-  padding-top: 30px;
+  padding-top: 200px;
   overflow: auto;
   height: 100vh;
   padding-bottom: 30px;
