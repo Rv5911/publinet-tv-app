@@ -861,30 +861,30 @@ sortCheckboxes.forEach((checkbox) => {
     }
   }
 function setSortOption(sortType) {
-  sortCheckboxes.forEach((checkbox) => {
-    checkbox.checked = false;
-  });
+    sortCheckboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+    });
 
-  // Check the selected one
-  const selectedCheckbox = document.querySelector(
-    `.sort-checkbox[data-sort="${sortType}"]`
-  );
-  if (selectedCheckbox) {
-    selectedCheckbox.checked = true;
-  }
-
-  localStorage.setItem("sortvalue", sortType);
-  
-  // Dispatch sort changed event
-  const sortEvent = new CustomEvent('sortChanged', {
-    detail: { 
-      sortType: sortType,
-      page: localStorage.getItem("currentPage")
+    // Check the selected one
+    const selectedCheckbox = document.querySelector(
+        `.sort-checkbox[data-sort="${sortType}"]`
+    );
+    if (selectedCheckbox) {
+        selectedCheckbox.checked = true;
     }
-  });
-  document.dispatchEvent(sortEvent);
-  
-  console.log(`Sorting by: ${sortType}`);
+
+    localStorage.setItem("sortvalue", sortType);
+    
+    // Dispatch sort changed event
+    const sortEvent = new CustomEvent('sortChanged', {
+        detail: { 
+            sortType: sortType,
+            page: localStorage.getItem("currentPage")
+        }
+    });
+    document.dispatchEvent(sortEvent);
+    
+    console.log(`Sorting by: ${sortType}`);
 }
 
   function handleSidebarKeys(e) {
@@ -1048,5 +1048,6 @@ function setSortOption(sortType) {
     }
   }
 }
+
 
 window.buildDynamicSidebarOptions = buildDynamicSidebarOptions;

@@ -131,7 +131,7 @@ function getPopularMovies() {
     }
 }
 
-function getAPICategories() {
+function getAPICategories(sortType = "default") {
     let allMoviesCategoriesData = window.moviesCategories || [];
     let allMoviesStreamsData = window.allMoviesStreams || [];
     
@@ -142,13 +142,13 @@ function getAPICategories() {
     let categories = [];
     for (let i = 0; i < allMoviesCategoriesData.length; i++) {
         let category = allMoviesCategoriesData[i];
-        if (!category) continue; // Skip if category is undefined
+        if (!category) continue;
         
         let movies = [];
         
         for (let j = 0; j < allMoviesStreamsData.length; j++) {
             let stream = allMoviesStreamsData[j];
-            if (!stream) continue; // Skip if stream is undefined
+            if (!stream) continue;
             
             if (stream.category_id == category.category_id) {
                 movies.push(stream);
@@ -165,8 +165,64 @@ function getAPICategories() {
         });
     }
     
-    return categories;
+    // Apply sorting based on selected sort option
+    return sortMovieCategories(categories, sortType);
 }
+
+function sortMovieCategories(categories, sortType) {
+    if (!categories || categories.length === 0) return categories;
+    
+    // Separate categories into two groups: alphabetic and non-alphabetic
+    let alphabeticCategories = [];
+    let nonAlphabeticCategories = [];
+    
+    for (let i = 0; i < categories.length; i++) {
+        let category = categories[i];
+        let firstChar = category.title.charAt(0);
+        
+        // Check if first character is a letter (A-Z, a-z)
+        if (/^[A-Za-z]$/.test(firstChar)) {
+            alphabeticCategories.push(category);
+        } else {
+            nonAlphabeticCategories.push(category);
+        }
+    }
+    
+    // Sort based on selected sort option
+    switch(sortType) {
+        case "a-z":
+            // A-Z: Alphabetic A-Z first, then non-alphabetic A-Z
+            alphabeticCategories.sort((a, b) => (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase()));
+            nonAlphabeticCategories.sort((a, b) => (a.title || "").toLowerCase().localeCompare((b.title || "").toLowerCase()));
+            return alphabeticCategories.concat(nonAlphabeticCategories);
+            
+        case "z-a":
+            // Z-A: Alphabetic Z-A first, then non-alphabetic Z-A
+            alphabeticCategories.sort((a, b) => (b.title || "").toLowerCase().localeCompare((a.title || "").toLowerCase()));
+            nonAlphabeticCategories.sort((a, b) => (b.title || "").toLowerCase().localeCompare((a.title || "").toLowerCase()));
+            return alphabeticCategories.concat(nonAlphabeticCategories);
+            
+        case "recently-added":
+            // Recently Added - sort by category_id descending (assuming higher IDs are newer)
+            return categories.sort((a, b) => (b.category_id || 0) - (a.category_id || 0));
+            
+        case "top-rated":
+            // Top Rated - sort by average rating of movies in category
+            return categories.sort((a, b) => {
+                const avgRatingA = a.movies && a.movies.length > 0 ? 
+                    a.movies.reduce((sum, movie) => sum + (parseFloat(movie.rating_5based) || 0), 0) / a.movies.length : 0;
+                const avgRatingB = b.movies && b.movies.length > 0 ? 
+                    b.movies.reduce((sum, movie) => sum + (parseFloat(movie.rating_5based) || 0), 0) / b.movies.length : 0;
+                return avgRatingB - avgRatingA;
+            });
+            
+        case "default":
+        default:
+            // Default - return as is (no sorting)
+            return categories;
+    }
+}
+
 
 function createMovieCard(movieData, size, categoryIndex, movieIndex) {
     if (!movieData) return ''; // Add safety check
@@ -1355,19 +1411,23 @@ function validateMoviesData() {
 }
 
 function MoviesPage() {
-validateMoviesData();
+    validateMoviesData();
+    
+    // Get current sort option
+    const currentSort = localStorage.getItem("sortvalue") || "default";
+    
     let loadingHTML =
         window.moviesCategories.length==0||window.allMoviesStreams.length==0?
-`
-<div class="movies-page-no-data">
-<p>No Movies Data Available</p>
-</div>
-`
-:
-    '<div class="movies-page-loading">' + 
-                     '<div class="loading-spinner"></div>' +
-                     '<p>Loading Movies...</p>' +
-                     '</div>';
+        `
+        <div class="movies-page-no-data">
+        <p>No Movies Data Available</p>
+        </div>
+        `
+        :
+        '<div class="movies-page-loading">' + 
+                         '<div class="loading-spinner"></div>' +
+                         '<p>Loading Movies...</p>' +
+                         '</div>';
     
     localStorage.setItem("previousPage", localStorage.getItem("currentPage") || "");
     localStorage.setItem("currentPage", "moviesPage");
@@ -1385,45 +1445,53 @@ validateMoviesData();
         
         favoriteMoviesIds = currentPlaylistFavIds || [];
 
+        let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
+            filterStreamsByQuery(window.allMoviesStreams.filter(m => m && currentPlaylistFavIds.includes(m.stream_id))) : [];
+
+        let popularMovies = window.allMoviesStreams ? 
+            filterStreamsByQuery(window.allMoviesStreams.filter(m => m && m.rating_5based > 4)).slice(0, 10) : []; 
+
+        let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
+            currentPlaylist.continueWatchingMovies.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
+
+        let recentMoviesArray=window.allMoviesStreams && recentlyWatchedMoviesIds ? filterStreamsByQuery(window.allMoviesStreams.filter(m => recentlyWatchedMoviesIds.includes(m.stream_id.toString()))) : [];
         
-let favouriteMovies = window.allMoviesStreams && currentPlaylistFavIds ? 
-    filterStreamsByQuery(window.allMoviesStreams.filter(m => m && currentPlaylistFavIds.includes(m.stream_id))) : [];
-
-let popularMovies = window.allMoviesStreams ? 
-    filterStreamsByQuery(window.allMoviesStreams.filter(m => m && m.rating_5based > 4)).slice(0, 10) : []; 
-
-let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchingMovies ? 
-    currentPlaylist.continueWatchingMovies.filter(m => m !== null && m !== undefined).map((item)=>item.itemId) : [];   
-
-    let recentMoviesArray=window.allMoviesStreams && recentlyWatchedMoviesIds ? filterStreamsByQuery(window.allMoviesStreams.filter(m => recentlyWatchedMoviesIds.includes(m.stream_id.toString()))) : [];
-    console.log(recentMoviesArray,"recentMoviesArrayrecentMoviesArray")
-        let apiCategories = getAPICategories();
+        // Pass current sort option to getAPICategories
+        let apiCategories = getAPICategories(currentSort);
         
-        let initialCategories = [];
-        if (!getMoviesSearchQuery()) {
-            initialCategories.push({ 
+        // ALWAYS show these three categories at the top, in this specific order
+        let fixedTopCategories = [
+            { 
                 title: "My Fav", 
                 movies: favouriteMovies, 
                 id: "fav", 
                 containerClass: "movies-fav-container"
-            });
-        }
-        initialCategories.push({ 
-            title: "Popular Movies", 
-            movies: popularMovies, 
-            id: "popular", 
-            containerClass: "movies-popular-container"
-        });
-        initialCategories.push({ 
-            title: "Recently Watched", 
-            movies:recentMoviesArray,
-            id: "recent", 
-            containerClass: "recently-watched-container"
+            },
+            { 
+                title: "Popular Movies", 
+                movies: popularMovies, 
+                id: "popular", 
+                containerClass: "movies-popular-container"
+            },
+            { 
+                title: "Recently Watched", 
+                movies: recentMoviesArray,
+                id: "recent", 
+                containerClass: "recently-watched-container"
+            }
+        ];
+        
+        // Remove any fixed categories that have no movies (except My Fav which can be empty)
+        let initialCategories = fixedTopCategories.filter(category => {
+            if (category.id === "fav") return true; // Always show My Fav even if empty
+            return category.movies && category.movies.length > 0;
         });
         
+        // Add the first few API categories after the fixed ones
         let apiCategoriesToLoad = apiCategories.slice(0, 3);
         initialCategories = initialCategories.concat(apiCategoriesToLoad);
         
+        // Set up the complete categories list (fixed top + all API categories)
         window.allMoviesCategories = initialCategories.concat(apiCategories.slice(3));
         
         moviesChunkLoadingState.loadedCategories = initialCategories.length;
@@ -1448,7 +1516,7 @@ let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchi
         
         for (let i = 0; i < initialCategories.length; i++) {
             let category = initialCategories[i];
-            if (category.movies && category.movies.length > 0) {
+            if (category.movies && category.movies.length > 0 || category.id === "fav") {
                 html += createMoviesCategorySection(category, i);
             }
         }
@@ -1484,7 +1552,17 @@ let recentlyWatchedMoviesIds = currentPlaylist && currentPlaylist.continueWatchi
     return loadingHTML;
 }
 
-// Export cleanup function for global access
+document.addEventListener('sortChanged', function(e) {
+    const { sortType, page } = e.detail;
+    
+    if (page === "moviesPage") {
+        // Refresh movies page with new sort
+        if (typeof window.rerenderMoviesPage === "function") {
+            Router.showPage("moviesPage");
+        }
+    }
+});
+
 window.cleanupMoviesNavigation = cleanupMoviesNavigation;
 window.moviesNavigationState = moviesNavigationState;
 window.updateMoviesFocus = updateMoviesFocus;
