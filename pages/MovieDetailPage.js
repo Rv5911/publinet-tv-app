@@ -340,7 +340,11 @@ if (e.key === "ArrowUp") {
   });
   
   if ([playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused)) {
-    localStorage.setItem("navigationFocus", "navbar");
+    if (window.setNavbarFocus) {
+        window.setNavbarFocus("moviesPage");
+    } else {
+        localStorage.setItem("navigationFocus", "navbar");
+    }
     e.preventDefault(); 
     e.stopPropagation();
     return;

@@ -411,7 +411,7 @@ function initNavbar() {
     }
   });
 
-  navItems.forEach((item) => {
+  navItems.forEach((item, index) => {
     item.addEventListener("click", () => {
       const page = item.getAttribute("data-page");
       disposeLiveTvPlayer();
@@ -419,12 +419,17 @@ function initNavbar() {
       updateNavbarActive(page);
       buildDynamicSidebarOptions();
     });
+
+    item.addEventListener("focus", () => {
+      localStorage.setItem("navigationFocus", "navbar");
+      setActiveItem(index + 1);
+    });
   });
 
   profileIcon.addEventListener("click", openSidebar);
   profileIcon.addEventListener("focus", () => {
-    profileIcon.classList.add("active");
     localStorage.setItem("navigationFocus", "navbar");
+    setActiveItem(totalItems - 1);
   });
   profileIcon.addEventListener("blur", () => {
     profileIcon.classList.remove("active");
@@ -752,15 +757,15 @@ sortCheckboxes.forEach((checkbox) => {
   // Ensure search input focus manages navbar active classes correctly
   searchInput.addEventListener("focus", () => {
     localStorage.setItem("navigationFocus", "navbar");
-    currentIndex = 0;
-    highlightNavItem(currentIndex);
+    setActiveItem(0);
   });
 
   searchInput.addEventListener("blur", () => {
     searchInput.classList.remove("active");
   });
 
-  function highlightNavItem(index) {
+  function setActiveItem(index) {
+    currentIndex = index;
     searchInput.classList.remove("active");
     navItems.forEach((i) => i.classList.remove("active"));
     profileIcon.classList.remove("active");
@@ -769,11 +774,22 @@ sortCheckboxes.forEach((checkbox) => {
       searchInput.classList.add("active");
     } else if (index === totalItems - 1) {
       profileIcon.classList.add("active");
+    } else {
+      const item = navItems[index - 1];
+      if (item) item.classList.add("active");
+    }
+  }
+
+  function highlightNavItem(index) {
+    setActiveItem(index);
+
+    if (index === 0) {
+      searchInput.focus();
+    } else if (index === totalItems - 1) {
       profileIcon.focus();
     } else {
       const item = navItems[index - 1];
-      item.classList.add("active");
-      item.focus();
+      if (item) item.focus();
     }
   }
 
@@ -796,6 +812,15 @@ sortCheckboxes.forEach((checkbox) => {
     const firstItem = items[0];
     if (firstItem) firstItem.focus();
   }
+
+  window.setNavbarFocus = function(pageName) {
+      const index = pageIndexMap[pageName];
+      if (index !== undefined) {
+          currentIndex = index + 1; // +1 because 0 is search
+          highlightNavItem(currentIndex);
+          localStorage.setItem("navigationFocus", "navbar");
+      }
+  };
 
   function closeSidebar() {
     sidebar.classList.add("option-remove");
