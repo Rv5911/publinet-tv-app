@@ -1483,7 +1483,7 @@ function MoviesPage() {
         
         // Remove any fixed categories that have no movies (except My Fav which can be empty)
         let initialCategories = fixedTopCategories.filter(category => {
-            if (category.id === "fav") return true; // Always show My Fav even if empty
+            // if (category.id === "fav") return true; // Always show My Fav even if empty
             return category.movies && category.movies.length > 0;
         });
         

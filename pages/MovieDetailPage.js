@@ -324,6 +324,12 @@ async function MovieDetailPage() {
     }
 
     // --- Arrow navigation ---
+    // Sync currentFocusIndex with the actual focused element if it's one of our focusable elements
+    // This fixes the issue where focus set by Navbar (Play button) is out of sync with currentFocusIndex
+    if (document.activeElement && focusableEls.includes(document.activeElement)) {
+        currentFocusIndex = focusableEls.indexOf(document.activeElement);
+    }
+
     if (e.key === "ArrowRight" && currentFocusIndex < focusableEls.length - 1)
       currentFocusIndex++;
     if (e.key === "ArrowLeft" && currentFocusIndex > 0) currentFocusIndex--;
