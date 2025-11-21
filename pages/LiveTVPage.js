@@ -2269,8 +2269,16 @@ if (isUp) {
       --focusedCategoryIndex,
       "livetv-channel-category-focused"
     );
-  } else if (inCardList && focusedCardIndex > 0) {
-    setFocus(cardList, --focusedCardIndex, "channel-card-focused");
+  } else if (inCardList && focusedCardIndex >= 3) {
+    qsa(".channel-fav-btn-focused, .channel-remove-btn-focused").forEach(e => 
+      e.classList.remove("channel-fav-btn-focused", "channel-remove-btn-focused")
+    );
+    setFocus(cardList, focusedCardIndex - 3, "channel-card-focused");
+  } else if (inCardList) {
+    qsa(".channel-fav-btn-focused, .channel-remove-btn-focused").forEach(e => 
+      e.classList.remove("channel-fav-btn-focused", "channel-remove-btn-focused")
+    );
+    focusOnNavbar();
   } else if (inVideoPlayer) {
     
     // Move from video player to search
@@ -2627,8 +2635,11 @@ if (isDown) {
       }
     }
   } else if (inCardList) {
-    if (focusedCardIndex < cardList.length - 1) {
-      focusedCardIndex++;
+    qsa(".channel-fav-btn-focused, .channel-remove-btn-focused").forEach(e => 
+      e.classList.remove("channel-fav-btn-focused", "channel-remove-btn-focused")
+    );
+    if (focusedCardIndex + 3 < cardList.length) {
+      focusedCardIndex += 3;
       setFocus(cardList, focusedCardIndex, "channel-card-focused");
     } else {
       const filtered = getFilteredCategories();
@@ -2644,13 +2655,25 @@ if (isDown) {
         
         setTimeout(() => {
           const updatedCardList = qsa(".channel-card");
-          if (updatedCardList.length > currentPosition) {
-            focusedCardIndex = currentPosition + 1;
+          // Try to maintain column position when loading more
+          if (updatedCardList.length > currentPosition + 3) {
+            focusedCardIndex = currentPosition + 3;
             setFocus(updatedCardList, focusedCardIndex, "channel-card-focused");
+          } else if (updatedCardList.length > currentPosition) {
+             // Fallback if not enough items loaded
+             focusedCardIndex = updatedCardList.length - 1;
+             setFocus(updatedCardList, focusedCardIndex, "channel-card-focused");
           }
         }, 100);
       } else {
-        setFocus(cardList, focusedCardIndex, "channel-card-focused");
+         // Move to video player if at bottom
+         setFlags(false, false, false, false, true);
+         const fullscreenBtn = qs("#live-fullscreen-btn");
+         if (fullscreenBtn) {
+           fullscreenBtn.classList.add("live-control-btn-focused");
+           document.querySelector(".live-video-player-div").style.border = "6px solid var(--gold)";
+           showPlayPauseControls();
+         }
       }
     }
   }
@@ -2800,12 +2823,44 @@ focusOnNavbar();
   }
   
   if (inCardList) {
-    // move focus to first button (heart for all categories)
-    const focusedCard = cardList[focusedCardIndex];
-    const favBtn = focusedCard.querySelector(".channel-fav-btn");
-    if (favBtn) {
-      setFlags(false, false, false, false, false);
-      favBtn.classList.add("channel-fav-btn-focused");
+    const currentCard = cardList[focusedCardIndex];
+    const favBtn = currentCard.querySelector(".channel-fav-btn");
+    const removeBtn = currentCard.querySelector(".channel-remove-btn");
+    const focusedFav = currentCard.querySelector(".channel-fav-btn-focused");
+    const focusedRemove = currentCard.querySelector(".channel-remove-btn-focused");
+
+    // 1. If no buttons focused, try to focus Heart
+    if (!focusedFav && !focusedRemove) {
+      if (favBtn) {
+        favBtn.classList.add("channel-fav-btn-focused");
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // 2. If Heart focused, try to focus Remove OR move to next card
+    if (focusedFav) {
+      if (removeBtn) {
+        focusedFav.classList.remove("channel-fav-btn-focused");
+        removeBtn.classList.add("channel-remove-btn-focused");
+        e.preventDefault();
+        return;
+      } else {
+        focusedFav.classList.remove("channel-fav-btn-focused");
+        // Proceed to next card logic below
+      }
+    }
+
+    // 3. If Remove focused, move to next card
+    if (focusedRemove) {
+      focusedRemove.classList.remove("channel-remove-btn-focused");
+      // Proceed to next card logic below
+    }
+
+    // Grid navigation: Right (Next Card)
+    if (focusedCardIndex % 3 !== 2 && focusedCardIndex + 1 < cardList.length) {
+       focusedCardIndex++;
+       setFocus(cardList, focusedCardIndex, "channel-card-focused");
     }
     e.preventDefault();
     return;
@@ -3026,7 +3081,13 @@ if (inVideoPlayer) {
 }
 
   if (inCardList) {
-    focusCategories(focusedCategoryIndex);
+    // Grid navigation: Left
+    if (focusedCardIndex % 3 !== 0) {
+       focusedCardIndex--;
+       setFocus(cardList, focusedCardIndex, "channel-card-focused");
+    } else {
+       focusCategories(focusedCategoryIndex);
+    }
     e.preventDefault();
     return;
   }
