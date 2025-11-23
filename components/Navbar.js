@@ -540,9 +540,10 @@ sortCheckboxes.forEach((checkbox) => {
         }
         break;
       case "ArrowDown":
-        // Handle ArrowDown for moviesPage, liveTvPage, and seriesPage
+        // Handle ArrowDown for homePage, moviesPage, liveTvPage, and seriesPage
         if (
-          (currentPage === "moviesPage" ||
+          (currentPage === "homePage" ||
+            currentPage === "moviesPage" ||
             currentPage === "liveTvPage" ||
             currentPage == "movieDetailPage" ||
             currentPage == "seriesDetailPage" ||
@@ -556,6 +557,33 @@ sortCheckboxes.forEach((checkbox) => {
           navItems.forEach((item) => item.classList.remove("active"));
           searchInput.classList.remove("active");
           profileIcon.classList.remove("active");
+          
+          // For homePage, directly focus Watch Now button
+          if (currentPage === "homePage") {
+            setTimeout(() => {
+              // Stop carousel if cleanup function exists
+              if (typeof HomeCarousel !== 'undefined' && HomeCarousel.cleanup) {
+                HomeCarousel.cleanup();
+              }
+              
+              // Trigger a custom event or directly set focus to Watch Now
+              const watchNowBtn = document.querySelector('.carousel-watch-now-btn');
+              if (watchNowBtn) {
+                // Focus the watch now button on the active slide
+                const activeIndex = window.carouselActiveIndex || 0;
+                const activeSlide = document.querySelector(`.slide[data-index="${activeIndex}"]`);
+                if (activeSlide) {
+                  const btn = activeSlide.querySelector('.carousel-watch-now-btn');
+                  if (btn) {
+                    btn.classList.add('focused');
+                  }
+                }
+              }
+            }, 10);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
 
           // For liveTvPage, focus on first category
           if (currentPage === "liveTvPage") {

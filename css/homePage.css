@@ -311,8 +311,18 @@
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
+
 .home-page-no-data p {
   font-size: 60px;
+}
+
+/* No cards message */
+.home-no-cards-message {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  padding: 60px 0;
+  width: 100%;
 }
 
 @keyframes fadeInOut {

@@ -21,11 +21,16 @@ let filteredItems = window.allMoviesStreams.filter(item => {
     let autoSlideFrame;
 
     slidesContainer.style.willChange = "transform";
+    
+    // Expose active index globally
+    window.carouselActiveIndex = 0;
+    
     function updateCarousel() {
       requestAnimationFrame(() => {
         slidesContainer.style.transition = "transform 0.3s ease-in-out";
         slidesContainer.style.transform = `translateX(${-activeIndex * 100}%)`;
         dots.forEach((dot, i) => dot.classList.toggle("active", i === activeIndex));
+        window.carouselActiveIndex = activeIndex;
       });
     }
 
@@ -67,6 +72,9 @@ let filteredItems = window.allMoviesStreams.filter(item => {
     HomeCarousel.cleanup = function () {
       cancelAnimationFrame(autoSlideFrame);
     };
+    
+    // Expose cleanup globally
+    window.HomeCarousel = HomeCarousel;
   }, 0);
 
   return `
@@ -82,10 +90,22 @@ let filteredItems = window.allMoviesStreams.filter(item => {
       -->
 
         <div class="carousel-slides">
-        <div class="slide"><img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 1"/></div>
-        <div class="slide"><img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 2"/></div>
-        <div class="slide"><img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 3"/></div>
-        <div class="slide"><img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 4"/></div>
+        <div class="slide" data-index="0">
+          <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 1"/>
+          <button class="carousel-watch-now-btn">Watch Now</button>
+        </div>
+        <div class="slide" data-index="1">
+          <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 2"/>
+          <button class="carousel-watch-now-btn">Watch Now</button>
+        </div>
+        <div class="slide" data-index="2">
+          <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 3"/>
+          <button class="carousel-watch-now-btn">Watch Now</button>
+        </div>
+        <div class="slide" data-index="3">
+          <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 4"/>
+          <button class="carousel-watch-now-btn">Watch Now</button>
+        </div>
       </div>
       <div class="carousel-dots">
         <div class="carousel-dot active" data-index="0"></div>
