@@ -62,6 +62,7 @@ function HomePage() {
           const btn = activeSlide.querySelector('.carousel-watch-now-btn');
           if (btn) {
             btn.classList.add('focused');
+            btn.focus(); // Set browser focus
           }
         }
       } else if (navState.focus === 'categories') {
@@ -71,6 +72,7 @@ function HomePage() {
         console.log('updateFocus - looking for card:', `category=${navState.currentCategory}, index=${navState.currentCard}`, 'found:', !!currentCard);
         if (currentCard) {
           currentCard.classList.add('focused');
+          currentCard.focus(); // Set browser focus
           scrollToHomeElement(currentCard);
         } else {
           console.warn('Card not found in DOM!', `category=${navState.currentCategory}, index=${navState.currentCard}`);
@@ -94,15 +96,7 @@ function HomePage() {
       const key = e.key;
       const navigationFocus = localStorage.getItem("navigationFocus");
 
-      // If this is the first keypress after coming from navbar, go directly to Watch Now
-      if (navigationFocus === "homePage" && navState.focus === 'carousel' && key === "ArrowDown") {
-        e.preventDefault();
-        stopCarousel();
-        navState.focus = 'watchNow';
-        updateFocus();
-        return;
-      }
-
+      // Only handle events when navigation focus is on homePage
       if (navigationFocus !== "homePage") {
         return;
       }
@@ -111,29 +105,31 @@ function HomePage() {
         case "ArrowDown":
           e.preventDefault();
 
-          if (navState.focus === 'carousel') {
-            // From carousel to Watch Now button
-            stopCarousel();
-            navState.focus = 'watchNow';
-            updateFocus();
-          } else if (navState.focus === 'watchNow') {
-            // From Watch Now to first available category
-            // Robust approach: find the first card in the DOM
-            // This automatically handles skipping empty categories (like My Fav)
-            const firstCard = document.querySelector('.home-card');
-            
-            if (firstCard) {
-              const category = parseInt(firstCard.getAttribute('data-category'));
-              const index = parseInt(firstCard.getAttribute('data-index'));
-              
-              console.log('ArrowDown from Watch Now - Found first card:', `category=${category}, index=${index}`);
-              
-              navState.focus = 'categories';
-              navState.currentCategory = category;
-              navState.currentCard = index;
+          if (navState.focus === 'carousel' || navState.focus === 'watchNow') {
+            // If we're at carousel level, move to Watch Now
+            if (navState.focus === 'carousel') {
+              stopCarousel();
+              navState.focus = 'watchNow';
               updateFocus();
-            } else {
-              console.log('ArrowDown from Watch Now - No cards found in any category');
+            }
+            // If already at Watch Now, move to categories
+            else if (navState.focus === 'watchNow') {
+              // From Watch Now to first available category
+              const firstCard = document.querySelector('.home-card');
+              
+              if (firstCard) {
+                const category = parseInt(firstCard.getAttribute('data-category'));
+                const index = parseInt(firstCard.getAttribute('data-index'));
+                
+                console.log('ArrowDown from Watch Now - Found first card:', `category=${category}, index=${index}`);
+                
+                navState.focus = 'categories';
+                navState.currentCategory = category;
+                navState.currentCard = index;
+                updateFocus();
+              } else {
+                console.log('ArrowDown from Watch Now - No cards found in any category');
+              }
             }
           } else if (navState.focus === 'categories') {
             // Move to next category (only from My Fav to Recently Added)
@@ -312,6 +308,7 @@ function HomePage() {
            data-category="${categoryIndex}" 
            data-index="${cardIndex}" 
            data-stream-id="${movie.stream_id}"
+           tabindex="0"
            style="background-image: url('${movie.stream_icon || './assets/demo-img-card.png'}')">
         <div class="home-card-content">
           <div class="home-card-top">

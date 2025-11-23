@@ -558,30 +558,9 @@ sortCheckboxes.forEach((checkbox) => {
           searchInput.classList.remove("active");
           profileIcon.classList.remove("active");
           
-          // For homePage, directly focus Watch Now button
+          // For homePage, just set navigation focus and let HomePage.js handle it
           if (currentPage === "homePage") {
-            setTimeout(() => {
-              // Stop carousel if cleanup function exists
-              if (typeof HomeCarousel !== 'undefined' && HomeCarousel.cleanup) {
-                HomeCarousel.cleanup();
-              }
-              
-              // Trigger a custom event or directly set focus to Watch Now
-              const watchNowBtn = document.querySelector('.carousel-watch-now-btn');
-              if (watchNowBtn) {
-                // Focus the watch now button on the active slide
-                const activeIndex = window.carouselActiveIndex || 0;
-                const activeSlide = document.querySelector(`.slide[data-index="${activeIndex}"]`);
-                if (activeSlide) {
-                  const btn = activeSlide.querySelector('.carousel-watch-now-btn');
-                  if (btn) {
-                    btn.classList.add('focused');
-                  }
-                }
-              }
-            }, 10);
-            e.preventDefault();
-            e.stopImmediatePropagation();
+            // Don't prevent default or stop propagation - let HomePage.js handle it
             return;
           }
 

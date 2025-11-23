@@ -18,7 +18,6 @@ let filteredItems = window.allMoviesStreams.filter(item => {
     const slides = Array.from(slidesContainer.querySelectorAll(".slide"));
     const dots = Array.from(document.querySelectorAll(".carousel-dot"));
     let activeIndex = 0;
-    let autoSlideFrame;
 
     slidesContainer.style.willChange = "transform";
     
@@ -44,17 +43,24 @@ let filteredItems = window.allMoviesStreams.filter(item => {
       updateCarousel();
     }
 
+    let autoSlideInterval;
+
     function startAutoSlide() {
-      cancelAnimationFrame(autoSlideFrame);
-      function slide() {
-        goNextSlide();
-        autoSlideFrame = requestAnimationFrame(() => setTimeout(slide, 4000)); // 4s
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
       }
-      slide();
+      autoSlideInterval = setInterval(() => {
+        goNextSlide();
+      }, 4000); // 4s
+      
+      // Store globally for cleanup access
+      window.carouselAutoSlideInterval = autoSlideInterval;
     }
 
     function resetAutoSlide() {
-      cancelAnimationFrame(autoSlideFrame);
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+      }
       startAutoSlide();
     }
 
@@ -70,10 +76,18 @@ let filteredItems = window.allMoviesStreams.filter(item => {
     startAutoSlide();
 
     HomeCarousel.cleanup = function () {
-      cancelAnimationFrame(autoSlideFrame);
+      // Use the globally stored interval
+      if (window.carouselAutoSlideInterval) {
+        clearInterval(window.carouselAutoSlideInterval);
+        window.carouselAutoSlideInterval = null;
+      }
+      if (autoSlideInterval) {
+        clearInterval(autoSlideInterval);
+        autoSlideInterval = null;
+      }
     };
     
-    // Expose cleanup globally
+    // Expose cleanup globally immediately
     window.HomeCarousel = HomeCarousel;
   }, 0);
 
@@ -92,19 +106,19 @@ let filteredItems = window.allMoviesStreams.filter(item => {
         <div class="carousel-slides">
         <div class="slide" data-index="0">
           <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 1"/>
-          <button class="carousel-watch-now-btn">Watch Now</button>
+          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
         </div>
         <div class="slide" data-index="1">
           <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 2"/>
-          <button class="carousel-watch-now-btn">Watch Now</button>
+          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
         </div>
         <div class="slide" data-index="2">
           <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 3"/>
-          <button class="carousel-watch-now-btn">Watch Now</button>
+          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
         </div>
         <div class="slide" data-index="3">
           <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 4"/>
-          <button class="carousel-watch-now-btn">Watch Now</button>
+          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
         </div>
       </div>
       <div class="carousel-dots">
