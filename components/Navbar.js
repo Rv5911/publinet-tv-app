@@ -586,6 +586,9 @@ function initNavbar() {
                 firstCategory.classList.add("livetv-channel-category-focused");
               }
             }, 10);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
           }
 
           if (currentPage === "seriesDetailPage") {
@@ -686,6 +689,9 @@ function initNavbar() {
                 }
               }
             }, 10);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
           }
 
           // SeriesPage: prioritize My Fav on initial down from navbar
@@ -740,6 +746,9 @@ function initNavbar() {
                 }
               }
             }, 10);
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
           }
         }
         break;
@@ -938,6 +947,11 @@ function initNavbar() {
     document.dispatchEvent(sortEvent);
 
     console.log(`Sorting by: ${sortType}`);
+
+    // FIX: Restore navigationFocus to sidebar because page re-render might have stolen it
+    if (sidebar && !sidebar.classList.contains("option-remove")) {
+      localStorage.setItem("navigationFocus", "sidebar");
+    }
   }
 
   function handleSidebarKeys(e) {
