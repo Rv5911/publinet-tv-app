@@ -883,7 +883,7 @@ function initNavbar() {
 
   function handleLogOut() {
     localStorage.setItem("isLogin", false);
-
+    resetParentalControlState();
     localStorage.setItem("currentPage", "login");
     Router.showPage("login");
     closeSidebar();
