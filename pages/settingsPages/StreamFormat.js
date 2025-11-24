@@ -1,5 +1,5 @@
 function StreamFormat() {
-  setTimeout(function() {
+  setTimeout(function () {
     var container = document.querySelector(".stream-format-container");
     if (!container) return;
 
@@ -8,8 +8,13 @@ function StreamFormat() {
     var radioOptions = container.querySelectorAll(".radio-option");
     var currentFocus = 0;
 
-    // Load saved value from localStorage
-    var savedFormat = localStorage.getItem("streamFormat");
+    // Load saved value from currentPlaylist
+    var currentPlaylist = getCurrentPlaylist();
+    var savedFormat =
+      currentPlaylist && currentPlaylist.streamFormat
+        ? currentPlaylist.streamFormat
+        : null;
+
     if (savedFormat) {
       for (var i = 0; i < radios.length; i++) {
         if (radios[i].value === savedFormat) {
@@ -28,13 +33,13 @@ function StreamFormat() {
 
     function updateFocusStyles() {
       // Remove focus from all options
-      radioOptions.forEach(function(option) {
+      radioOptions.forEach(function (option) {
         option.classList.remove("radio-focused");
       });
-      
+
       // Remove focus from save button
       saveButton.classList.remove("save-btn-focused");
-      
+
       // Add focus to current element
       if (currentFocus < radios.length) {
         radioOptions[currentFocus].classList.add("radio-focused");
@@ -44,14 +49,14 @@ function StreamFormat() {
     }
 
     function removeAllFocusStyles() {
-      radioOptions.forEach(function(option) {
+      radioOptions.forEach(function (option) {
         option.classList.remove("radio-focused");
       });
       if (saveButton) saveButton.classList.remove("save-btn-focused");
     }
 
     function streamFormatKeydownEvents(e) {
-      switch(e.key) {
+      switch (e.key) {
         case "ArrowDown":
           currentFocus = (currentFocus + 1) % (radios.length + 1);
           if (currentFocus < radios.length) {
@@ -64,7 +69,8 @@ function StreamFormat() {
           break;
 
         case "ArrowUp":
-          currentFocus = (currentFocus - 1 + radios.length + 1) % (radios.length + 1);
+          currentFocus =
+            (currentFocus - 1 + radios.length + 1) % (radios.length + 1);
           if (currentFocus < radios.length) {
             radios[currentFocus].focus();
           } else {
@@ -77,7 +83,10 @@ function StreamFormat() {
         case "ArrowLeft":
           // Exit subpage back to Settings list
           removeAllFocusStyles();
-          if (document.activeElement && typeof document.activeElement.blur === "function") {
+          if (
+            document.activeElement &&
+            typeof document.activeElement.blur === "function"
+          ) {
             document.activeElement.blur();
           }
           if (saveButton && typeof saveButton.blur === "function") {
@@ -104,7 +113,9 @@ function StreamFormat() {
           if (currentFocus < radios.length) {
             radios[currentFocus].checked = true;
             // Trigger change event for custom styling
-            radios[currentFocus].dispatchEvent(new Event('change', { bubbles: true }));
+            radios[currentFocus].dispatchEvent(
+              new Event("change", { bubbles: true })
+            );
             // REMOVED the code that moves to next element
             // Focus stays on the currently selected radio button
             updateFocusStyles();
@@ -122,14 +133,17 @@ function StreamFormat() {
         case "10009":
           // Only back keys remove the subpage
           removeAllFocusStyles();
-          if (document.activeElement && typeof document.activeElement.blur === "function") {
+          if (
+            document.activeElement &&
+            typeof document.activeElement.blur === "function"
+          ) {
             document.activeElement.blur();
           }
           if (saveButton && typeof saveButton.blur === "function") {
             saveButton.blur();
           }
           document.removeEventListener("keydown", streamFormatKeydownEvents);
-         localStorage.setItem("currentPage", "homePage");
+          localStorage.setItem("currentPage", "homePage");
           Router.showPage("homePage");
           break;
 
@@ -141,8 +155,8 @@ function StreamFormat() {
     document.addEventListener("keydown", streamFormatKeydownEvents);
 
     // Add click handlers for custom radio buttons
-    radioOptions.forEach(function(option, index) {
-      option.addEventListener("click", function() {
+    radioOptions.forEach(function (option, index) {
+      option.addEventListener("click", function () {
         var radio = this.querySelector("input[type='radio']");
         radio.checked = true;
         currentFocus = index;
@@ -152,14 +166,14 @@ function StreamFormat() {
     });
 
     // Add focus event listeners to update styles
-    radios.forEach(function(radio, index) {
-      radio.addEventListener("focus", function() {
+    radios.forEach(function (radio, index) {
+      radio.addEventListener("focus", function () {
         currentFocus = index;
         updateFocusStyles();
       });
-      
+
       // Remove focus styles when radio loses focus (except when moving to save button)
-      radio.addEventListener("blur", function() {
+      radio.addEventListener("blur", function () {
         // Only remove if not moving to save button
         if (currentFocus !== radios.length) {
           radioOptions[index].classList.remove("radio-focused");
@@ -167,19 +181,19 @@ function StreamFormat() {
       });
     });
 
-    saveButton.addEventListener("focus", function() {
+    saveButton.addEventListener("focus", function () {
       currentFocus = radios.length;
       updateFocusStyles();
     });
 
-    saveButton.addEventListener("blur", function() {
+    saveButton.addEventListener("blur", function () {
       // Only remove if not moving to a radio button
       if (currentFocus === radios.length) {
         saveButton.classList.remove("save-btn-focused");
       }
     });
 
-    saveButton.addEventListener("click", function() {
+    saveButton.addEventListener("click", function () {
       var selectedValue = "";
       for (var i = 0; i < radios.length; i++) {
         if (radios[i].checked) {
@@ -187,22 +201,28 @@ function StreamFormat() {
           break;
         }
       }
-      const currentPlaylist=getCurrentPlaylist();
-      console.log(currentPlaylist,"currentPlaylistcurrentPlaylistcurrentPlaylist");
+      const currentPlaylist = getCurrentPlaylist();
+      console.log(
+        currentPlaylist,
+        "currentPlaylistcurrentPlaylistcurrentPlaylist"
+      );
 
-      updatePlaylistData(currentPlaylist.playlistName, "streamFormat", selectedValue);
+      updatePlaylistData(
+        currentPlaylist.playlistName,
+        "streamFormat",
+        selectedValue
+      );
 
-      
       // Remove focus styles after saving
       removeAllFocusStyles();
-      
+
       // Reset focus to first radio
       if (radios.length > 0) {
         currentFocus = 0;
         radios[currentFocus].focus();
         updateFocusStyles();
       }
-      
+
       console.log("Stream format saved:", selectedValue);
     });
 
@@ -231,7 +251,7 @@ function StreamFormat() {
           </div>
         </label>
         <label class="radio-option">
-          <input type="radio" name="format" value="m3u8">
+          <input type="radio" name="format" value="hls">
           <span class="custom-radio"></span>
           <div>
             <div class="option-label">HLS(.m3u8)</div>

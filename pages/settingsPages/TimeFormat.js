@@ -1,5 +1,5 @@
 function TimeFormat() {
-  setTimeout(function() {
+  setTimeout(function () {
     var container = document.querySelector(".time-format-container");
     if (!container) return;
 
@@ -8,8 +8,13 @@ function TimeFormat() {
     var timeOptions = container.querySelectorAll(".time-option");
     var currentFocus = 0;
 
-    // Load saved value from localStorage
-    var savedTimeFormat = localStorage.getItem("timeFormat");
+    // Load saved value from currentPlaylist
+    var currentPlaylist = getCurrentPlaylist();
+    var savedTimeFormat =
+      currentPlaylist && currentPlaylist.timeFormat
+        ? currentPlaylist.timeFormat
+        : null;
+
     if (savedTimeFormat) {
       for (var i = 0; i < radios.length; i++) {
         if (radios[i].value === savedTimeFormat) {
@@ -28,13 +33,13 @@ function TimeFormat() {
 
     function updateFocusStyles() {
       // Remove focus from all options
-      timeOptions.forEach(function(option) {
+      timeOptions.forEach(function (option) {
         option.classList.remove("time-focused");
       });
-      
+
       // Remove focus from save button
       saveButton.classList.remove("time-save-btn-focused");
-      
+
       // Add focus to current element
       if (currentFocus < radios.length) {
         timeOptions[currentFocus].classList.add("time-focused");
@@ -45,14 +50,14 @@ function TimeFormat() {
 
     function removeAllFocusStyles() {
       // Completely remove all focus styles
-      timeOptions.forEach(function(option) {
+      timeOptions.forEach(function (option) {
         option.classList.remove("time-focused");
       });
       saveButton.classList.remove("time-save-btn-focused");
     }
 
     function timeFormatKeydownEvents(e) {
-      switch(e.key) {
+      switch (e.key) {
         case "ArrowDown":
           currentFocus = (currentFocus + 1) % (radios.length + 1);
           if (currentFocus < radios.length) {
@@ -65,7 +70,8 @@ function TimeFormat() {
           break;
 
         case "ArrowUp":
-          currentFocus = (currentFocus - 1 + radios.length + 1) % (radios.length + 1);
+          currentFocus =
+            (currentFocus - 1 + radios.length + 1) % (radios.length + 1);
           if (currentFocus < radios.length) {
             radios[currentFocus].focus();
           } else {
@@ -78,7 +84,10 @@ function TimeFormat() {
         case "ArrowLeft":
           // Exit subpage back to Settings list
           removeAllFocusStyles();
-          if (document.activeElement && typeof document.activeElement.blur === "function") {
+          if (
+            document.activeElement &&
+            typeof document.activeElement.blur === "function"
+          ) {
             document.activeElement.blur();
           }
           if (saveButton && typeof saveButton.blur === "function") {
@@ -105,7 +114,9 @@ function TimeFormat() {
           if (currentFocus < radios.length) {
             radios[currentFocus].checked = true;
             // Trigger change event for custom styling
-            radios[currentFocus].dispatchEvent(new Event('change', { bubbles: true }));
+            radios[currentFocus].dispatchEvent(
+              new Event("change", { bubbles: true })
+            );
             // Focus stays on the currently selected radio button
             updateFocusStyles();
           } else {
@@ -122,7 +133,10 @@ function TimeFormat() {
         case "10009":
           // Remove all focus styles before exiting
           removeAllFocusStyles();
-          if (document.activeElement && typeof document.activeElement.blur === "function") {
+          if (
+            document.activeElement &&
+            typeof document.activeElement.blur === "function"
+          ) {
             document.activeElement.blur();
           }
           if (saveButton && typeof saveButton.blur === "function") {
@@ -141,8 +155,8 @@ function TimeFormat() {
     document.addEventListener("keydown", timeFormatKeydownEvents);
 
     // Add click handlers for custom radio buttons
-    timeOptions.forEach(function(option, index) {
-      option.addEventListener("click", function() {
+    timeOptions.forEach(function (option, index) {
+      option.addEventListener("click", function () {
         var radio = this.querySelector("input[type='radio']");
         radio.checked = true;
         currentFocus = index;
@@ -152,14 +166,14 @@ function TimeFormat() {
     });
 
     // Add focus event listeners to update styles
-    radios.forEach(function(radio, index) {
-      radio.addEventListener("focus", function() {
+    radios.forEach(function (radio, index) {
+      radio.addEventListener("focus", function () {
         currentFocus = index;
         updateFocusStyles();
       });
-      
+
       // Remove focus styles when radio loses focus (except when moving to save button)
-      radio.addEventListener("blur", function() {
+      radio.addEventListener("blur", function () {
         // Only remove if not moving to save button
         if (currentFocus !== radios.length) {
           timeOptions[index].classList.remove("time-focused");
@@ -167,19 +181,19 @@ function TimeFormat() {
       });
     });
 
-    saveButton.addEventListener("focus", function() {
+    saveButton.addEventListener("focus", function () {
       currentFocus = radios.length;
       updateFocusStyles();
     });
 
-    saveButton.addEventListener("blur", function() {
+    saveButton.addEventListener("blur", function () {
       // Only remove if not moving to a radio button
       if (currentFocus === radios.length) {
         saveButton.classList.remove("time-save-btn-focused");
       }
     });
 
-    saveButton.addEventListener("click", function() {
+    saveButton.addEventListener("click", function () {
       var selectedValue = "";
       for (var i = 0; i < radios.length; i++) {
         if (radios[i].checked) {
@@ -187,23 +201,26 @@ function TimeFormat() {
           break;
         }
       }
-      
+
       // Save to localStorage
-            const currentPlaylist=getCurrentPlaylist();
+      const currentPlaylist = getCurrentPlaylist();
 
-      updatePlaylistData(currentPlaylist.playlistName, "timeFormat", selectedValue);
+      updatePlaylistData(
+        currentPlaylist.playlistName,
+        "timeFormat",
+        selectedValue
+      );
 
-      
       // Remove focus styles after saving
       removeAllFocusStyles();
-      
+
       // Reset focus to first radio
       if (radios.length > 0) {
         currentFocus = 0;
         radios[currentFocus].focus();
         updateFocusStyles();
       }
-      
+
       console.log("Time format saved:", selectedValue);
     });
 
