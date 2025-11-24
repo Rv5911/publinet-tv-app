@@ -104,6 +104,12 @@ function buildDynamicSidebarOptions() {
     let label = "";
     let action = "";
     const currentPlaylist = getCurrentPlaylist();
+
+    // Return early if no playlist is available
+    if (!currentPlaylist) {
+      return;
+    }
+
     const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
     const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries;
     const selectedMovieId = localStorage.getItem("selectedMovieId");
@@ -437,22 +443,22 @@ function initNavbar() {
 
   sortItem.addEventListener("click", toggleSortMenu);
 
-sortCheckboxes.forEach((checkbox) => {
-  checkbox.addEventListener("change", (e) => {
-    if (e.target.checked) {
-      setSortOption(e.target.dataset.sort);
-      
-      // Dispatch custom event for sort change
-      const sortEvent = new CustomEvent('sortChanged', {
-        detail: { 
-          sortType: e.target.dataset.sort,
-          page: localStorage.getItem("currentPage")
-        }
-      });
-      document.dispatchEvent(sortEvent);
-    }
+  sortCheckboxes.forEach((checkbox) => {
+    checkbox.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        setSortOption(e.target.dataset.sort);
+
+        // Dispatch custom event for sort change
+        const sortEvent = new CustomEvent("sortChanged", {
+          detail: {
+            sortType: e.target.dataset.sort,
+            page: localStorage.getItem("currentPage"),
+          },
+        });
+        document.dispatchEvent(sortEvent);
+      }
+    });
   });
-});
 
   document.addEventListener("keydown", (e) => {
     const navigationFocus = localStorage.getItem("navigationFocus");
@@ -547,7 +553,6 @@ sortCheckboxes.forEach((checkbox) => {
             currentPage === "liveTvPage" ||
             currentPage == "movieDetailPage" ||
             currentPage == "seriesDetailPage" ||
-
             currentPage === "seriesPage") &&
           navigationFocus === "navbar"
         ) {
@@ -557,7 +562,7 @@ sortCheckboxes.forEach((checkbox) => {
           navItems.forEach((item) => item.classList.remove("active"));
           searchInput.classList.remove("active");
           profileIcon.classList.remove("active");
-          
+
           // For homePage, just set navigation focus and let HomePage.js handle it
           if (currentPage === "homePage") {
             // Don't prevent default or stop propagation - let HomePage.js handle it
@@ -580,28 +585,29 @@ sortCheckboxes.forEach((checkbox) => {
             }, 10);
           }
 
+          if (currentPage === "seriesDetailPage") {
+            localStorage.setItem("navigationFocus", "seriesDetailPage");
 
-        if (currentPage === "seriesDetailPage") {
-    localStorage.setItem("navigationFocus", "seriesDetailPage");
-    
-    setTimeout(() => {
-      // Remove navbar focus
-      navItems.forEach(item => item.classList.remove("active"));
-      searchInput.classList.remove("active");
-      profileIcon.classList.remove("active");
-      
-      // Focus on play button in series detail
-      const playBtn = document.querySelector(".series-detail-play-button");
-      if (playBtn) {
-        playBtn.classList.add("series-detail-button-focused");
-        playBtn.focus();
-      }
-    }, 10);
-    
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    return;
-  }
+            setTimeout(() => {
+              // Remove navbar focus
+              navItems.forEach((item) => item.classList.remove("active"));
+              searchInput.classList.remove("active");
+              profileIcon.classList.remove("active");
+
+              // Focus on play button in series detail
+              const playBtn = document.querySelector(
+                ".series-detail-play-button"
+              );
+              if (playBtn) {
+                playBtn.classList.add("series-detail-button-focused");
+                playBtn.focus();
+              }
+            }, 10);
+
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
 
           if (currentPage === "movieDetailPage") {
             setTimeout(() => {
@@ -611,7 +617,9 @@ sortCheckboxes.forEach((checkbox) => {
               if (firstDetailPlayBtn) {
                 document
                   .querySelectorAll(".movie-detail-button-focused")
-                  .forEach((btn) => btn.classList.remove("movie-detail-button-focused"));
+                  .forEach((btn) =>
+                    btn.classList.remove("movie-detail-button-focused")
+                  );
                 firstDetailPlayBtn.classList.add("movie-detail-button-focused");
                 firstDetailPlayBtn.focus();
                 localStorage.setItem("navigationFocus", "movieDetailPage");
@@ -820,13 +828,13 @@ sortCheckboxes.forEach((checkbox) => {
     if (firstItem) firstItem.focus();
   }
 
-  window.setNavbarFocus = function(pageName) {
-      const index = pageIndexMap[pageName];
-      if (index !== undefined) {
-          currentIndex = index + 1; // +1 because 0 is search
-          highlightNavItem(currentIndex);
-          localStorage.setItem("navigationFocus", "navbar");
-      }
+  window.setNavbarFocus = function (pageName) {
+    const index = pageIndexMap[pageName];
+    if (index !== undefined) {
+      currentIndex = index + 1; // +1 because 0 is search
+      highlightNavItem(currentIndex);
+      localStorage.setItem("navigationFocus", "navbar");
+    }
   };
 
   function closeSidebar() {
@@ -892,32 +900,32 @@ sortCheckboxes.forEach((checkbox) => {
       updateSidebarSelection(sidebarItems, sortIndex);
     }
   }
-function setSortOption(sortType) {
+  function setSortOption(sortType) {
     sortCheckboxes.forEach((checkbox) => {
-        checkbox.checked = false;
+      checkbox.checked = false;
     });
 
     // Check the selected one
     const selectedCheckbox = document.querySelector(
-        `.sort-checkbox[data-sort="${sortType}"]`
+      `.sort-checkbox[data-sort="${sortType}"]`
     );
     if (selectedCheckbox) {
-        selectedCheckbox.checked = true;
+      selectedCheckbox.checked = true;
     }
 
     localStorage.setItem("sortvalue", sortType);
-    
+
     // Dispatch sort changed event
-    const sortEvent = new CustomEvent('sortChanged', {
-        detail: { 
-            sortType: sortType,
-            page: localStorage.getItem("currentPage")
-        }
+    const sortEvent = new CustomEvent("sortChanged", {
+      detail: {
+        sortType: sortType,
+        page: localStorage.getItem("currentPage"),
+      },
     });
     document.dispatchEvent(sortEvent);
-    
+
     console.log(`Sorting by: ${sortType}`);
-}
+  }
 
   function handleSidebarKeys(e) {
     if (isSortOptionsOpen) return;
@@ -1034,17 +1042,17 @@ function setSortOption(sortType) {
           (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
         updateSortOptionsSelection(sortOptionItems, activeIndex);
         break;
-     case "Enter":
-  const activeSortItem = sortOptionItems[activeIndex];
-  const checkbox = activeSortItem.querySelector(".sort-checkbox");
-  if (checkbox) {
-    checkbox.checked = true;
-    setSortOption(checkbox.dataset.sort);
-    
-    // Close sort menu after selection
-    closeSortMenu();
-  }
-  break;
+      case "Enter":
+        const activeSortItem = sortOptionItems[activeIndex];
+        const checkbox = activeSortItem.querySelector(".sort-checkbox");
+        if (checkbox) {
+          checkbox.checked = true;
+          setSortOption(checkbox.dataset.sort);
+
+          // Close sort menu after selection
+          closeSortMenu();
+        }
+        break;
       case "Escape":
       case "Backspace":
       case "XF86Back":
@@ -1081,6 +1089,5 @@ function setSortOption(sortType) {
     }
   }
 }
-
 
 window.buildDynamicSidebarOptions = buildDynamicSidebarOptions;
