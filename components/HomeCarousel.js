@@ -1,35 +1,66 @@
 function HomeCarousel() {
-let filteredItems = window.allMoviesStreams.filter(item => {
-  const name = (item.name || "").toLowerCase();
+  // Use window.allStream or fallback to window.allMoviesStreams
+  const allStreams = window.allStream || window.allMoviesStreams || [];
 
-  return !adultsCategories.some(keyword => name.includes(keyword));
-});
+  // Filter out adult content if needed, similar to previous logic
+  let filteredItems = allStreams.filter((item) => {
+    const name = (item.name || "").toLowerCase();
+    // Ensure adultsCategories is defined or default to empty array
+    const categories =
+      typeof adultsCategories !== "undefined" ? adultsCategories : [];
+    return !categories.some((keyword) => name.includes(keyword));
+  });
 
-    let randomIndex = Math.floor(Math.random() * filteredItems.length);
-    let sliderData = filteredItems.slice(randomIndex, randomIndex + 5);
+  // Fallback if no items found
+  if (filteredItems.length === 0) {
+    // Mock data for development if needed or just empty
+    console.warn("HomeCarousel: No streams found.");
+  }
 
+  // Get 4 items as requested (slice 4)
+  // If we want random 4 items:
+  let randomIndex = 0;
+  if (filteredItems.length > 4) {
+    randomIndex = Math.floor(Math.random() * (filteredItems.length - 4));
+  }
+  let sliderData = filteredItems.slice(randomIndex, randomIndex + 4);
 
+  // If still less than 4, just take what we have
+  if (sliderData.length === 0 && filteredItems.length > 0) {
+    sliderData = filteredItems.slice(0, 4);
+  }
 
-    console.log(sliderData,"SLDIEDDATA")
+  console.log(sliderData, "SLDIEDDATA");
+
   setTimeout(function () {
     if (HomeCarousel.cleanup) HomeCarousel.cleanup();
 
     const slidesContainer = document.querySelector(".carousel-slides");
+    if (!slidesContainer) return;
+
     const slides = Array.from(slidesContainer.querySelectorAll(".slide"));
     const dots = Array.from(document.querySelectorAll(".carousel-dot"));
     let activeIndex = 0;
 
     slidesContainer.style.willChange = "transform";
-    
+
     // Expose active index globally
     window.carouselActiveIndex = 0;
-    
+
     function updateCarousel() {
       requestAnimationFrame(() => {
         slidesContainer.style.transition = "transform 0.3s ease-in-out";
         slidesContainer.style.transform = `translateX(${-activeIndex * 100}%)`;
-        dots.forEach((dot, i) => dot.classList.toggle("active", i === activeIndex));
+        dots.forEach((dot, i) =>
+          dot.classList.toggle("active", i === activeIndex)
+        );
         window.carouselActiveIndex = activeIndex;
+
+        // Update active class on slides for CSS animations if needed
+        slides.forEach((slide, i) => {
+          if (i === activeIndex) slide.classList.add("active");
+          else slide.classList.remove("active");
+        });
       });
     }
 
@@ -51,8 +82,8 @@ let filteredItems = window.allMoviesStreams.filter(item => {
       }
       autoSlideInterval = setInterval(() => {
         goNextSlide();
-      }, 4000); // 4s
-      
+      }, 5000); // Increased to 5s for better readability
+
       // Store globally for cleanup access
       window.carouselAutoSlideInterval = autoSlideInterval;
     }
@@ -72,6 +103,22 @@ let filteredItems = window.allMoviesStreams.filter(item => {
       });
     });
 
+    // Add focus listeners to Watch Now buttons to pause/resume auto-slide
+    const watchNowBtns = Array.from(
+      document.querySelectorAll(".carousel-watch-now-btn")
+    );
+    watchNowBtns.forEach((btn) => {
+      btn.addEventListener("focus", () => {
+        if (autoSlideInterval) {
+          clearInterval(autoSlideInterval);
+          autoSlideInterval = null;
+        }
+      });
+      btn.addEventListener("blur", () => {
+        startAutoSlide();
+      });
+    });
+
     updateCarousel();
     startAutoSlide();
 
@@ -86,46 +133,58 @@ let filteredItems = window.allMoviesStreams.filter(item => {
         autoSlideInterval = null;
       }
     };
-    
+
     // Expose cleanup globally immediately
     window.HomeCarousel = HomeCarousel;
   }, 0);
 
+  // Helper to generate slide HTML
+  const generateSlide = (item, index) => {
+    const image = item.stream_icon || item.cover || "assets/demo-img-card.png"; // Fallback image
+    const name = item.name || "Unknown Title";
+    const rating = item.rating_5based || "N/A";
+    // Limit description length?
+    const description =
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam..."; // Placeholder as real description might be missing or too long, or use item.description if available
+
+    return `
+        <div class="slide" data-index="${index}">
+          <img class="carousel-image" loading="lazy" src="${image}" alt="${name}"/>
+          <div class="carousel-content">
+              <div class="carousel-logo-area">
+                  <!-- Optional: If you have a logo image, put it here. For now using text as title -->
+                  <!-- <img src="logo.png" alt="Logo" class="carousel-logo" /> -->
+              </div>
+              <h1 class="carousel-title">${name}</h1>
+              <div class="carousel-meta">
+                  <span class="carousel-duration">2h 35min</span>
+             <span class="carousel-rating-badge"> <img src="./assets/rating-star.png" class="carousel-card-star-icon" />${
+               rating ? rating : "0"
+             }</span>
+              </div>
+              <p class="carousel-description">${description}</p>
+              <button class="carousel-watch-now-btn" tabindex="0">
+                  Watch Now
+              </button>
+          </div>
+        </div>
+      `;
+  };
+
   return `
     <div class="carousel-container">
-      <!--
       <div class="carousel-slides">
-      
-        <div class="slide"><img loading="lazy" src="${sliderData[0].stream_icon}" alt="Slide 1"/></div>
-        <div class="slide"><img loading="lazy" src="${sliderData[1].stream_icon}" alt="Slide 2"/></div>
-        <div class="slide"><img loading="lazy"  src="${sliderData[2].stream_icon}"alt="Slide 3"/></div>
-        <div class="slide"><img loading="lazy"  src="${sliderData[3].stream_icon}"alt="Slide 4"/></div>
-      </div>
-      -->
-
-        <div class="carousel-slides">
-        <div class="slide" data-index="0">
-          <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 1"/>
-          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
-        </div>
-        <div class="slide" data-index="1">
-          <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 2"/>
-          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
-        </div>
-        <div class="slide" data-index="2">
-          <img loading="lazy" src="https://images.unsplash.com/photo-1526779259212-939e64788e3c?ixlib=rb-4.1.0&fm=jpg&q=60&w=1200" alt="Slide 3"/>
-          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
-        </div>
-        <div class="slide" data-index="3">
-          <img loading="lazy" src="https://gratisography.com/wp-content/uploads/2024/11/gratisography-augmented-reality-800x525.jpg" alt="Slide 4"/>
-          <button class="carousel-watch-now-btn" tabindex="0">Watch Now</button>
-        </div>
+        ${sliderData.map((item, index) => generateSlide(item, index)).join("")}
       </div>
       <div class="carousel-dots">
-        <div class="carousel-dot active" data-index="0"></div>
-        <div class="carousel-dot" data-index="1"></div>
-        <div class="carousel-dot" data-index="2"></div>
-        <div class="carousel-dot" data-index="3"></div>
+        ${sliderData
+          .map(
+            (_, index) =>
+              `<div class="carousel-dot ${
+                index === 0 ? "active" : ""
+              }" data-index="${index}"></div>`
+          )
+          .join("")}
       </div>
     </div>
   `;

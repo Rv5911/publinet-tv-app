@@ -306,6 +306,49 @@ async function SeriesDetailPage() {
     }
   };
 
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return "0:00:00";
+
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${mins < 10 ? "0" : ""}${mins}:${
+        secs < 10 ? "0" : ""
+      }${secs}`;
+    } else {
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    }
+  };
+
+  const getEpisodeDurationInSeconds = (episode) => {
+    if (episode.info && episode.info.duration_secs) {
+      return parseInt(episode.info.duration_secs);
+    }
+    if (episode.duration) {
+      return parseInt(episode.duration); // Assuming seconds
+    }
+    if (episode.info && episode.info.duration) {
+      const val = parseInt(episode.info.duration);
+      if (!isNaN(val)) {
+        return val * 60; // Assuming minutes
+      }
+    }
+
+    // Check continueWatchingEpisodes from closure
+    if (continueWatchingEpisodes) {
+      const found = continueWatchingEpisodes.find(
+        (item) => item.episodeId === episode.id.toString()
+      );
+      if (found && found.duration) {
+        return parseInt(found.duration);
+      }
+    }
+
+    return 0;
+  };
+
   const scrollDropdownToFocused = () => {
     const dropdown = document.querySelector(".seasons-dropdown");
     const focusedItem = document.querySelector(".dropdown-item-focused");
@@ -503,8 +546,10 @@ async function SeriesDetailPage() {
           </div>
           
           ${
-            episode.info.duration
-              ? `<div class="episode-duration">${episode.info.duration}m</div>`
+            getEpisodeDurationInSeconds(episode) > 0
+              ? `<div class="episode-duration">${formatTime(
+                  getEpisodeDurationInSeconds(episode)
+                )}</div>`
               : ""
           }
 

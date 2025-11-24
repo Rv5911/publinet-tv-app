@@ -101,6 +101,19 @@ function buildDynamicSidebarOptions() {
       .forEach((el) => el.remove());
 
     const currentPage = localStorage.getItem("currentPage");
+
+    // Handle Sort Option Visibility
+    const sortOption = sidebar.querySelector(".sidebar-sort");
+    if (sortOption) {
+      const SORT_ENABLED_PAGES = ["moviesPage", "seriesPage", "liveTvPage"];
+      if (SORT_ENABLED_PAGES.includes(currentPage)) {
+        sortOption.classList.remove("option-remove");
+        sortOption.style.display = ""; // Revert to CSS default
+      } else {
+        sortOption.classList.add("option-remove");
+        sortOption.style.display = "none";
+      }
+    }
     let label = "";
     let action = "";
     const currentPlaylist = getCurrentPlaylist();
@@ -822,7 +835,13 @@ function initNavbar() {
     sidebar.style.display = "block";
     localStorage.setItem("navigationFocus", "sidebar");
     isSortOptionsOpen = false;
-    const items = Array.from(sidebar.querySelectorAll("li.sidebar-link"));
+    const items = Array.from(
+      sidebar.querySelectorAll("li.sidebar-link")
+    ).filter(
+      (item) =>
+        !item.classList.contains("option-remove") &&
+        item.style.display !== "none"
+    );
     updateSidebarSelection(items, 0);
     const firstItem = items[0];
     if (firstItem) firstItem.focus();
@@ -895,6 +914,10 @@ function initNavbar() {
       sortMenuItem.focus();
       const sidebarItems = Array.from(
         sidebar.querySelectorAll("li.sidebar-link")
+      ).filter(
+        (item) =>
+          !item.classList.contains("option-remove") &&
+          item.style.display !== "none"
       );
       const sortIndex = sidebarItems.indexOf(sortMenuItem);
       updateSidebarSelection(sidebarItems, sortIndex);
@@ -930,7 +953,13 @@ function initNavbar() {
   function handleSidebarKeys(e) {
     if (isSortOptionsOpen) return;
 
-    const items = Array.from(sidebar.querySelectorAll("li.sidebar-link"));
+    const items = Array.from(
+      sidebar.querySelectorAll("li.sidebar-link")
+    ).filter(
+      (item) =>
+        !item.classList.contains("option-remove") &&
+        item.style.display !== "none"
+    );
     if (!items.length) return;
 
     let activeIndex = items.findIndex((item) =>

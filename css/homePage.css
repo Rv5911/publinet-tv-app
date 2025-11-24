@@ -291,7 +291,10 @@
   padding-right: 16px;
   border-radius: 16px;
   padding-top: 3px;
-  width: 30px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: center;
   font-size: 18px;
   padding-bottom: 3px;
 }

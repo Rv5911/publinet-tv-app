@@ -5,7 +5,7 @@
   margin: auto;
   overflow: hidden;
   position: relative;
-  background: #000; /* fallback background */
+  background: #000;
 }
 
 /* Slides Wrapper */
@@ -21,9 +21,9 @@
   flex: 1 0 100%;
   height: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start; /* Align content to left */
   align-items: center;
-  overflow: hidden; /* important for images */
+  overflow: hidden;
   position: relative;
 }
 
@@ -59,33 +59,133 @@
   z-index: 1;
 }
 
-.slide img {
+.carousel-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background-repeat: no-repeat;
-  background-position: bottom center;
   object-fit: cover;
-  display: block;
+  z-index: 0;
+}
+
+/* Content Wrapper */
+.carousel-content {
+  position: relative;
+  z-index: 2;
+  width: 80%;
+  padding-left: 80px; /* Adjust based on design */
+  color: white;
+  zoom: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 100px; /* Push down slightly */
+}
+
+/* Title */
+.carousel-title {
+  font-size: 64px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
+  text-transform: capitalize;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Meta Info (Duration, Rating) */
+.carousel-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.carousel-rating-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 12px;
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
+}
+
+.star-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Description */
+.carousel-description {
+  font-size: 30px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* Standard property */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Watch Now Button */
+.carousel-watch-now-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 32px;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  background: transparent;
+  border: 2px solid var(--dark-gold, #ffd700);
+  border-radius: 30px;
+  cursor: pointer;
+  width: fit-content;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.carousel-watch-now-btn .btn-icon {
+  width: 20px;
+  height: 20px;
+  filter: brightness(0) invert(1); /* Make icon white */
+}
+
+.carousel-watch-now-btn:hover,
+.carousel-watch-now-btn.focused {
+  background: var(--dark-gold, #ffd700);
+  color: black;
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(253, 189, 15, 0.4);
+}
+
+.carousel-watch-now-btn.focused .btn-icon {
+  filter: none; /* Restore original icon color or make black */
+  filter: brightness(0); /* Make icon black */
 }
 
 /* Carousel Dots Container */
 .carousel-dots {
   position: absolute;
-  bottom: 30px;
+  bottom: 40px;
+  zoom: 2;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   z-index: 10;
-  zoom: 1.4; /* scale up dots if needed */
 }
 
 /* Individual Dot */
 .carousel-dot {
-  width: 18px;
-  height: 18px;
-  margin-left: 12px;
-  background: white;
-  border-radius: 50%; /* circle */
+  width: 12px;
+  height: 12px;
+  margin: 0 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -93,46 +193,21 @@
 /* Active Dot */
 .carousel-dot.active {
   width: 40px;
-  height: 18px;
-  border-radius: 30px;
-  background: var(--dark-gold, #ffd700); /* fallback gold color */
-}
-
-/* Watch Now Button */
-.carousel-watch-now-btn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 48px;
-  font-size: 24px;
-  font-weight: 600;
-  color: white;
-  background: rgba(253, 189, 15, 0.9);
-  border: 2px solid var(--dark-gold, #ffd700);
-  border-radius: 12px;
-  cursor: pointer;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.carousel-watch-now-btn.focused {
-  opacity: 1;
-  visibility: visible;
   background: var(--dark-gold, #ffd700);
-  color: #000;
-  transform: translate(-50%, -50%) scale(1.05);
-  box-shadow: 0 0 20px rgba(253, 189, 15, 0.6);
-  pointer-events: auto;
+  border-radius: 20px;
 }
 
-/* Optional: Responsive */
+/* Responsive */
 @media (max-width: 1200px) {
   .carousel-container {
     height: 70vh;
+  }
+  .carousel-content {
+    padding-left: 50px;
+    width: 60%;
+  }
+  .carousel-title {
+    font-size: 48px;
   }
 }
 
@@ -140,14 +215,36 @@
   .carousel-container {
     height: 50vh;
   }
-
-  .carousel-dot {
-    width: 12px;
-    height: 12px;
+  .carousel-content {
+    padding-left: 20px;
+    width: 80%;
+    margin-top: 50px;
   }
-
-  .carousel-dot.active {
-    width: 28px;
-    height: 12px;
+  .carousel-title {
+    font-size: 32px;
   }
+  .carousel-description {
+    font-size: 14px;
+    -webkit-line-clamp: 2;
+  }
+  .carousel-watch-now-btn {
+    padding: 10px 24px;
+    font-size: 16px;
+  }
+}
+
+.carousel-rating-badge {
+  background-color: #515dff;
+  padding-left: 14px;
+  padding-right: 16px;
+  border-radius: 16px;
+  padding-top: 3px;
+  font-size: 18px;
+  padding-bottom: 3px;
+}
+
+.carousel-card-star-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
 }

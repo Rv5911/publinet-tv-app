@@ -364,15 +364,15 @@
 
 .episode-duration {
   position: absolute;
-  bottom: 15px;
-  left: 15px;
+  bottom: 10px;
+  left: 10px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 18px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 14px;
   font-weight: 500;
-  z-index: 2;
+  z-index: 10;
   backdrop-filter: blur(4px);
 }
 
