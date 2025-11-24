@@ -138,7 +138,7 @@ function buildDynamicSidebarOptions() {
     const isIncludedInRecentlyWatchedSeries =
       allRecentlyWatchedSeries &&
       allRecentlyWatchedSeries.some(
-        (series) => series && series.id == selectedSeriesId
+        (series) => series && series.itemId == selectedSeriesId
       );
 
     console.log("Current page:", currentPage);
@@ -166,14 +166,7 @@ function buildDynamicSidebarOptions() {
     }
     // FIX: Use consistent page name and proper boolean check
     else if (currentPage === "movieDetailPage") {
-      const isContinueWatching =
-        localStorage.getItem("isContinueWatchingMovie") === "true";
-      console.log(
-        "Movie Detail Page - isContinueWatching:",
-        isContinueWatching
-      );
-
-      if (isContinueWatching) {
+      if (isIncludedInRecentlyWatchedMovies) {
         label = "Remove Movie From Recently Watched";
         action = "remove-movie";
       } else {
@@ -183,10 +176,7 @@ function buildDynamicSidebarOptions() {
         return;
       }
     } else if (currentPage === "seriesDetailPage") {
-      if (
-        isIncludedInRecentlyWatchedSeries &&
-        isIncludedInRecentlyWatchedSeries.length > 0
-      ) {
+      if (isIncludedInRecentlyWatchedSeries) {
         label = "Remove Series From Recently Watched";
         action = "remove-series";
       } else {
