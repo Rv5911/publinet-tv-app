@@ -8,6 +8,18 @@ let moviesNavigationState = {
 
 let allMoviesStreamsData = window.allMoviesStreams || [];
 let favoriteMoviesIds = [];
+const unlockedMovieAdultIds = new Set();
+
+const isMovieAdult = (name) => {
+  const normalized = (name || "").trim().toLowerCase();
+  const configured = window.adultsCategories || [];
+  if (configured.includes(normalized)) return true;
+  return /(adult|xxx|18\+|18\s*plus|sex|porn|nsfw)/i.test(normalized);
+};
+
+window.resetMoviesParentalState = () => {
+  unlockedMovieAdultIds.clear();
+};
 
 let isMoviesNavigationInitialized = false;
 
@@ -291,13 +303,31 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
       ? currentCardCategory[0].category_name
       : movieData.genre || "Movie"; // Use genre as fallback
 
+  const isAdult = isMovieAdult(movieData.genre) || isMovieAdult(categoryName);
+  const currentPlaylist = getCurrentPlaylist();
+  const hasParentalPassword =
+    currentPlaylist && currentPlaylist.parentalPassword;
+  const isLocked = isAdult && !unlockedMovieAdultIds.has(String(movieId));
+
+  let overlayHtml = "";
+  if (isLocked) {
+    if (hasParentalPassword) {
+      overlayHtml = `<div class="adult-overlay"><i class="fas fa-lock card-lock-icon"></i></div>`;
+    } else {
+      overlayHtml = `<div class="adult-overlay"></div>`;
+    }
+  }
+
   return `<div class="${cardClass}" 
             data-category="${categoryIndex}" 
             data-index="${movieIndex}" 
             data-stream-id="${movieId}" 
+            data-is-adult="${isAdult}"
+            data-is-locked="${isLocked}"
             style="background-image: url('${
               imageUrl ? imageUrl : "./assets/demo-img-card.png"
             }')">
+            ${overlayHtml}
             <div class="movie-card-content">
                 <div class="movie-card-top">
                     <img src="./assets/heartIcon.png" 
@@ -661,46 +691,80 @@ function handleMoviesSimpleEnter() {
 
   if (currentCard) {
     let streamId = currentCard.getAttribute("data-stream-id");
-    let isContinueWatchingMovie = false;
-    localStorage.setItem("moviesCategoryIndex", categoryIndex);
-    localStorage.setItem("moviesCardIndex", cardIndex);
-    localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
 
-    localStorage.setItem("selectedMovieId", streamId);
+    const isAdult = currentCard.getAttribute("data-is-adult") === "true";
+    const isLocked = currentCard.getAttribute("data-is-locked") === "true";
     const currentPlaylist = getCurrentPlaylist();
-    const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
-    if (allRecentlyWatchedMovies && Array.isArray(allRecentlyWatchedMovies)) {
-      isContinueWatchingMovie = allRecentlyWatchedMovies.some(
-        (movie) => movie && movie.itemId == streamId
-      );
+    const hasParentalPassword =
+      currentPlaylist && currentPlaylist.parentalPassword;
+
+    if (isAdult && isLocked) {
+      if (hasParentalPassword) {
+        ParentalPinDialog(
+          () => {
+            unlockedMovieAdultIds.add(String(streamId));
+            const overlay = currentCard.querySelector(".adult-overlay");
+            if (overlay) overlay.remove();
+            currentCard.setAttribute("data-is-locked", "false");
+            proceedToMovieDetail(categoryIndex, cardIndex, streamId);
+          },
+          () => {
+            // Stay on page
+          },
+          currentPlaylist,
+          "moviesPage"
+        );
+        return;
+      } else {
+        proceedToMovieDetail(categoryIndex, cardIndex, streamId);
+        return;
+      }
     }
 
-    localStorage.setItem(
-      "isContinueWatchingMovie",
-      isContinueWatchingMovie.toString()
-    );
-
-    buildDynamicSidebarOptions();
-
-    const selectedMovieItem = window.allMoviesStreams.find(
-      (item) => item.stream_id == streamId
-    );
-    if (selectedMovieItem) {
-      localStorage.setItem(
-        "selectedMovieData",
-        JSON.stringify(selectedMovieItem)
-      );
-    }
-
-    cleanupMoviesNavigation();
-
-    document.querySelector("#loading-progress").style.display = "none";
-
-    localStorage.setItem("currentPage", "movieDetailPage");
-    localStorage.setItem("navigationFocus", "movieDetailPage");
-
-    Router.showPage("movieDetailPage");
+    proceedToMovieDetail(categoryIndex, cardIndex, streamId);
   }
+}
+
+function proceedToMovieDetail(categoryIndex, cardIndex, streamId) {
+  let isContinueWatchingMovie = false;
+  localStorage.setItem("moviesCategoryIndex", categoryIndex);
+  localStorage.setItem("moviesCardIndex", cardIndex);
+  localStorage.setItem("moviesSelectedCategoryId", categoryIndex);
+
+  localStorage.setItem("selectedMovieId", streamId);
+  const currentPlaylist = getCurrentPlaylist();
+  const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
+  if (allRecentlyWatchedMovies && Array.isArray(allRecentlyWatchedMovies)) {
+    isContinueWatchingMovie = allRecentlyWatchedMovies.some(
+      (movie) => movie && movie.itemId == streamId
+    );
+  }
+
+  localStorage.setItem(
+    "isContinueWatchingMovie",
+    isContinueWatchingMovie.toString()
+  );
+
+  buildDynamicSidebarOptions();
+
+  const selectedMovieItem = window.allMoviesStreams.find(
+    (item) => item.stream_id == streamId
+  );
+  if (selectedMovieItem) {
+    localStorage.setItem(
+      "selectedMovieData",
+      JSON.stringify(selectedMovieItem)
+    );
+  }
+
+  cleanupMoviesNavigation();
+
+  document.querySelector("#loading-progress").style.display = "none";
+
+  localStorage.setItem("currentPage", "movieDetailPage");
+  localStorage.setItem("navigationFocus", "movieDetailPage");
+
+  Router.showPage("movieDetailPage");
 }
 
 function handleMoviesLongPressEnter() {

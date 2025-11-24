@@ -376,6 +376,15 @@ function initNavbar() {
       });
     }
   };
+
+  const resetParentalControlState = () => {
+    if (typeof window.resetMoviesParentalState === "function") {
+      window.resetMoviesParentalState();
+    }
+    if (typeof window.resetSeriesParentalState === "function") {
+      window.resetSeriesParentalState();
+    }
+  };
   // Initialize search query in window object
   window.searchQuery = window.searchQuery || "";
 
@@ -424,6 +433,7 @@ function initNavbar() {
     item.addEventListener("click", () => {
       const page = item.getAttribute("data-page");
       disposeLiveTvPlayer();
+      resetParentalControlState();
       Router.showPage(page);
       updateNavbarActive(page);
       buildDynamicSidebarOptions();
@@ -767,6 +777,7 @@ function initNavbar() {
           const page = navItems[currentIndex - 1].getAttribute("data-page");
           clearMoviesAndSeriesLocalStorage();
           disposeLiveTvPlayer();
+          resetParentalControlState();
           Router.showPage(page);
           updateNavbarActive(page);
         }
@@ -1030,17 +1041,20 @@ function initNavbar() {
           handleLogOut();
         } else if (text === "Settings") {
           disposeLiveTvPlayer();
+          resetParentalControlState();
           localStorage.setItem("currentPage", "settingsPage");
           Router.showPage("settingsPage");
           closeSidebar();
         } else if (text === "List User") {
           disposeLiveTvPlayer();
+          resetParentalControlState();
           localStorage.setItem("navigationFocus", "");
           localStorage.setItem("isLogin", false);
           Router.showPage("listPage");
           closeSidebar();
         } else if (text === "My Account") {
           disposeLiveTvPlayer();
+          resetParentalControlState();
           localStorage.setItem("currentPage", "accountPage");
           Router.showPage("accountPage");
           closeSidebar();

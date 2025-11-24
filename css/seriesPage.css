@@ -28,7 +28,7 @@
   width: 60px;
   height: 60px;
   border: 6px solid rgba(255, 255, 255, 0.3);
-  border-top: 6px solid #FDBD0F;
+  border-top: 6px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -96,7 +96,7 @@
   width: 260px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -123,11 +123,10 @@
   border-radius: 20px;
 }
 
-
 .series-card:hover {
   border: 2px solid var(--dark-gold);
   transform: scale(1.03);
-  z-index: 1; 
+  z-index: 1;
 }
 
 .series-card:hover::after {
@@ -294,8 +293,6 @@
   margin: 2px 0;
   opacity: 0.9;
   white-space: nowrap;
-
-
 }
 
 .series-card-bottom-left h2:not(.series-title-marquee),
@@ -386,7 +383,7 @@
   width: 30px;
   height: 30px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #FDBD0F;
+  border-top: 4px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 15px;
@@ -416,7 +413,7 @@
   width: 40px;
   height: 40px;
   border: 5px solid rgba(255, 255, 255, 0.3);
-  border-top: 5px solid #FDBD0F;
+  border-top: 5px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 20px;
@@ -440,11 +437,11 @@
 }
 
 @keyframes spin {
-  0% { 
-    transform: rotate(0deg); 
+  0% {
+    transform: rotate(0deg);
   }
-  100% { 
-    transform: rotate(360deg); 
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -484,14 +481,13 @@
   display: none;
 }
 
-
 /* Focus indicators for accessibility */
 .series-card:focus {
-  outline: 3px solid #FDBD0F;
+  outline: 3px solid #fdbd0f;
   outline-offset: 2px;
 }
 
-.series-page-no-data{
+.series-page-no-data {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -502,6 +498,26 @@
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
 
-.series-page-no-data p{
+.series-page-no-data p {
   font-size: 60px;
+}
+
+/* Adult Content Overlay */
+.adult-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 4;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-lock-icon {
+  font-size: 50px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }

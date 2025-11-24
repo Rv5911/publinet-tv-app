@@ -3,7 +3,7 @@
   width: 100%;
   padding: 250px 60px 100px;
   overflow-x: hidden;
-height: 100vh;
+  height: 100vh;
   animation: fadeInOut 1s ease-in-out;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
@@ -28,7 +28,7 @@ height: 100vh;
   width: 60px;
   height: 60px;
   border: 6px solid rgba(255, 255, 255, 0.3);
-  border-top: 6px solid #FDBD0F;
+  border-top: 6px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
@@ -50,8 +50,8 @@ height: 100vh;
   text-align: center;
 }
 
-.no-search-data-container{
-    display: flex;
+.no-search-data-container {
+  display: flex;
   justify-content: center;
   zoom: 2.4;
   width: 100%;
@@ -103,7 +103,7 @@ height: 100vh;
   width: 260px;
   border: 1px solid rgba(255, 255, 255, 0.5);
   position: relative;
-  overflow: hidden; 
+  overflow: hidden;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -130,11 +130,10 @@ height: 100vh;
   border-radius: 20px;
 }
 
-
 .movie-card:hover {
   border: 2px solid var(--dark-gold);
   transform: scale(1.03);
-  z-index: 1; 
+  z-index: 1;
 }
 
 .movie-card:hover::after {
@@ -301,8 +300,6 @@ height: 100vh;
   margin: 2px 0;
   opacity: 0.9;
   white-space: nowrap;
-
-
 }
 
 .movie-card-bottom-left h2:not(.movie-title-marquee),
@@ -393,7 +390,7 @@ height: 100vh;
   width: 30px;
   height: 30px;
   border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #FDBD0F;
+  border-top: 4px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 15px;
@@ -423,7 +420,7 @@ height: 100vh;
   width: 40px;
   height: 40px;
   border: 5px solid rgba(255, 255, 255, 0.3);
-  border-top: 5px solid #FDBD0F;
+  border-top: 5px solid #fdbd0f;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 20px;
@@ -447,11 +444,11 @@ height: 100vh;
 }
 
 @keyframes spin {
-  0% { 
-    transform: rotate(0deg); 
+  0% {
+    transform: rotate(0deg);
   }
-  100% { 
-    transform: rotate(360deg); 
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -491,17 +488,14 @@ height: 100vh;
   display: none;
 }
 
-
 /* Focus indicators for accessibility */
 .movie-card:focus {
-  outline: 3px solid #FDBD0F;
+  outline: 3px solid #fdbd0f;
   outline-offset: 2px;
 }
 
-
-
-.movie-card-rating{
-  background-color: #515DFF;
+.movie-card-rating {
+  background-color: #515dff;
   padding-left: 14px;
   padding-right: 16px;
   border-radius: 16px;
@@ -511,14 +505,13 @@ height: 100vh;
   padding-bottom: 3px;
 }
 
-.movie-card-star-icon{
+.movie-card-star-icon {
   width: 16px;
   height: 16px;
   margin-right: 3px;
 }
 
-
-.movies-page-no-data{
+.movies-page-no-data {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -529,6 +522,26 @@ height: 100vh;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
 
-.movies-page-no-data p{
+.movies-page-no-data p {
   font-size: 60px;
+}
+
+/* Adult Content Overlay */
+.adult-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 4;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-lock-icon {
+  font-size: 50px;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }

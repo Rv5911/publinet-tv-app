@@ -7,6 +7,18 @@ let seriesNavigationState = {
 
 let allSeriesStreamsData = window.allSeriesStreams || [];
 let favoriteSeriesIds = [];
+const unlockedSeriesAdultIds = new Set();
+
+const isSeriesAdult = (name) => {
+  const normalized = (name || "").trim().toLowerCase();
+  const configured = window.adultsCategories || [];
+  if (configured.includes(normalized)) return true;
+  return /(adult|xxx|18\+|18\s*plus|sex|porn|nsfw)/i.test(normalized);
+};
+
+window.resetSeriesParentalState = () => {
+  unlockedSeriesAdultIds.clear();
+};
 
 let isSeriesNavigationInitialized = false;
 
@@ -286,13 +298,32 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
       ? currentCardCategory[0].category_name
       : seriesData.genre || "Series";
 
+  const isAdult =
+    isSeriesAdult(seriesData.genre) || isSeriesAdult(categoryName);
+  const currentPlaylist = getCurrentPlaylist();
+  const hasParentalPassword =
+    currentPlaylist && currentPlaylist.parentalPassword;
+  const isLocked = isAdult && !unlockedSeriesAdultIds.has(String(seriesId));
+
+  let overlayHtml = "";
+  if (isLocked) {
+    if (hasParentalPassword) {
+      overlayHtml = `<div class="adult-overlay"><i class="fas fa-lock card-lock-icon"></i></div>`;
+    } else {
+      overlayHtml = `<div class="adult-overlay"></div>`;
+    }
+  }
+
   return `<div class="${cardClass}" 
             data-category="${categoryIndex}" 
             data-index="${seriesIndex}" 
             data-series-id="${seriesId}" 
+            data-is-adult="${isAdult}"
+            data-is-locked="${isLocked}"
             style="background-image: url('${
               imageUrl ? imageUrl : "./assets/demo-img-card.png"
             }')">
+            ${overlayHtml}
             <div class="series-card-content">
                 <div class="series-card-top">
                     <img src="./assets/heartIcon.png" 
@@ -659,31 +690,64 @@ function handleSeriesSimpleEnter() {
   if (currentCard) {
     let seriesId = currentCard.getAttribute("data-series-id");
 
-    localStorage.setItem("seriesCategoryIndex", categoryIndex);
-    localStorage.setItem("seriesCardIndex", cardIndex);
-    localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
+    const isAdult = currentCard.getAttribute("data-is-adult") === "true";
+    const isLocked = currentCard.getAttribute("data-is-locked") === "true";
+    const currentPlaylist = getCurrentPlaylist();
+    const hasParentalPassword =
+      currentPlaylist && currentPlaylist.parentalPassword;
 
-    localStorage.setItem("selectedSeriesId", seriesId);
-
-    const selectedSeriesItem = window.allSeriesStreams.find(
-      (item) => item.series_id == seriesId
-    );
-    if (selectedSeriesItem) {
-      localStorage.setItem(
-        "selectedSeriesItem",
-        JSON.stringify(selectedSeriesItem)
-      );
+    if (isAdult && isLocked) {
+      if (hasParentalPassword) {
+        ParentalPinDialog(
+          () => {
+            unlockedSeriesAdultIds.add(String(seriesId));
+            const overlay = currentCard.querySelector(".adult-overlay");
+            if (overlay) overlay.remove();
+            currentCard.setAttribute("data-is-locked", "false");
+            proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
+          },
+          () => {
+            // Stay on page
+          },
+          currentPlaylist,
+          "seriesPage"
+        );
+        return;
+      } else {
+        proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
+        return;
+      }
     }
 
-    cleanupSeriesNavigation();
-
-    document.querySelector("#loading-progress").style.display = "none";
-
-    localStorage.setItem("currentPage", "seriesDetailPage");
-    localStorage.setItem("navigationFocus", "seriesDetailPage");
-
-    Router.showPage("seriesDetailPage");
+    proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
   }
+}
+
+function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
+  localStorage.setItem("seriesCategoryIndex", categoryIndex);
+  localStorage.setItem("seriesCardIndex", cardIndex);
+  localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
+
+  localStorage.setItem("selectedSeriesId", seriesId);
+
+  const selectedSeriesItem = window.allSeriesStreams.find(
+    (item) => item.series_id == seriesId
+  );
+  if (selectedSeriesItem) {
+    localStorage.setItem(
+      "selectedSeriesItem",
+      JSON.stringify(selectedSeriesItem)
+    );
+  }
+
+  cleanupSeriesNavigation();
+
+  document.querySelector("#loading-progress").style.display = "none";
+
+  localStorage.setItem("currentPage", "seriesDetailPage");
+  localStorage.setItem("navigationFocus", "seriesDetailPage");
+
+  Router.showPage("seriesDetailPage");
 }
 
 function handleSeriesLongPressEnter() {
