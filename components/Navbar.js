@@ -569,8 +569,13 @@ function initNavbar() {
             currentPage === "seriesPage") &&
           navigationFocus === "navbar"
         ) {
+          // For moviesPage and seriesPage, prevent default immediately to avoid flickering
+          if (currentPage === "moviesPage" || currentPage === "seriesPage") {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+
           searchInput.blur();
-          localStorage.setItem("navigationFocus", currentPage);
 
           navItems.forEach((item) => item.classList.remove("active"));
           searchInput.classList.remove("active");
@@ -578,12 +583,14 @@ function initNavbar() {
 
           // For homePage, just set navigation focus and let HomePage.js handle it
           if (currentPage === "homePage") {
+            localStorage.setItem("navigationFocus", currentPage);
             // Don't prevent default or stop propagation - let HomePage.js handle it
             return;
           }
 
           // For liveTvPage, focus on first category
           if (currentPage === "liveTvPage") {
+            localStorage.setItem("navigationFocus", currentPage);
             setTimeout(() => {
               if (typeof focusCategories === "function") {
                 focusCategories(0);
@@ -626,6 +633,7 @@ function initNavbar() {
           }
 
           if (currentPage === "movieDetailPage") {
+            localStorage.setItem("navigationFocus", "movieDetailPage");
             setTimeout(() => {
               const firstDetailPlayBtn = document.querySelector(
                 ".movie-detail-play-button"
@@ -649,13 +657,10 @@ function initNavbar() {
 
           // MoviesPage: prioritize My Fav on initial down from navbar
           if (currentPage === "moviesPage" && window.moviesNavigationState) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            // Move focus from navbar to movies page
-            localStorage.setItem("navigationFocus", "moviesPage");
-
             setTimeout(function () {
+              // Move focus from navbar to movies page ONLY after timeout
+              localStorage.setItem("navigationFocus", "moviesPage");
+
               let favList = document.querySelector(
                 ".movies-card-list.fav-list"
               );
@@ -701,19 +706,16 @@ function initNavbar() {
                   window.updateMoviesFocus();
                 }
               }
-            }, 50);
+            }, 150);
             return;
           }
 
           // SeriesPage: prioritize My Fav on initial down from navbar
           if (currentPage === "seriesPage" && window.seriesNavigationState) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-
-            // Move focus from navbar to series page
-            localStorage.setItem("navigationFocus", "seriesPage");
-
             setTimeout(function () {
+              // Move focus from navbar to series page ONLY after timeout
+              localStorage.setItem("navigationFocus", "seriesPage");
+
               let favList = document.querySelector(
                 ".series-card-list.fav-list"
               );
@@ -759,7 +761,7 @@ function initNavbar() {
                   window.updateSeriesFocus();
                 }
               }
-            }, 50);
+            }, 150);
             return;
           }
         }
