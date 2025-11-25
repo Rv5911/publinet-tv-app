@@ -584,7 +584,7 @@ function loadMoreMoviesCategories() {
         }
       }
     }
-  }, 200);
+  }, 50);
 }
 
 function createMoviesCategorySection(category, categoryIndex) {
@@ -1229,17 +1229,18 @@ function getMoviesCurrentVisibleIndex(categoryIndex, cardIndex) {
   let cardList = document.querySelector(
     '.movies-card-list[data-category="' + categoryIndex + '"]'
   );
-  if (!cardList) return cardIndex;
+  if (!cardList) return 0;
 
   let containerWidth = cardList.offsetWidth;
   let firstCard = cardList.querySelector(".movie-card");
-  if (!firstCard) return cardIndex;
+  if (!firstCard) return 0;
 
   let cardWidth = firstCard.offsetWidth + 16;
   let visibleCardsCount = Math.floor(containerWidth / cardWidth);
 
+  // Clamp to last visible card index
   if (cardIndex >= visibleCardsCount) {
-    return cardIndex % visibleCardsCount;
+    return visibleCardsCount - 1;
   }
 
   return cardIndex;
@@ -1505,7 +1506,7 @@ function loadMoreMoviesForCategory(categoryIndex) {
         }
       }
     }
-  }, 100);
+  }, 30);
 }
 
 function removeAllMoviesFocus() {

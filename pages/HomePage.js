@@ -1,5 +1,7 @@
-function HomePage() {
-  const selectedPlaylistData = localStorage.getItem("selectedPlaylist") ? JSON.parse(localStorage.getItem("selectedPlaylist")) : {};
+async function HomePage() {
+  const selectedPlaylistData = localStorage.getItem("selectedPlaylist")
+    ? JSON.parse(localStorage.getItem("selectedPlaylist"))
+    : {};
 
   setTimeout(function () {
     if (HomePage.cleanup) HomePage.cleanup();
@@ -12,10 +14,10 @@ function HomePage() {
 
     // Navigation state
     let navState = {
-      focus: 'carousel', // 'carousel', 'watchNow', 'categories'
+      focus: "carousel", // 'carousel', 'watchNow', 'categories'
       currentCategory: 0,
       currentCard: 0,
-      carouselStopped: false
+      carouselStopped: false,
     };
 
     // Scroll to element function (from MoviesPage)
@@ -26,19 +28,19 @@ function HomePage() {
         document.body.scrollTop = 30;
         element.scrollIntoView({
           block: "nearest",
-          inline: "nearest"
+          inline: "nearest",
         });
       } catch (e) {
         try {
           element.scrollIntoView({
             block: "nearest",
-            inline: "nearest"
+            inline: "nearest",
           });
         } catch (finalError) {
           try {
             element.scrollIntoView();
           } catch (error) {
-            console.log('Home scroll failed');
+            console.log("Home scroll failed");
           }
         }
       }
@@ -46,36 +48,48 @@ function HomePage() {
 
     function updateFocus() {
       // Remove all previous focus states
-      document.querySelectorAll('.carousel-watch-now-btn.focused').forEach(btn => {
-        btn.classList.remove('focused');
-      });
-      document.querySelectorAll('.home-card.focused').forEach(card => {
-        card.classList.remove('focused');
+      document
+        .querySelectorAll(".carousel-watch-now-btn.focused")
+        .forEach((btn) => {
+          btn.classList.remove("focused");
+        });
+      document.querySelectorAll(".home-card.focused").forEach((card) => {
+        card.classList.remove("focused");
       });
 
-      if (navState.focus === 'watchNow') {
+      if (navState.focus === "watchNow") {
         // Use the globally tracked carousel index
         const activeIndex = window.carouselActiveIndex || 0;
-        const activeSlide = document.querySelector(`.slide[data-index="${activeIndex}"]`);
+        const activeSlide = document.querySelector(
+          `.slide[data-index="${activeIndex}"]`
+        );
 
         if (activeSlide) {
-          const btn = activeSlide.querySelector('.carousel-watch-now-btn');
+          const btn = activeSlide.querySelector(".carousel-watch-now-btn");
           if (btn) {
-            btn.classList.add('focused');
+            btn.classList.add("focused");
             btn.focus(); // Set browser focus
           }
         }
-      } else if (navState.focus === 'categories') {
+      } else if (navState.focus === "categories") {
         const currentCard = document.querySelector(
           `.home-card[data-category="${navState.currentCategory}"][data-index="${navState.currentCard}"]`
         );
-        console.log('updateFocus - looking for card:', `category=${navState.currentCategory}, index=${navState.currentCard}`, 'found:', !!currentCard);
+        console.log(
+          "updateFocus - looking for card:",
+          `category=${navState.currentCategory}, index=${navState.currentCard}`,
+          "found:",
+          !!currentCard
+        );
         if (currentCard) {
-          currentCard.classList.add('focused');
+          currentCard.classList.add("focused");
           currentCard.focus(); // Set browser focus
           scrollToHomeElement(currentCard);
         } else {
-          console.warn('Card not found in DOM!', `category=${navState.currentCategory}, index=${navState.currentCard}`);
+          console.warn(
+            "Card not found in DOM!",
+            `category=${navState.currentCategory}, index=${navState.currentCard}`
+          );
         }
       }
     }
@@ -105,47 +119,63 @@ function HomePage() {
         case "ArrowDown":
           e.preventDefault();
 
-          if (navState.focus === 'carousel' || navState.focus === 'watchNow') {
+          if (navState.focus === "carousel" || navState.focus === "watchNow") {
             // If we're at carousel level, move to Watch Now
-            if (navState.focus === 'carousel') {
+            if (navState.focus === "carousel") {
               stopCarousel();
-              navState.focus = 'watchNow';
+              navState.focus = "watchNow";
               updateFocus();
             }
             // If already at Watch Now, move to categories
-            else if (navState.focus === 'watchNow') {
+            else if (navState.focus === "watchNow") {
               // From Watch Now to first available category
-              const firstCard = document.querySelector('.home-card');
-              
+              const firstCard = document.querySelector(".home-card");
+
               if (firstCard) {
-                const category = parseInt(firstCard.getAttribute('data-category'));
-                const index = parseInt(firstCard.getAttribute('data-index'));
-                
-                console.log('ArrowDown from Watch Now - Found first card:', `category=${category}, index=${index}`);
-                
-                navState.focus = 'categories';
+                const category = parseInt(
+                  firstCard.getAttribute("data-category")
+                );
+                const index = parseInt(firstCard.getAttribute("data-index"));
+
+                console.log(
+                  "ArrowDown from Watch Now - Found first card:",
+                  `category=${category}, index=${index}`
+                );
+
+                navState.focus = "categories";
                 navState.currentCategory = category;
                 navState.currentCard = index;
                 updateFocus();
               } else {
-                console.log('ArrowDown from Watch Now - No cards found in any category');
+                console.log(
+                  "ArrowDown from Watch Now - No cards found in any category"
+                );
               }
             }
-          } else if (navState.focus === 'categories') {
+          } else if (navState.focus === "categories") {
             // Move to next category (only from My Fav to Recently Added)
-            console.log('ArrowDown in categories - currentCategory:', navState.currentCategory);
+            console.log(
+              "ArrowDown in categories - currentCategory:",
+              navState.currentCategory
+            );
             if (navState.currentCategory === 0) {
-              const recentList = document.querySelector(`.home-card-list[data-category="1"]`);
-              const hasRecentCards = recentList && recentList.querySelectorAll('.home-card').length > 0;
+              const recentList = document.querySelector(
+                `.home-card-list[data-category="1"]`
+              );
+              const hasRecentCards =
+                recentList &&
+                recentList.querySelectorAll(".home-card").length > 0;
 
               if (hasRecentCards) {
                 navState.currentCategory = 1;
                 navState.currentCard = 0;
-                console.log('Moving from My Fav to Recently Added');
+                console.log("Moving from My Fav to Recently Added");
                 updateFocus();
               }
             } else {
-              console.log('Already at Recently Added (category 1), cannot go further down');
+              console.log(
+                "Already at Recently Added (category 1), cannot go further down"
+              );
             }
           }
           break;
@@ -153,38 +183,45 @@ function HomePage() {
         case "ArrowUp":
           e.preventDefault();
 
-          if (navState.focus === 'watchNow') {
+          if (navState.focus === "watchNow") {
             // From Watch Now back to navbar
-            navState.focus = 'carousel';
+            navState.focus = "carousel";
             navState.carouselStopped = false;
             updateFocus();
 
             // Scroll to top
             try {
-              const homeContainer = document.querySelector('.home-page-container');
+              const homeContainer = document.querySelector(
+                ".home-page-container"
+              );
               if (homeContainer) {
                 homeContainer.scrollTop = 0;
               }
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              window.scrollTo({ top: 0, behavior: "smooth" });
             } catch (e) {
-              console.log('Scroll to top failed:', e);
+              console.log("Scroll to top failed:", e);
             }
 
             // Focus navbar
             localStorage.setItem("navigationFocus", "navbar");
 
             setTimeout(() => {
-              const homeNavItem = document.querySelector('.nav-item[data-page="homePage"]');
+              const homeNavItem = document.querySelector(
+                '.nav-item[data-page="homePage"]'
+              );
               if (homeNavItem) {
                 homeNavItem.focus();
                 homeNavItem.classList.add("active");
               }
             }, 50);
-          } else if (navState.focus === 'categories') {
+          } else if (navState.focus === "categories") {
             if (navState.currentCategory === 1) {
               // From Recently Added to My Fav
-              const favList = document.querySelector(`.home-card-list[data-category="0"]`);
-              const hasFavCards = favList && favList.querySelectorAll('.home-card').length > 0;
+              const favList = document.querySelector(
+                `.home-card-list[data-category="0"]`
+              );
+              const hasFavCards =
+                favList && favList.querySelectorAll(".home-card").length > 0;
 
               if (hasFavCards) {
                 navState.currentCategory = 0;
@@ -192,12 +229,12 @@ function HomePage() {
                 updateFocus();
               } else {
                 // My Fav empty, go to Watch Now
-                navState.focus = 'watchNow';
+                navState.focus = "watchNow";
                 updateFocus();
               }
             } else {
               // From My Fav to Watch Now
-              navState.focus = 'watchNow';
+              navState.focus = "watchNow";
               updateFocus();
             }
           }
@@ -206,9 +243,13 @@ function HomePage() {
         case "ArrowRight":
           e.preventDefault();
 
-          if (navState.focus === 'categories') {
-            const categoryList = document.querySelector(`.home-card-list[data-category="${navState.currentCategory}"]`);
-            const cards = categoryList ? categoryList.querySelectorAll('.home-card') : [];
+          if (navState.focus === "categories") {
+            const categoryList = document.querySelector(
+              `.home-card-list[data-category="${navState.currentCategory}"]`
+            );
+            const cards = categoryList
+              ? categoryList.querySelectorAll(".home-card")
+              : [];
 
             if (navState.currentCard < cards.length - 1) {
               navState.currentCard++;
@@ -220,7 +261,7 @@ function HomePage() {
         case "ArrowLeft":
           e.preventDefault();
 
-          if (navState.focus === 'categories') {
+          if (navState.focus === "categories") {
             if (navState.currentCard > 0) {
               navState.currentCard--;
               updateFocus();
@@ -231,17 +272,19 @@ function HomePage() {
         case "Enter":
           e.preventDefault();
 
-          if (navState.focus === 'watchNow') {
+          if (navState.focus === "watchNow") {
             // Alert the current slide index
             const activeIndex = window.carouselActiveIndex || 0;
             alert(`Watch Now - Card Index: ${activeIndex}`);
-          } else if (navState.focus === 'categories') {
+          } else if (navState.focus === "categories") {
             const currentCard = document.querySelector(
               `.home-card[data-category="${navState.currentCategory}"][data-index="${navState.currentCard}"]`
             );
             if (currentCard) {
-              const streamId = currentCard.getAttribute('data-stream-id');
-              alert(`Category ${navState.currentCategory}, Card Index: ${navState.currentCard}, Stream ID: ${streamId}`);
+              const streamId = currentCard.getAttribute("data-stream-id");
+              alert(
+                `Category ${navState.currentCategory}, Card Index: ${navState.currentCard}, Stream ID: ${streamId}`
+              );
             }
           }
           break;
@@ -267,7 +310,11 @@ function HomePage() {
       if (localStorage.getItem("currentPage") == "dashboard") {
         const backKeys = [10009, "Escape", "Back", "BrowserBack", "XF86Back"];
         if (
-          (e.key === "XF86Exit" || e.key === "XF86Home" || e.keyCode === 10071 || backKeys.includes(e.keyCode) || backKeys.includes(e.key)) &&
+          (e.key === "XF86Exit" ||
+            e.key === "XF86Home" ||
+            e.keyCode === 10071 ||
+            backKeys.includes(e.keyCode) ||
+            backKeys.includes(e.key)) &&
           typeof tizen !== "undefined"
         ) {
           e.preventDefault();
@@ -283,14 +330,16 @@ function HomePage() {
   }, 0);
 
   // Get favorite and recently added movies
-  const currentPlaylist = localStorage.getItem("selectedPlaylist") ? JSON.parse(localStorage.getItem("selectedPlaylist")) : {};
+  const currentPlaylist = localStorage.getItem("selectedPlaylist")
+    ? JSON.parse(localStorage.getItem("selectedPlaylist"))
+    : {};
   const favoriteIds = currentPlaylist.favouriteMovies || [];
   const allStreams = window.allMoviesStreams || [];
 
   // Get favorite movies (first 10)
-  const favoriteMovies = allStreams.filter(stream =>
-    favoriteIds.includes(stream.stream_id)
-  ).slice(0, 10);
+  const favoriteMovies = allStreams
+    .filter((stream) => favoriteIds.includes(stream.stream_id))
+    .slice(0, 10);
 
   // Get recently added movies (first 10, sorted by added date)
   const recentlyAddedMovies = allStreams
@@ -309,11 +358,13 @@ function HomePage() {
            data-index="${cardIndex}" 
            data-stream-id="${movie.stream_id}"
            tabindex="0"
-           style="background-image: url('${movie.stream_icon || './assets/demo-img-card.png'}')">
+           style="background-image: url('${
+             movie.stream_icon || "./assets/demo-img-card.png"
+           }')">
         <div class="home-card-content">
           <div class="home-card-top">
             <img src="./assets/heartIcon.png" 
-                 style="display: ${isFav ? 'block' : 'none'}" 
+                 style="display: ${isFav ? "block" : "none"}" 
                  alt="Favorite" 
                  class="home-card-heart" />
           </div>
@@ -338,43 +389,69 @@ function HomePage() {
     `;
   }
 
+  // Show loading overlay initially
+  const loadingOverlay = document.querySelector("#loading-overlay");
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove("hidden");
+  }
+
+  // Await the carousel HTML (this is async and fetches movie details)
+  const carouselHtml = await HomeCarousel();
+
+  // Hide loading overlay after carousel is loaded
+  if (loadingOverlay) {
+    loadingOverlay.classList.add("hidden");
+  }
+
   return `
     <div class="home-page-container">
       <div class="home-poster">
-        ${HomeCarousel()}
+        ${carouselHtml}
       </div>
       
-      ${favoriteMovies.length > 0 ? `
+      ${
+        favoriteMovies.length > 0
+          ? `
       <div class="home-fav-container">
         <h1>My Fav</h1>
         <div class="home-card-list" data-category="0">
-          ${favoriteMovies.map((movie, index) => createHomeCard(movie, 0, index)).join('')}
+          ${favoriteMovies
+            .map((movie, index) => createHomeCard(movie, 0, index))
+            .join("")}
         </div>
       </div>
-      ` : `
+      `
+          : `
       <div class="home-fav-container">
         <h1>My Fav</h1>
         <div class="home-card-list" data-category="0">
           <p class="home-no-cards-message">No cards to show</p>
         </div>
       </div>
-      `}
+      `
+      }
 
-      ${recentlyAddedMovies.length > 0 ? `
+      ${
+        recentlyAddedMovies.length > 0
+          ? `
       <div class="home-recent-container">
         <h1>Recently Added</h1>
         <div class="home-card-list" data-category="1">
-          ${recentlyAddedMovies.map((movie, index) => createHomeCard(movie, 1, index)).join('')}
+          ${recentlyAddedMovies
+            .map((movie, index) => createHomeCard(movie, 1, index))
+            .join("")}
         </div>
       </div>
-      ` : `
+      `
+          : `
       <div class="home-recent-container">
         <h1>Recently Added</h1>
         <div class="home-card-list" data-category="1">
           <p class="home-no-cards-message">No cards to show</p>
         </div>
       </div>
-      `}
+      `
+      }
     </div>
   `;
 }

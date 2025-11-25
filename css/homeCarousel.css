@@ -248,3 +248,32 @@
   height: 16px;
   margin-right: 3px;
 }
+
+/* Carousel Loading State */
+.carousel-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background: #000;
+}
+
+.carousel-loading .spinner {
+  width: 80px;
+  height: 80px;
+  border-top: 3px solid var(--gold, #f5c518);
+  border-right: 3px solid var(--gold, #f5c518);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.carousel-loading .loading-text {
+  margin-top: 15px;
+  font-size: 1.2rem;
+  color: var(--gold, #fdbd0f);
+  font-family: Arial, sans-serif;
+  letter-spacing: 2px;
+  animation: fadeBlink 1.5s infinite;
+}

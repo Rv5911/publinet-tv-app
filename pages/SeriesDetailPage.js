@@ -1076,17 +1076,12 @@ async function SeriesDetailPage() {
   };
 
   document.addEventListener("keydown", seriesDetailPageKeydownHandler);
-  SeriesDetailPage.cleanup = () =>
+  SeriesDetailPage.cleanup = function () {
     document.removeEventListener("keydown", seriesDetailPageKeydownHandler);
-  // document.removeEventListener("keydown", globalBackHandler);
-  // localStorage.removeItem("lastPlayedEpisodeId");
+  };
 
-  renderSeriesDetailPage(seriesDetailData);
-
-  setTimeout(() => {
-    showSeasons();
+  setTimeout(function () {
     initFocus();
-    updateSeasonButton();
     updatePlayButton();
 
     const favBtn = document.querySelector(".series-detail-fav-button");
@@ -1106,6 +1101,10 @@ async function SeriesDetailPage() {
       });
     }
   }, 50);
+
+  var htmlContent = renderSeriesDetailPage(seriesDetailData);
+
+  return htmlContent;
 
   function removeItemfromContiueWatchingSerie() {
     removeItemFromHistoryById(
@@ -1147,7 +1146,7 @@ async function SeriesDetailPage() {
       })
       .join("");
 
-    document.querySelector("#series-detail-page").innerHTML = `
+    return `
 <div class="series-detail-page-container" 
 <--style="background-image: linear-gradient(
   113.67deg,

@@ -1,5 +1,5 @@
 async function MovieDetailPage() {
-      localStorage.setItem("currentPage", "movieDetailPage");
+  localStorage.setItem("currentPage", "movieDetailPage");
   localStorage.setItem("navigationFocus", "movieDetailPage");
   if (MovieDetailPage.cleanup) MovieDetailPage.cleanup();
 
@@ -10,25 +10,32 @@ async function MovieDetailPage() {
   let navigationInterrupted = false;
 
   function handleBackNavigationDuringLoading(e) {
-    if ((e.keyCode === 10009 || e.key === "Escape" || e.key === "Back" || 
-         e.key === "BrowserBack" || e.key === "XF86Back") &&
-        localStorage.getItem("currentPage") === "movieDetailPage") {
-      
+    if (
+      (e.keyCode === 10009 ||
+        e.key === "Escape" ||
+        e.key === "Back" ||
+        e.key === "BrowserBack" ||
+        e.key === "XF86Back") &&
+      localStorage.getItem("currentPage") === "movieDetailPage"
+    ) {
       e.preventDefault();
       e.stopPropagation();
-      
+
       navigationInterrupted = true;
-      
+
       if (loadingOverlay) loadingOverlay.classList.add("hidden");
-      
-      document.removeEventListener("keydown", handleBackNavigationDuringLoading);
-      
+
+      document.removeEventListener(
+        "keydown",
+        handleBackNavigationDuringLoading
+      );
+
       localStorage.removeItem("selectedMovieId");
       localStorage.setItem("currentPage", "moviesPage");
       Router.showPage("movies");
       document.body.style.backgroundImage = "none";
       document.body.style.backgroundColor = "black";
-      
+
       return true;
     }
   }
@@ -49,7 +56,7 @@ async function MovieDetailPage() {
 
   // --- Fetch movie details ---
   var movieDetailData = await getMovieDetail(movieDetailId);
-  
+
   // Check if navigation was interrupted during await
   if (navigationInterrupted) {
     document.removeEventListener("keydown", handleBackNavigationDuringLoading);
@@ -70,8 +77,8 @@ async function MovieDetailPage() {
     movieDetailData.info && movieDetailData.info.tmdb_id
       ? movieDetailData.info.tmdb_id
       : 0;
-  // var getMovieCastData = await getMovieCast(tmdbId);
-  var getMovieCastData = []
+  var getMovieCastData = await getMovieCast(tmdbId);
+  // var getMovieCastData = [];
 
   // Check again if navigation was interrupted during second await
   if (navigationInterrupted) {
@@ -126,7 +133,7 @@ async function MovieDetailPage() {
 
   if (loadingOverlay) loadingOverlay.classList.add("hidden");
 
-  renderMovieDetailPage(movieDetailData);
+  var htmlContent = renderMovieDetailPage(movieDetailData);
 
   var currentFocusIndex = 0;
   var focusableEls = [];
@@ -210,181 +217,183 @@ async function MovieDetailPage() {
   }
 
   function moviesDetailPageKeydownHandler(e) {
+    if (
+      localStorage.getItem("currentPage") == "movieDetailPage" &&
+      localStorage.getItem("navigationFocus") == "movieDetailPage"
+    ) {
+      var focused = focusableEls[currentFocusIndex];
+      if (!focused) return;
 
-    if(localStorage.getItem("currentPage")=="movieDetailPage"&&localStorage.getItem("navigationFocus")=="movieDetailPage"){
-    var focused = focusableEls[currentFocusIndex];
-    if (!focused) return;
+      var playBtn = document.querySelector(".movie-detail-play-button");
+      var fromStartBtn = document.querySelector(
+        ".movie-detail-from-start-button"
+      );
+      var trailerBtn = document.querySelector(".movie-detail-more-info-button");
+      var favBtn = document.querySelector(".movie-detail-fav-button");
+      var menuBtn = document.querySelector(".movie-detail-page-header-menu");
+      var castItems = document.querySelectorAll(".movie-cast-item-image");
 
-    var playBtn = document.querySelector(".movie-detail-play-button");
-    var fromStartBtn = document.querySelector(
-      ".movie-detail-from-start-button"
-    );
-    var trailerBtn = document.querySelector(".movie-detail-more-info-button");
-    var favBtn = document.querySelector(".movie-detail-fav-button");
-    var menuBtn = document.querySelector(".movie-detail-page-header-menu");
-    var castItems = document.querySelectorAll(".movie-cast-item-image");
+      // --- Enter key ---
+      if (e.key === "Enter") {
+        if (focused === playBtn || focused === fromStartBtn) {
+          if (focused === fromStartBtn)
+            resetResumeTime(selectedMovieItem.stream_id);
 
-    // --- Enter key ---
-    if (e.key === "Enter") {
-      if (focused === playBtn || focused === fromStartBtn) {
-        if (focused === fromStartBtn)
-          resetResumeTime(selectedMovieItem.stream_id);
+          var currentPlaylistData = localStorage.getItem("currentPlaylistData");
+          if (!currentPlaylistData) return;
+          currentPlaylistData = JSON.parse(currentPlaylistData);
 
-        var currentPlaylistData = localStorage.getItem("currentPlaylistData");
-        if (!currentPlaylistData) return;
-        currentPlaylistData = JSON.parse(currentPlaylistData);
+          var movieVideoUrl = "";
+          if (
+            currentPlaylistData.server_info &&
+            currentPlaylistData.user_info &&
+            movieDetailData.movie_data &&
+            movieDetailData.movie_data.stream_id &&
+            movieDetailData.movie_data.container_extension
+          ) {
+            movieVideoUrl =
+              currentPlaylistData.server_info.server_protocol +
+              "://" +
+              currentPlaylistData.server_info.url +
+              ":" +
+              currentPlaylistData.server_info.port +
+              "/movie/" +
+              currentPlaylistData.user_info.username +
+              "/" +
+              currentPlaylistData.user_info.password +
+              "/" +
+              movieDetailData.movie_data.stream_id +
+              "." +
+              movieDetailData.movie_data.container_extension;
+          }
 
-        var movieVideoUrl = "";
-        if (
-          currentPlaylistData.server_info &&
-          currentPlaylistData.user_info &&
-          movieDetailData.movie_data &&
-          movieDetailData.movie_data.stream_id &&
-          movieDetailData.movie_data.container_extension
-        ) {
-          movieVideoUrl =
-            currentPlaylistData.server_info.server_protocol +
-            "://" +
-            currentPlaylistData.server_info.url +
-            ":" +
-            currentPlaylistData.server_info.port +
-            "/movie/" +
-            currentPlaylistData.user_info.username +
-            "/" +
-            currentPlaylistData.user_info.password +
-            "/" +
-            movieDetailData.movie_data.stream_id +
-            "." +
-            movieDetailData.movie_data.container_extension;
+          localStorage.setItem(
+            "playingItemData",
+            JSON.stringify(movieDetailData.movie_data)
+          );
+          localStorage.setItem("selectedVideoItemUrl", movieVideoUrl);
+          localStorage.setItem("from", "movie");
+          localStorage.setItem("currentPage", "videojsPlayer");
+
+          Router.showPage("videoJsPlayer");
+          const navbarEl = document.querySelector("#navbar-root");
+          if (navbarEl) {
+            navbarEl.style.display = "none";
+          }
+          document.body.style.backgroundImage = "none";
+          document.body.style.backgroundColor = "black";
+          return;
         }
 
-        localStorage.setItem(
-          "playingItemData",
-          JSON.stringify(movieDetailData.movie_data)
-        );
-        localStorage.setItem("selectedVideoItemUrl", movieVideoUrl);
-        localStorage.setItem("from", "movie");
-        localStorage.setItem("currentPage", "videojsPlayer");
+        if (focused === trailerBtn) {
+          if (movieDetailData.info && movieDetailData.info.youtube_trailer) {
+            var trailerUrl =
+              "https://www.youtube.com/watch?v=" +
+              movieDetailData.info.youtube_trailer;
+            localStorage.setItem("selectedVideoItemUrl", trailerUrl);
+            localStorage.setItem("currentPage", "videojsPlayer");
+            Router.showPage("videoJsPlayer");
+            document.body.style.backgroundImage = "none";
+            document.body.style.backgroundColor = "black";
+          } else alert("No trailer available");
+        }
 
-        Router.showPage("videoJsPlayer");
-               const navbarEl=document.querySelector("#navbar-root");
-    if(navbarEl){
-        navbarEl.style.display="none";
-    }
+        if (focused === favBtn) {
+          var res = toggleFavoriteItem(
+            movieDetailData.movie_data && movieDetailData.movie_data.stream_id
+              ? movieDetailData.movie_data.stream_id
+              : 0,
+            "favouriteMovies"
+          );
+          if (res && res.success) {
+            if (favBtn) {
+              var heartIcon = favBtn.querySelector(".heart-icon");
+              var favText = favBtn.querySelector(".fav-text");
+
+              if (heartIcon)
+                heartIcon.innerHTML = res.isFav
+                  ? '<i class="fa-solid fa-heart"></i>'
+                  : '<i class="fa-regular fa-heart"></i>';
+              if (favText)
+                favText.textContent = res.isFav
+                  ? "Remove from Favorites"
+                  : "Add to Favorites";
+
+              Toaster.showToast(
+                res.isFav ? "success" : "error",
+                res.isFav ? "Added to Favorites" : "Removed from Favorites"
+              );
+            }
+          } else {
+            alert(res.message || "Unable to update favorites");
+          }
+        }
+      }
+
+      // --- Arrow navigation ---
+      // Sync currentFocusIndex with the actual focused element if it's one of our focusable elements
+      // This fixes the issue where focus set by Navbar (Play button) is out of sync with currentFocusIndex
+      if (
+        document.activeElement &&
+        focusableEls.includes(document.activeElement)
+      ) {
+        currentFocusIndex = focusableEls.indexOf(document.activeElement);
+      }
+
+      if (e.key === "ArrowRight" && currentFocusIndex < focusableEls.length - 1)
+        currentFocusIndex++;
+      if (e.key === "ArrowLeft" && currentFocusIndex > 0) currentFocusIndex--;
+      if (e.key === "ArrowUp") {
+        const allDetailBtns = document.querySelectorAll(
+          ".movie-detail-button-focused"
+        );
+        allDetailBtns.forEach((btn) => {
+          btn.classList.remove("movie-detail-button-focused");
+        });
+
+        if ([playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused)) {
+          if (window.setNavbarFocus) {
+            window.setNavbarFocus("moviesPage");
+          } else {
+            localStorage.setItem("navigationFocus", "navbar");
+          }
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        } else if (Array.from(castItems).includes(focused) && playBtn) {
+          currentFocusIndex = focusableEls.indexOf(playBtn);
+          setFocus(focusableEls[currentFocusIndex]);
+        }
+      }
+      if (e.key === "ArrowDown") {
+        if (focused === menuBtn && playBtn)
+          currentFocusIndex = focusableEls.indexOf(playBtn);
+        else if (
+          [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) &&
+          castItems.length > 0
+        )
+          currentFocusIndex = focusableEls.indexOf(castItems[0]);
+      }
+
+      if (
+        e.keyCode === 10009 ||
+        e.key === "Escape" ||
+        e.key === "Back" ||
+        e.key === "BrowserBack" ||
+        e.key === "XF86Back"
+      ) {
+        localStorage.removeItem("selectedMovieId");
+        localStorage.setItem("currentPage", "moviesPage");
+        Router.showPage("moviesPage");
         document.body.style.backgroundImage = "none";
         document.body.style.backgroundColor = "black";
         return;
       }
 
-      if (focused === trailerBtn) {
-        if (movieDetailData.info && movieDetailData.info.youtube_trailer) {
-          var trailerUrl =
-            "https://www.youtube.com/watch?v=" +
-            movieDetailData.info.youtube_trailer;
-          localStorage.setItem("selectedVideoItemUrl", trailerUrl);
-          localStorage.setItem("currentPage", "videojsPlayer");
-          Router.showPage("videoJsPlayer");
-          document.body.style.backgroundImage = "none";
-          document.body.style.backgroundColor = "black";
-        } else alert("No trailer available");
-      }
-
-      if (focused === favBtn) {
-        var res = toggleFavoriteItem(
-          movieDetailData.movie_data && movieDetailData.movie_data.stream_id
-            ? movieDetailData.movie_data.stream_id
-            : 0,
-          "favouriteMovies"
-        );
-        if (res && res.success) {
-          if (favBtn) {
-            var heartIcon = favBtn.querySelector(".heart-icon");
-            var favText = favBtn.querySelector(".fav-text");
-
-            if (heartIcon)
-              heartIcon.innerHTML = res.isFav
-                ? '<i class="fa-solid fa-heart"></i>'
-                : '<i class="fa-regular fa-heart"></i>';
-            if (favText)
-              favText.textContent = res.isFav
-                ? "Remove from Favorites"
-                : "Add to Favorites";
-
-            Toaster.showToast(
-              res.isFav ? "success" : "error",
-              res.isFav ? "Added to Favorites" : "Removed from Favorites"
-            );
-          }
-        } else {
-          alert(res.message || "Unable to update favorites");
-        }
-      }
-
- 
-    }
-
-    // --- Arrow navigation ---
-    // Sync currentFocusIndex with the actual focused element if it's one of our focusable elements
-    // This fixes the issue where focus set by Navbar (Play button) is out of sync with currentFocusIndex
-    if (document.activeElement && focusableEls.includes(document.activeElement)) {
-        currentFocusIndex = focusableEls.indexOf(document.activeElement);
-    }
-
-    if (e.key === "ArrowRight" && currentFocusIndex < focusableEls.length - 1)
-      currentFocusIndex++;
-    if (e.key === "ArrowLeft" && currentFocusIndex > 0) currentFocusIndex--;
-if (e.key === "ArrowUp") {
-  const allDetailBtns = document.querySelectorAll(".movie-detail-button-focused");
-  allDetailBtns.forEach(btn => {
-    btn.classList.remove("movie-detail-button-focused"); 
-  });
-  
-  if ([playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused)) {
-    if (window.setNavbarFocus) {
-        window.setNavbarFocus("moviesPage");
+      setFocus(focusableEls[currentFocusIndex]);
     } else {
-        localStorage.setItem("navigationFocus", "navbar");
-    }
-    e.preventDefault(); 
-    e.stopPropagation();
-    return;
-  }
-  else if (Array.from(castItems).includes(focused) && playBtn) {
-    currentFocusIndex = focusableEls.indexOf(playBtn);
-    setFocus(focusableEls[currentFocusIndex]);
-  }
-}
-    if (e.key === "ArrowDown") {
-      if (focused === menuBtn && playBtn)
-        currentFocusIndex = focusableEls.indexOf(playBtn);
-      else if (
-        [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) &&
-        castItems.length > 0
-      )
-        currentFocusIndex = focusableEls.indexOf(castItems[0]);
-    }
-
-        if (
-      e.keyCode === 10009 ||
-      e.key === "Escape" ||
-      e.key === "Back" ||
-      e.key === "BrowserBack" ||
-      e.key === "XF86Back"
-    ) {
-      localStorage.removeItem("selectedMovieId");
-      localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("moviesPage");
-      document.body.style.backgroundImage = "none";
-      document.body.style.backgroundColor = "black";
       return;
     }
-
-
-    setFocus(focusableEls[currentFocusIndex]);
-    }else{
-      return;
-    }
-
   }
 
   document.addEventListener("keydown", moviesDetailPageKeydownHandler);
@@ -392,8 +401,10 @@ if (e.key === "ArrowUp") {
     document.removeEventListener("keydown", moviesDetailPageKeydownHandler);
   };
 
+  return htmlContent;
+
   function renderMovieDetailPage(data) {
-    console.log(data,"DATA")
+    console.log(data, "DATA");
     var isFav =
       data.movie_data && data.movie_data.stream_id
         ? isItemFavoriteForPlaylist(
@@ -418,35 +429,39 @@ if (e.key === "ArrowUp") {
     var duration = data.info && data.info.duration ? data.info.duration : "N/A";
     var genre = data.info && data.info.genre ? data.info.genre : "N/A";
     var description =
-      data.info && data.info.description
-        ? data.info.description
-        : "No description available";
+      data.info && data.info.plot ? data.info.plot : "No description available";
     var poster =
       data.info && data.info.movie_image ? data.info.movie_image : "";
 
     var castHtml = "";
-if (
-  getMovieCastData &&
-  getMovieCastData.cast &&
-  getMovieCastData.cast.length > 0
-) {
-  for (var i = 0; i < getMovieCastData.cast.length; i++) {
-    var item = getMovieCastData.cast[i];
-    var profile = item.profile_path
-      ? castImageUrl + item.profile_path
-      : "./assets/placeholder-img.png";
-    var name = item.name ? item.name : "";
-    
-    castHtml +=
-      '<div class="movie-cast-item" tabindex="0">' +
-      '<img src="' + profile + '" alt="' + name + '" class="movie-cast-item-image" ' +
-      'onerror="this.src=\'./assets/placeholder-img.png\'" />' +
-      '<p class="movie-cast-item-name">' + name + '</p>' +
-      '</div>';
-  }
-}
+    if (
+      getMovieCastData &&
+      getMovieCastData.cast &&
+      getMovieCastData.cast.length > 0
+    ) {
+      for (var i = 0; i < getMovieCastData.cast.length; i++) {
+        var item = getMovieCastData.cast[i];
+        var profile = item.profile_path
+          ? castImageUrl + item.profile_path
+          : "./assets/placeholder-img.png";
+        var name = item.name ? item.name : "";
 
-    document.querySelector("#movies-detail-page").innerHTML = `
+        castHtml +=
+          '<div class="movie-cast-item" tabindex="0">' +
+          '<img src="' +
+          profile +
+          '" alt="' +
+          name +
+          '" class="movie-cast-item-image" ' +
+          "onerror=\"this.src='./assets/placeholder-img.png'\" />" +
+          '<p class="movie-cast-item-name">' +
+          name +
+          "</p>" +
+          "</div>";
+      }
+    }
+
+    return `
 <div class="movie-detail-page-container">
     <div class="movie-detail-content-container">
 <div class="movie-detail-content-main">
@@ -464,9 +479,13 @@ if (
 <div class="moviedetail-movie-rating-time">
 <p class="moviedetail-rating"><img src="./assets/rating-star.png">3.3</p>
 <p class="moviedetail-duration">
-  ${data.info.duration_secs ? 
-    `${Math.floor(data.info.duration_secs / 3600)}h ${Math.floor((data.info.duration_secs % 3600) / 60)}m` :
-    "N/A"}
+  ${
+    data.info.duration_secs
+      ? `${Math.floor(data.info.duration_secs / 3600)}h ${Math.floor(
+          (data.info.duration_secs % 3600) / 60
+        )}m`
+      : "N/A"
+  }
   </p>
 <p class="moviedetail-date"> ${releaseDate}</p>
 
@@ -522,16 +541,5 @@ if (
   </div>
 </div>
 `;
-
-const movieContentContainer = document.querySelector('.movie-detail-page-content-container');
-if (movieContentContainer) {
-  if (castHtml) {
-    movieContentContainer.style.height = 'auto';
-  } else {
-    movieContentContainer.style.height = '140vh';
-  }
-}
-
-
   }
 }

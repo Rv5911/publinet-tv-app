@@ -1,4 +1,4 @@
-function HomeCarousel() {
+async function HomeCarousel() {
   // Use window.allStream or fallback to window.allMoviesStreams
   const allStreams = window.allStream || window.allMoviesStreams || [];
 
@@ -13,25 +13,119 @@ function HomeCarousel() {
 
   // Fallback if no items found
   if (filteredItems.length === 0) {
-    // Mock data for development if needed or just empty
     console.warn("HomeCarousel: No streams found.");
+    return `
+      <div class="carousel-container">
+        <div class="carousel-slides">
+          <div class="slide">
+            <p>No content available</p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
-  // Get 4 items as requested (slice 4)
-  // If we want random 4 items:
+  // Get 4 random items
   let randomIndex = 0;
   if (filteredItems.length > 4) {
     randomIndex = Math.floor(Math.random() * (filteredItems.length - 4));
   }
-  let sliderData = filteredItems.slice(randomIndex, randomIndex + 4);
+  const selectedItems = filteredItems.slice(randomIndex, randomIndex + 4);
 
-  // If still less than 4, just take what we have
-  if (sliderData.length === 0 && filteredItems.length > 0) {
-    sliderData = filteredItems.slice(0, 4);
+  // Show loading state while fetching
+  const loadingHtml = `
+    <div class="carousel-container">
+      <div class="carousel-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading carousel...</div>
+      </div>
+    </div>
+  `;
+
+  // Fetch movie details for all selected items
+  const movieDetailsPromises = selectedItems.map((movie) =>
+    getMovieDetail(movie.stream_id)
+  );
+  const movieDetails = await Promise.all(movieDetailsPromises);
+
+  // Filter out any null responses and ensure we have valid data
+  const sliderData = movieDetails
+    .filter((detail) => detail !== null && detail.info)
+    .map((detail, idx) => {
+      // Ensure the data format matches the expected structure
+      return {
+        info: detail.info,
+        movie_data: detail.movie_data || selectedItems[idx],
+      };
+    });
+
+  console.log(sliderData, "SLIDER DATA WITH MOVIE DETAILS");
+
+  // If no valid details were fetched, return empty carousel
+  if (sliderData.length === 0) {
+    console.warn("HomeCarousel: No valid movie details found.");
+    return `
+      <div class="carousel-container">
+        <div class="carousel-slides">
+          <div class="slide">
+            <p>No content available</p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
-  console.log(sliderData, "SLDIEDDATA");
+  // Helper to format duration
+  const formatDuration = (durationSecs) => {
+    if (!durationSecs) return "N/A";
+    const hours = Math.floor(durationSecs / 3600);
+    const minutes = Math.floor((durationSecs % 3600) / 60);
+    return `${hours}h ${minutes}min`;
+  };
 
+  // Helper to generate slide HTML
+  const generateSlide = (item, index) => {
+    const backdrop =
+      (item.info && item.info.backdrop_path && item.info.backdrop_path[0]) ||
+      (item.info && item.info.backdrop) ||
+      "assets/demo-img-card.png";
+    const name =
+      (item.info && item.info.name) ||
+      (item.movie_data && item.movie_data.name) ||
+      "Unknown Title";
+    const rating = (item.info && item.info.rating) || "N/A";
+    const plot = (item.info && item.info.plot) || "No description available.";
+    const duration = formatDuration(item.info && item.info.duration_secs);
+    const genre = (item.info && item.info.genre) || "";
+
+    return `
+        <div class="slide" data-index="${index}">
+          <img class="carousel-image" loading="lazy" src="${backdrop}" alt="${name}"/>
+          <div class="carousel-content">
+              <div class="carousel-logo-area">
+                  <!-- Optional: If you have a logo image, put it here. For now using text as title -->
+              </div>
+              <h1 class="carousel-title">${name}</h1>
+              <div class="carousel-meta">
+                  <span class="carousel-duration">${duration}</span>
+                  ${genre ? `<span class="carousel-genre">${genre}</span>` : ""}
+                  <span class="carousel-rating-badge">
+                    <img src="./assets/rating-star.png" class="carousel-card-star-icon" />
+                    ${rating}
+                  </span>
+              </div>
+              <p class="carousel-description">${plot}</p>
+              <button class="carousel-watch-now-btn" tabindex="0" data-stream-id="${
+                (item.movie_data && item.movie_data.stream_id) || ""
+              }">
+                  Watch Now
+              </button>
+          </div>
+        </div>
+      `;
+  };
+
+  // Setup carousel functionality after DOM is ready
   setTimeout(function () {
     if (HomeCarousel.cleanup) HomeCarousel.cleanup();
 
@@ -82,7 +176,7 @@ function HomeCarousel() {
       }
       autoSlideInterval = setInterval(() => {
         goNextSlide();
-      }, 5000); // Increased to 5s for better readability
+      }, 5000);
 
       // Store globally for cleanup access
       window.carouselAutoSlideInterval = autoSlideInterval;
@@ -137,39 +231,6 @@ function HomeCarousel() {
     // Expose cleanup globally immediately
     window.HomeCarousel = HomeCarousel;
   }, 0);
-
-  // Helper to generate slide HTML
-  const generateSlide = (item, index) => {
-    const image = item.stream_icon || item.cover || "assets/demo-img-card.png"; // Fallback image
-    const name = item.name || "Unknown Title";
-    const rating = item.rating_5based || "N/A";
-    // Limit description length?
-    const description =
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam..."; // Placeholder as real description might be missing or too long, or use item.description if available
-
-    return `
-        <div class="slide" data-index="${index}">
-          <img class="carousel-image" loading="lazy" src="${image}" alt="${name}"/>
-          <div class="carousel-content">
-              <div class="carousel-logo-area">
-                  <!-- Optional: If you have a logo image, put it here. For now using text as title -->
-                  <!-- <img src="logo.png" alt="Logo" class="carousel-logo" /> -->
-              </div>
-              <h1 class="carousel-title">${name}</h1>
-              <div class="carousel-meta">
-                  <span class="carousel-duration">2h 35min</span>
-             <span class="carousel-rating-badge"> <img src="./assets/rating-star.png" class="carousel-card-star-icon" />${
-               rating ? rating : "0"
-             }</span>
-              </div>
-              <p class="carousel-description">${description}</p>
-              <button class="carousel-watch-now-btn" tabindex="0">
-                  Watch Now
-              </button>
-          </div>
-        </div>
-      `;
-  };
 
   return `
     <div class="carousel-container">

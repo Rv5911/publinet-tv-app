@@ -649,21 +649,24 @@ function initNavbar() {
 
           // MoviesPage: prioritize My Fav on initial down from navbar
           if (currentPage === "moviesPage" && window.moviesNavigationState) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
             // Move focus from navbar to movies page
             localStorage.setItem("navigationFocus", "moviesPage");
 
-            setTimeout(() => {
-              const favList = document.querySelector(
+            setTimeout(function () {
+              let favList = document.querySelector(
                 ".movies-card-list.fav-list"
               );
               let targetCard = null;
 
               // Try My Fav first
               if (favList) {
-                const favFirstCard = favList.querySelector(".movie-card");
+                let favFirstCard = favList.querySelector(".movie-card");
                 if (favFirstCard) {
                   targetCard = favFirstCard;
-                  const favCategoryIndex = parseInt(
+                  let favCategoryIndex = parseInt(
                     favList.getAttribute("data-category") || "0",
                     10
                   );
@@ -675,11 +678,11 @@ function initNavbar() {
 
               // Fallback: first card in DOM order
               if (!targetCard) {
-                const firstCard = document.querySelector(".movie-card");
+                let firstCard = document.querySelector(".movie-card");
                 if (firstCard) {
                   targetCard = firstCard;
-                  const listEl = firstCard.closest(".movies-card-list");
-                  const catIndex = parseInt(
+                  let listEl = firstCard.closest(".movies-card-list");
+                  let catIndex = parseInt(
                     (listEl && listEl.getAttribute("data-category")) || "0",
                     10
                   );
@@ -698,29 +701,30 @@ function initNavbar() {
                   window.updateMoviesFocus();
                 }
               }
-            }, 10);
-            e.preventDefault();
-            e.stopImmediatePropagation();
+            }, 50);
             return;
           }
 
           // SeriesPage: prioritize My Fav on initial down from navbar
           if (currentPage === "seriesPage" && window.seriesNavigationState) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
             // Move focus from navbar to series page
             localStorage.setItem("navigationFocus", "seriesPage");
 
-            setTimeout(() => {
-              const favList = document.querySelector(
+            setTimeout(function () {
+              let favList = document.querySelector(
                 ".series-card-list.fav-list"
               );
               let targetCard = null;
 
               // Try My Fav first
               if (favList) {
-                const favFirstCard = favList.querySelector(".series-card");
+                let favFirstCard = favList.querySelector(".series-card");
                 if (favFirstCard) {
                   targetCard = favFirstCard;
-                  const favCategoryIndex = parseInt(
+                  let favCategoryIndex = parseInt(
                     favList.getAttribute("data-category") || "0",
                     10
                   );
@@ -732,11 +736,11 @@ function initNavbar() {
 
               // Fallback: first card in DOM order
               if (!targetCard) {
-                const firstCard = document.querySelector(".series-card");
+                let firstCard = document.querySelector(".series-card");
                 if (firstCard) {
                   targetCard = firstCard;
-                  const listEl = firstCard.closest(".series-card-list");
-                  const catIndex = parseInt(
+                  let listEl = firstCard.closest(".series-card-list");
+                  let catIndex = parseInt(
                     (listEl && listEl.getAttribute("data-category")) || "0",
                     10
                   );
@@ -755,9 +759,7 @@ function initNavbar() {
                   window.updateSeriesFocus();
                 }
               }
-            }, 10);
-            e.preventDefault();
-            e.stopImmediatePropagation();
+            }, 50);
             return;
           }
         }

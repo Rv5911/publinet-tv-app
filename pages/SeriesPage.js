@@ -580,7 +580,7 @@ function loadMoreSeriesCategories() {
         }
       }
     }
-  }, 200);
+  }, 50);
 }
 
 function createSeriesCategorySection(category, categoryIndex) {
@@ -1341,17 +1341,18 @@ function getSeriesCurrentVisibleIndex(categoryIndex, cardIndex) {
   let cardList = document.querySelector(
     '.series-card-list[data-category="' + categoryIndex + '"]'
   );
-  if (!cardList) return cardIndex;
+  if (!cardList) return 0;
 
   let containerWidth = cardList.offsetWidth;
   let firstCard = cardList.querySelector(".series-card");
-  if (!firstCard) return cardIndex;
+  if (!firstCard) return 0;
 
   let cardWidth = firstCard.offsetWidth + 16;
   let visibleCardsCount = Math.floor(containerWidth / cardWidth);
 
+  // Clamp to last visible card index
   if (cardIndex >= visibleCardsCount) {
-    return cardIndex % visibleCardsCount;
+    return visibleCardsCount - 1;
   }
 
   return cardIndex;
