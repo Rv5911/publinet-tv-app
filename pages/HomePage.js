@@ -414,16 +414,31 @@ async function HomePage() {
   }, 0);
 
   // Get favorite and recently added movies
-  const currentPlaylist = localStorage.getItem("selectedPlaylist")
-    ? JSON.parse(localStorage.getItem("selectedPlaylist"))
-    : {};
-  const favoriteIds = currentPlaylist.favouriteMovies || [];
-  const allStreams = window.allMoviesStreams || [];
+  const currentPlaylist = getCurrentPlaylist();
 
+  console.log("currentPlaylist", currentPlaylist);
+  const favoriteIds = currentPlaylist.favouriteMovies
+    ? currentPlaylist.favouriteMovies.map((movie) => movie)
+    : [];
+  const allStreams = window.allMoviesStreams || [];
+  const allSeriesAllStreams = window.allSeriesStreams || [];
+
+  const favoriteSeriesIds = currentPlaylist.favouriteSeries
+    ? currentPlaylist.favouriteSeries.map((movie) => movie)
+    : [];
+
+  console.log("favoriteIds", favoriteIds);
+  console.log("favoriteSeriesIds", favoriteSeriesIds);
   // Get favorite movies (first 10)
-  const favoriteMovies = allStreams
-    .filter((stream) => favoriteIds.includes(stream.stream_id))
-    .slice(0, 10);
+  const favoriteMovies = allStreams.filter((stream) =>
+    favoriteIds.includes(stream.stream_id)
+  );
+  const favoriteSeries = allSeriesAllStreams.filter((stream) =>
+    favoriteSeriesIds.includes(stream.series_id)
+  );
+
+  console.log("favoriteMovies", favoriteMovies);
+  console.log("favoriteSeries", favoriteSeries);
 
   // Get recently added movies (first 10, sorted by added date)
   const recentlyAddedMovies = allStreams
@@ -494,6 +509,27 @@ async function HomePage() {
       </div>
       
       ${
+        recentlyAddedMovies.length > 0
+          ? `
+      <div class="home-recent-container">
+        <h1>Recently Watched</h1>
+        <div class="home-card-list" data-category="1">
+          ${recentlyAddedMovies
+            .map((movie, index) => createHomeCard(movie, 1, index))
+            .join("")}
+        </div>
+      </div>
+      `
+          : `
+      <div class="home-recent-container">
+        <h1>Recently Watched</h1>
+        <div class="home-card-list" data-category="1">
+          <p class="home-no-cards-message">No cards to show</p>
+        </div>
+      </div>
+      `
+      }
+      ${
         favoriteMovies.length > 0
           ? `
       <div class="home-fav-container">
@@ -515,27 +551,7 @@ async function HomePage() {
       `
       }
 
-      ${
-        recentlyAddedMovies.length > 0
-          ? `
-      <div class="home-recent-container">
-        <h1>Recently Added</h1>
-        <div class="home-card-list" data-category="1">
-          ${recentlyAddedMovies
-            .map((movie, index) => createHomeCard(movie, 1, index))
-            .join("")}
-        </div>
-      </div>
-      `
-          : `
-      <div class="home-recent-container">
-        <h1>Recently Added</h1>
-        <div class="home-card-list" data-category="1">
-          <p class="home-no-cards-message">No cards to show</p>
-        </div>
-      </div>
-      `
-      }
+      
     </div>
   `;
 }
