@@ -661,46 +661,34 @@ function initNavbar() {
               // Move focus from navbar to movies page ONLY after timeout
               localStorage.setItem("navigationFocus", "moviesPage");
 
-              let favList = document.querySelector(
-                ".movies-card-list.fav-list"
-              );
               let targetCard = null;
+              let targetCategoryIndex = 0;
 
-              // Try My Fav first
-              if (favList) {
-                let favFirstCard = favList.querySelector(".movie-card");
-                if (favFirstCard) {
-                  targetCard = favFirstCard;
-                  let favCategoryIndex = parseInt(
-                    favList.getAttribute("data-category") || "0",
-                    10
-                  );
-                  window.moviesNavigationState.currentCategoryIndex =
-                    favCategoryIndex;
-                  window.moviesNavigationState.currentCardIndex = 0;
-                }
-              }
-
-              // Fallback: first card in DOM order
-              if (!targetCard) {
-                let firstCard = document.querySelector(".movie-card");
+              // Iterate through all category lists to find the first one with cards
+              const allCategoryLists =
+                document.querySelectorAll(".movies-card-list");
+              for (let i = 0; i < allCategoryLists.length; i++) {
+                const list = allCategoryLists[i];
+                const firstCard = list.querySelector(".movie-card");
                 if (firstCard) {
                   targetCard = firstCard;
-                  let listEl = firstCard.closest(".movies-card-list");
-                  let catIndex = parseInt(
-                    (listEl && listEl.getAttribute("data-category")) || "0",
+                  targetCategoryIndex = parseInt(
+                    list.getAttribute("data-category") || "0",
                     10
                   );
-                  window.moviesNavigationState.currentCategoryIndex = catIndex;
-                  window.moviesNavigationState.currentCardIndex = 0;
+                  break; // Found the first category with cards
                 }
               }
 
-              // Persist and update focus using MoviesPage helpers
-              if (typeof window.saveMoviesNavigationState === "function") {
-                window.saveMoviesNavigationState();
-              }
               if (targetCard) {
+                window.moviesNavigationState.currentCategoryIndex =
+                  targetCategoryIndex;
+                window.moviesNavigationState.currentCardIndex = 0;
+
+                // Persist and update focus using MoviesPage helpers
+                if (typeof window.saveMoviesNavigationState === "function") {
+                  window.saveMoviesNavigationState();
+                }
                 targetCard.focus();
                 if (typeof window.updateMoviesFocus === "function") {
                   window.updateMoviesFocus();
@@ -716,46 +704,34 @@ function initNavbar() {
               // Move focus from navbar to series page ONLY after timeout
               localStorage.setItem("navigationFocus", "seriesPage");
 
-              let favList = document.querySelector(
-                ".series-card-list.fav-list"
-              );
               let targetCard = null;
+              let targetCategoryIndex = 0;
 
-              // Try My Fav first
-              if (favList) {
-                let favFirstCard = favList.querySelector(".series-card");
-                if (favFirstCard) {
-                  targetCard = favFirstCard;
-                  let favCategoryIndex = parseInt(
-                    favList.getAttribute("data-category") || "0",
-                    10
-                  );
-                  window.seriesNavigationState.currentCategoryIndex =
-                    favCategoryIndex;
-                  window.seriesNavigationState.currentCardIndex = 0;
-                }
-              }
-
-              // Fallback: first card in DOM order
-              if (!targetCard) {
-                let firstCard = document.querySelector(".series-card");
+              // Iterate through all category lists to find the first one with cards
+              const allCategoryLists =
+                document.querySelectorAll(".series-card-list");
+              for (let i = 0; i < allCategoryLists.length; i++) {
+                const list = allCategoryLists[i];
+                const firstCard = list.querySelector(".series-card");
                 if (firstCard) {
                   targetCard = firstCard;
-                  let listEl = firstCard.closest(".series-card-list");
-                  let catIndex = parseInt(
-                    (listEl && listEl.getAttribute("data-category")) || "0",
+                  targetCategoryIndex = parseInt(
+                    list.getAttribute("data-category") || "0",
                     10
                   );
-                  window.seriesNavigationState.currentCategoryIndex = catIndex;
-                  window.seriesNavigationState.currentCardIndex = 0;
+                  break; // Found the first category with cards
                 }
               }
 
-              // Persist and update focus using SeriesPage helpers
-              if (typeof window.saveSeriesNavigationState === "function") {
-                window.saveSeriesNavigationState();
-              }
               if (targetCard) {
+                window.seriesNavigationState.currentCategoryIndex =
+                  targetCategoryIndex;
+                window.seriesNavigationState.currentCardIndex = 0;
+
+                // Persist and update focus using SeriesPage helpers
+                if (typeof window.saveSeriesNavigationState === "function") {
+                  window.saveSeriesNavigationState();
+                }
                 targetCard.focus();
                 if (typeof window.updateSeriesFocus === "function") {
                   window.updateSeriesFocus();

@@ -93,10 +93,10 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Meta Info (Duration, Rating) */
 .carousel-meta {
   display: flex;
   align-items: center;
+  zoom: 1.2;
   gap: 20px;
   font-size: 20px;
   font-weight: 500;
@@ -105,6 +105,7 @@
 .carousel-rating-badge {
   display: flex;
   align-items: center;
+  zoom: 1.1;
   gap: 5px;
   background: rgba(255, 255, 255, 0.1);
   padding: 5px 12px;
@@ -183,7 +184,7 @@
 .carousel-dot {
   width: 12px;
   height: 12px;
-  margin: 0 8px;
+  margin: 0 4px;
   background: rgba(255, 255, 255, 0.5);
   border-radius: 50%;
   cursor: pointer;
@@ -192,7 +193,7 @@
 
 /* Active Dot */
 .carousel-dot.active {
-  width: 20px;
+  width: 30px;
   background: var(--dark-gold, #ffd700);
   border-radius: 20px;
 }

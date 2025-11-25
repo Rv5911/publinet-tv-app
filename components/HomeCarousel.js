@@ -93,7 +93,11 @@ async function HomeCarousel() {
       (item.info && item.info.name) ||
       (item.movie_data && item.movie_data.name) ||
       "Unknown Title";
-    const rating = (item.info && item.info.rating) || "N/A";
+    const rating =
+      (item.info &&
+        item.info.rating &&
+        String(item.info.rating).split(".")[0]) ||
+      "N/A";
     const plot = (item.info && item.info.plot) || "No description available.";
     const duration = formatDuration(item.info && item.info.duration_secs);
     const genre = (item.info && item.info.genre) || "";
@@ -108,7 +112,7 @@ async function HomeCarousel() {
               <h1 class="carousel-title">${name}</h1>
               <div class="carousel-meta">
                   <span class="carousel-duration">${duration}</span>
-                  ${genre ? `<span class="carousel-genre">${genre}</span>` : ""}
+          
                   <span class="carousel-rating-badge">
                     <img src="./assets/rating-star.png" class="carousel-card-star-icon" />
                     ${rating}

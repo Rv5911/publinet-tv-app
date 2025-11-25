@@ -32,7 +32,7 @@ async function MovieDetailPage() {
 
       localStorage.removeItem("selectedMovieId");
       localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("movies");
+      Router.showPage("moviesPage");
       document.body.style.backgroundImage = "none";
       document.body.style.backgroundColor = "black";
 
@@ -66,7 +66,7 @@ async function MovieDetailPage() {
   if (!movieDetailData) {
     if (loadingOverlay) loadingOverlay.classList.add("hidden");
     localStorage.setItem("currentPage", "moviesPage");
-    Router.showPage("movies");
+    Router.showPage("moviesPage");
     document.body.style.backgroundImage = "none";
     document.body.style.backgroundColor = "black";
     document.removeEventListener("keydown", handleBackNavigationDuringLoading);
@@ -137,7 +137,6 @@ async function MovieDetailPage() {
 
   var currentFocusIndex = 0;
   var focusableEls = [];
-
   function setFocus(el) {
     for (var i = 0; i < focusableEls.length; i++) {
       if (focusableEls[i])
@@ -154,7 +153,6 @@ async function MovieDetailPage() {
       } catch (err) {}
     }
   }
-
   function initFocus() {
     var fromStartBtn = document.querySelector(
       ".movie-detail-from-start-button"

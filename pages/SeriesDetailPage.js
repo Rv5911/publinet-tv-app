@@ -14,7 +14,8 @@ async function SeriesDetailPage() {
   const seriesDetailId = localStorage.getItem("selectedSeriesId");
 
   const loadingOverlay = document.getElementById("loading-overlay");
-  if (loadingOverlay) loadingOverlay.classList.remove("hidden");
+
+  // --- Setup back navigation handler FIRST ---
   let navigationInterrupted = false;
 
   function handleBackNavigationDuringLoading(e) {
@@ -48,8 +49,8 @@ async function SeriesDetailPage() {
     }
   }
 
-  // Add listener BEFORE any async operations
   document.addEventListener("keydown", handleBackNavigationDuringLoading);
+
   if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 
   const seriesDetailData = await getSeriesDetail(seriesDetailId);
@@ -870,11 +871,27 @@ async function SeriesDetailPage() {
           return;
         }
 
-        // If in Episodes/Cast
-        const nextIndex = currentFocusIndex + 1;
-        if (nextIndex < focusableEls.length) {
-          setFocus(focusableEls[nextIndex]);
-          focusableEls[nextIndex].focus();
+        // If in Cast Items - stay within cast
+        if (castItems.includes(focused)) {
+          const currentCastIndex = castItems.indexOf(focused);
+          if (currentCastIndex < castItems.length - 1) {
+            const nextCast = castItems[currentCastIndex + 1];
+            setFocus(nextCast);
+            nextCast.focus();
+          }
+          return;
+        }
+
+        // If in Episodes
+        if (episodeItems.includes(focused)) {
+          const nextIndex = currentFocusIndex + 1;
+          if (
+            nextIndex < focusableEls.length &&
+            episodeItems.includes(focusableEls[nextIndex])
+          ) {
+            setFocus(focusableEls[nextIndex]);
+            focusableEls[nextIndex].focus();
+          }
         }
         return;
       }
@@ -899,11 +916,27 @@ async function SeriesDetailPage() {
           return;
         }
 
-        // If in Episodes/Cast
-        const prevIndex = currentFocusIndex - 1;
-        if (prevIndex >= 0) {
-          setFocus(focusableEls[prevIndex]);
-          focusableEls[prevIndex].focus();
+        // If in Cast Items - stay within cast
+        if (castItems.includes(focused)) {
+          const currentCastIndex = castItems.indexOf(focused);
+          if (currentCastIndex > 0) {
+            const prevCast = castItems[currentCastIndex - 1];
+            setFocus(prevCast);
+            prevCast.focus();
+          }
+          return;
+        }
+
+        // If in Episodes
+        if (episodeItems.includes(focused)) {
+          const prevIndex = currentFocusIndex - 1;
+          if (
+            prevIndex >= 0 &&
+            episodeItems.includes(focusableEls[prevIndex])
+          ) {
+            setFocus(focusableEls[prevIndex]);
+            focusableEls[prevIndex].focus();
+          }
         }
         return;
       }
@@ -1081,6 +1114,7 @@ async function SeriesDetailPage() {
   };
 
   setTimeout(function () {
+    showSeasons(); // Show Season 1 episodes by default
     initFocus();
     updatePlayButton();
 
