@@ -3,7 +3,7 @@ function VideoJsPlayer(poster = "") {
     window.selectedVideoItemUrl ||
     localStorage.getItem("selectedVideoItemUrl") ||
     "";
-  
+
   let isYouTube = srcUrl.includes("youtube.com") || srcUrl.includes("youtu.be");
 
   const previousCleanup = VideoJsPlayer.cleanup;
@@ -30,8 +30,12 @@ function VideoJsPlayer(poster = "") {
     localStorage.getItem("playlistsData")
   ).filter((pl) => pl.playlistName === currentPlaylistName)[0];
 
-  const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies ? currentPlaylist.continueWatchingMovies : [];
-  const continueWatchingSeriesData = currentPlaylist.continueWatchingSeries ? currentPlaylist.continueWatchingSeries : [];
+  const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies
+    ? currentPlaylist.continueWatchingMovies
+    : [];
+  const continueWatchingSeriesData = currentPlaylist.continueWatchingSeries
+    ? currentPlaylist.continueWatchingSeries
+    : [];
 
   const isLive = localStorage.getItem("isLive") === "true";
 
@@ -49,7 +53,7 @@ function VideoJsPlayer(poster = "") {
   // 🔴 Track if user is actively dragging seek bar
   let isSeekBarDragging = false;
 
-  // 🔴 Track play state before seeking  
+  // 🔴 Track play state before seeking
   let wasPlayingBeforeSeek = false;
 
   // 🔴 Track if user manually paused
@@ -58,15 +62,17 @@ function VideoJsPlayer(poster = "") {
   // Format time function
   function formatTime(seconds) {
     if (!seconds || isNaN(seconds)) return "0:00:00";
-    
+
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    
+
     if (hours > 0) {
-      return `${hours}:${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      return `${hours}:${mins < 10 ? "0" : ""}${mins}:${
+        secs < 10 ? "0" : ""
+      }${secs}`;
     } else {
-      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     }
   }
 
@@ -130,8 +136,12 @@ function VideoJsPlayer(poster = "") {
     if (errorActive) return;
 
     const playOverlay = document.querySelector(".video-action-overlay.center");
-    const forwardOverlay = document.querySelector(".video-action-overlay.right");
-    const backwardOverlay = document.querySelector(".video-action-overlay.left");
+    const forwardOverlay = document.querySelector(
+      ".video-action-overlay.right"
+    );
+    const backwardOverlay = document.querySelector(
+      ".video-action-overlay.left"
+    );
 
     [playOverlay, forwardOverlay, backwardOverlay].forEach((el) => {
       if (el) el.classList.add("hidden");
@@ -142,25 +152,33 @@ function VideoJsPlayer(poster = "") {
     switch (type) {
       case "play":
         if (playOverlay) {
-          playOverlay.querySelector(".video-action-icon").innerHTML = `<i class="fa-solid fa-play"></i>`;
+          playOverlay.querySelector(
+            ".video-action-icon"
+          ).innerHTML = `<i class="fa-solid fa-play"></i>`;
           targetOverlay = playOverlay;
         }
         break;
       case "pause":
         if (playOverlay) {
-          playOverlay.querySelector(".video-action-icon").innerHTML = `<i class="fa-solid fa-pause"></i>`;
+          playOverlay.querySelector(
+            ".video-action-icon"
+          ).innerHTML = `<i class="fa-solid fa-pause"></i>`;
           targetOverlay = playOverlay;
         }
         break;
       case "forward":
         if (forwardOverlay) {
-          forwardOverlay.querySelector(".video-action-icon").innerHTML = `<i class="fa-solid fa-rotate-right"></i>`;
+          forwardOverlay.querySelector(
+            ".video-action-icon"
+          ).innerHTML = `<i class="fa-solid fa-rotate-right"></i>`;
           targetOverlay = forwardOverlay;
         }
         break;
       case "backward":
         if (backwardOverlay) {
-          backwardOverlay.querySelector(".video-action-icon").innerHTML = `<i class="fa-solid fa-rotate-left"></i>`;
+          backwardOverlay.querySelector(
+            ".video-action-icon"
+          ).innerHTML = `<i class="fa-solid fa-rotate-left"></i>`;
           targetOverlay = backwardOverlay;
         }
         break;
@@ -184,18 +202,18 @@ function VideoJsPlayer(poster = "") {
     const playOverlay = document.querySelector(".video-action-overlay.center");
     const seekBar = document.getElementById("customSeek");
     const aspectRatioButton = document.getElementById("aspectRatioButton");
-    
+
     if (playOverlay) {
       isPlayPauseFocused = true;
       isSeekBarFocused = false;
       isAspectRatioFocused = false;
-      
+
       // Add focused class to play overlay
-      playOverlay.classList.add('focused');
-      
+      playOverlay.classList.add("focused");
+
       // Remove focused class from seek bar and aspect ratio button
-      if (seekBar) seekBar.classList.remove('focused');
-      if (aspectRatioButton) aspectRatioButton.classList.remove('focused');
+      if (seekBar) seekBar.classList.remove("focused");
+      if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
     }
   }
 
@@ -204,18 +222,18 @@ function VideoJsPlayer(poster = "") {
     const seekBar = document.getElementById("customSeek");
     const playOverlay = document.querySelector(".video-action-overlay.center");
     const aspectRatioButton = document.getElementById("aspectRatioButton");
-    
+
     if (seekBar && playOverlay) {
       isSeekBarFocused = true;
       isPlayPauseFocused = false;
       isAspectRatioFocused = false;
-      
+
       // Add focused class to seek bar
-      seekBar.classList.add('focused');
-      
+      seekBar.classList.add("focused");
+
       // Remove focused class from play overlay and aspect ratio button
-      playOverlay.classList.remove('focused');
-      if (aspectRatioButton) aspectRatioButton.classList.remove('focused');
+      playOverlay.classList.remove("focused");
+      if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
     }
   }
 
@@ -224,18 +242,18 @@ function VideoJsPlayer(poster = "") {
     const aspectRatioButton = document.getElementById("aspectRatioButton");
     const playOverlay = document.querySelector(".video-action-overlay.center");
     const seekBar = document.getElementById("customSeek");
-    
+
     if (aspectRatioButton) {
       isAspectRatioFocused = true;
       isPlayPauseFocused = false;
       isSeekBarFocused = false;
-      
+
       // Add focused class to aspect ratio button
-      aspectRatioButton.classList.add('focused');
-      
+      aspectRatioButton.classList.add("focused");
+
       // Remove focused class from play overlay and seek bar
-      if (playOverlay) playOverlay.classList.remove('focused');
-      if (seekBar) seekBar.classList.remove('focused');
+      if (playOverlay) playOverlay.classList.remove("focused");
+      if (seekBar) seekBar.classList.remove("focused");
     }
   }
 
@@ -244,14 +262,14 @@ function VideoJsPlayer(poster = "") {
     isSeekBarFocused = false;
     isPlayPauseFocused = false;
     isAspectRatioFocused = false;
-    
+
     const seekBar = document.getElementById("customSeek");
     const playOverlay = document.querySelector(".video-action-overlay.center");
     const aspectRatioButton = document.getElementById("aspectRatioButton");
-    
-    if (seekBar) seekBar.classList.remove('focused');
-    if (playOverlay) playOverlay.classList.remove('focused');
-    if (aspectRatioButton) aspectRatioButton.classList.remove('focused');
+
+    if (seekBar) seekBar.classList.remove("focused");
+    if (playOverlay) playOverlay.classList.remove("focused");
+    if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
   }
 
   function initPlayer(attempt = 0) {
@@ -287,25 +305,25 @@ function VideoJsPlayer(poster = "") {
     let resumeTime = 0;
 
     if (!isLive) {
-if (fromValue === "movie") {
-  const movieId = localStorage.getItem("selectedMovieId");
-  const matched = continueWatchingMoviesData.find(
-    (item) => item.itemId === movieId
-  );
-  if (matched && matched.resumeTime) {
-    resumeTime = matched.resumeTime;
-  }
-} else {
-  const seriesId = localStorage.getItem("selectedSeriesId");
-  const episodeId = localStorage.getItem("selectedEpisodeId");
+      if (fromValue === "movie") {
+        const movieId = localStorage.getItem("selectedMovieId");
+        const matched = continueWatchingMoviesData.find(
+          (item) => item.itemId === movieId
+        );
+        if (matched && matched.resumeTime) {
+          resumeTime = matched.resumeTime;
+        }
+      } else {
+        const seriesId = localStorage.getItem("selectedSeriesId");
+        const episodeId = localStorage.getItem("selectedEpisodeId");
 
-  const matched = continueWatchingSeriesData.find(
-    (item) => item.itemId === seriesId && item.episodeId === episodeId
-  );
-  if (matched && matched.resumeTime) {
-    resumeTime = matched.resumeTime;
-  }
-}
+        const matched = continueWatchingSeriesData.find(
+          (item) => item.itemId === seriesId && item.episodeId === episodeId
+        );
+        if (matched && matched.resumeTime) {
+          resumeTime = matched.resumeTime;
+        }
+      }
     }
 
     player = videojs(videoElement, options);
@@ -316,11 +334,16 @@ if (fromValue === "movie") {
 
     player.on("seeked", () => {
       console.log("Seek completed");
-      
+
       // Only auto-play if video wasn't manually paused AND not dragging
-      if (player.paused() && !errorActive && !isSeekBarDragging && !userManuallyPaused) {
+      if (
+        player.paused() &&
+        !errorActive &&
+        !isSeekBarDragging &&
+        !userManuallyPaused
+      ) {
         setTimeout(() => {
-          player.play().catch(err => {
+          player.play().catch((err) => {
             console.log("Auto-play after seek failed:", err);
           });
         }, 100);
@@ -368,12 +391,16 @@ if (fromValue === "movie") {
     // Seek bar event listeners
     if (!isLive && seekBar) {
       seekBar.addEventListener("input", () => {
-        if (!errorActive && player && typeof player.currentTime === "function") {
+        if (
+          !errorActive &&
+          player &&
+          typeof player.currentTime === "function"
+        ) {
           isSeekBarDragging = true;
-          
+
           // Store play state before seeking
           wasPlayingBeforeSeek = !player.paused();
-          
+
           try {
             player.currentTime(parseFloat(seekBar.value));
           } catch (err) {
@@ -384,11 +411,11 @@ if (fromValue === "movie") {
 
       seekBar.addEventListener("change", () => {
         isSeekBarDragging = false;
-        
+
         // Only auto-resume if it was playing AND not manually paused
         if (wasPlayingBeforeSeek && !userManuallyPaused && !errorActive) {
           setTimeout(() => {
-            player.play().catch(err => {
+            player.play().catch((err) => {
               console.log("Auto-play after seek bar release failed:", err);
             });
           }, 200);
@@ -401,7 +428,7 @@ if (fromValue === "movie") {
         if (!seekBar.getAttribute("max")) {
           seekBar.setAttribute("max", player.duration() || 0);
         }
-        
+
         // Only update seek bar value if user is not actively dragging it
         if (!isSeekBarDragging) {
           seekBar.value = player.currentTime();
@@ -413,7 +440,11 @@ if (fromValue === "movie") {
         }
 
         // Update duration display (only once when available)
-        if (durationEl && player.duration() && durationEl.textContent === "0:00") {
+        if (
+          durationEl &&
+          player.duration() &&
+          durationEl.textContent === "0:00"
+        ) {
           durationEl.textContent = formatTime(player.duration());
         }
 
@@ -437,7 +468,9 @@ if (fromValue === "movie") {
       if (!errorActive) {
         loadingEl.classList.remove("hidden");
         // Hide pause overlay when loading starts
-        const playOverlay = document.querySelector(".video-action-overlay.center");
+        const playOverlay = document.querySelector(
+          ".video-action-overlay.center"
+        );
         if (playOverlay) {
           playOverlay.classList.add("hidden");
         }
@@ -453,13 +486,13 @@ if (fromValue === "movie") {
         }
       }
     });
-    
+
     player.on("stalled", () => {
       if (!errorActive) {
         loadingEl.classList.remove("hidden");
       }
     });
-    
+
     player.on("loadstart", () => {
       if (!errorActive) {
         loadingEl.classList.remove("hidden");
@@ -475,15 +508,15 @@ if (fromValue === "movie") {
         loadingEl.classList.add("hidden");
         controlsBar.classList.add("hidden");
         titleBar.style.display = "none";
-        
+
         // Only show play overlay if we're not seeking
         if (!isSeekBarDragging && !player.seeking()) {
           showOverlay("play");
         }
-        
+
         // Remove focus when playing
         unfocusAll();
-        
+
         // Reset manual pause flag when video starts playing
         userManuallyPaused = false;
       }
@@ -494,14 +527,14 @@ if (fromValue === "movie") {
       if (!errorActive && !loadingEl.classList.contains("hidden")) {
         return;
       }
-      
+
       // Always show pause overlay when paused, even during seeking
       if (!errorActive) {
         controlsBar.classList.remove("hidden");
         titleBar.style.display = "flex";
         showOverlay("pause");
         setTimeout(() => focusPlayPause(), 100);
-        
+
         // Mark that user manually paused (unless it's from seeking)
         if (!player.seeking()) {
           userManuallyPaused = true;
@@ -525,184 +558,224 @@ if (fromValue === "movie") {
     });
 
     function goBack() {
-        const currentPlaylist = getCurrentPlaylist();
-        const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies ? currentPlaylist.continueWatchingMovies : [];
-        const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries ? currentPlaylist.continueWatchingSeries : [];
-        const selectedMovieId = localStorage.getItem("selectedMovieId");
+      const currentPlaylist = getCurrentPlaylist();
+      const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies
+        ? currentPlaylist.continueWatchingMovies
+        : [];
+      const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries
+        ? currentPlaylist.continueWatchingSeries
+        : [];
+      const selectedMovieId = localStorage.getItem("selectedMovieId");
 
-       
-                     const navbarEl=document.querySelector("#navbar-root");
-    if(navbarEl){
-        navbarEl.style.display="block";
-    }
-      if (fromValue === "series") {
-        const episodeId = localStorage.getItem("selectedEpisodeId");
-        localStorage.setItem("lastPlayedEpisodeId", episodeId);
-      }
-      
-      const currentPlayer = player;
+      if (localStorage.getItem("fromHome") == "true") {
+        localStorage.setItem("currentPage", "homePage");
+        Router.showPage("homePage");
+      } else {
+        const navbarEl = document.querySelector("#navbar-root");
+        if (navbarEl) {
+          navbarEl.style.display = "block";
+        }
+        if (fromValue === "series") {
+          const episodeId = localStorage.getItem("selectedEpisodeId");
+          localStorage.setItem("lastPlayedEpisodeId", episodeId);
+        }
 
-      if (!isYouTube) {
-        if (currentPlayer) {
-          let resumeTime = 0;
-          let duration = 0;
+        const currentPlayer = player;
 
-          try {
-            if (!isLive && typeof currentPlayer.currentTime === "function") {
-              resumeTime = currentPlayer.currentTime();
-            }
-            if (typeof currentPlayer.duration === "function") {
-              duration = currentPlayer.duration();
-            }
-          } catch (e) {
-            resumeTime = 0;
-            duration = 0;
-          }
+        if (!isYouTube) {
+          if (currentPlayer) {
+            let resumeTime = 0;
+            let duration = 0;
 
-          const isVideoCompleted = duration > 0 && Math.abs(resumeTime - duration) < 5; // 5 second buffer
-          
-          // If video is completed, focus on next episode (for series)
-          if (isVideoCompleted) {
-            if (fromValue === "series") {
-              const currentEpisodeId = localStorage.getItem("selectedEpisodeId");
-              const seriesEpisodes = JSON.parse(localStorage.getItem("seriesEpisodesData")) || {};
-              const currentSeason = localStorage.getItem("selectedSeason") || "1";
-              
-              // Find current episode and get next one
-              const seasonEpisodes = seriesEpisodes[currentSeason] || [];
-              const currentEpisodeIndex = seasonEpisodes.findIndex(ep => ep.id.toString() === currentEpisodeId);
-              
-              if (currentEpisodeIndex !== -1 && currentEpisodeIndex < seasonEpisodes.length - 1) {
-                // Focus on next episode
-                const nextEpisodeId = seasonEpisodes[currentEpisodeIndex + 1].id;
-                localStorage.setItem("lastPlayedEpisodeId", nextEpisodeId.toString());
-              } else {
-                // No next episode, remove the focus marker
-                localStorage.removeItem("lastPlayedEpisodeId");
+            try {
+              if (!isLive && typeof currentPlayer.currentTime === "function") {
+                resumeTime = currentPlayer.currentTime();
               }
-              
-              // Remove the completed episode from continue watching
-              removeEpisodeFromContinueWatching(currentEpisodeId);
-              
-              // Only remove from continue watching if ALL episodes in the series are completed
-              const allEpisodesCompleted = checkIfAllEpisodesCompleted(currentEpisodeId, seriesEpisodes);
-              if (allEpisodesCompleted) {
+              if (typeof currentPlayer.duration === "function") {
+                duration = currentPlayer.duration();
+              }
+            } catch (e) {
+              resumeTime = 0;
+              duration = 0;
+            }
+
+            const isVideoCompleted =
+              duration > 0 && Math.abs(resumeTime - duration) < 5; // 5 second buffer
+
+            // If video is completed, focus on next episode (for series)
+            if (isVideoCompleted) {
+              if (fromValue === "series") {
+                const currentEpisodeId =
+                  localStorage.getItem("selectedEpisodeId");
+                const seriesEpisodes =
+                  JSON.parse(localStorage.getItem("seriesEpisodesData")) || {};
+                const currentSeason =
+                  localStorage.getItem("selectedSeason") || "1";
+
+                // Find current episode and get next one
+                const seasonEpisodes = seriesEpisodes[currentSeason] || [];
+                const currentEpisodeIndex = seasonEpisodes.findIndex(
+                  (ep) => ep.id.toString() === currentEpisodeId
+                );
+
+                if (
+                  currentEpisodeIndex !== -1 &&
+                  currentEpisodeIndex < seasonEpisodes.length - 1
+                ) {
+                  // Focus on next episode
+                  const nextEpisodeId =
+                    seasonEpisodes[currentEpisodeIndex + 1].id;
+                  localStorage.setItem(
+                    "lastPlayedEpisodeId",
+                    nextEpisodeId.toString()
+                  );
+                } else {
+                  // No next episode, remove the focus marker
+                  localStorage.removeItem("lastPlayedEpisodeId");
+                }
+
+                // Remove the completed episode from continue watching
+                removeEpisodeFromContinueWatching(currentEpisodeId);
+
+                // Only remove from continue watching if ALL episodes in the series are completed
+                const allEpisodesCompleted = checkIfAllEpisodesCompleted(
+                  currentEpisodeId,
+                  seriesEpisodes
+                );
+                if (allEpisodesCompleted) {
+                  removeItemFromHistoryById(
+                    localStorage.getItem("selectedSeriesId"),
+                    "continueWatchingSeries"
+                  );
+                }
+              } else if (fromValue === "movie") {
+                // MOVIES: Remove from continue watching when completed
                 removeItemFromHistoryById(
-                  localStorage.getItem("selectedSeriesId"),
+                  localStorage.getItem("selectedMovieId"),
+                  "continueWatchingMovies"
+                );
+              }
+              // If there are still incomplete episodes, keep the series in continue watching
+            } else if (resumeTime > 5 && !isVideoCompleted) {
+              const continueWatchingItem = {
+                itemId: playingItemData.season
+                  ? localStorage.getItem("selectedSeriesId")
+                  : localStorage.getItem("selectedMovieId"),
+                episodeId: playingItemData.season
+                  ? localStorage.getItem("selectedEpisodeId")
+                  : null,
+                resumeTime,
+                duration,
+                type: playingItemData.season ? "series" : "movie",
+              };
+
+              // Load playlists
+              let playlists =
+                JSON.parse(localStorage.getItem("playlistsData")) || [];
+
+              playlists = playlists.map((pl) => {
+                if (pl.playlistName !== currentPlaylistName) return pl;
+
+                if (continueWatchingItem.type === "series") {
+                  // Remove old entry for same series+episode
+                  let updatedSeries = (pl.continueWatchingSeries || []).filter(
+                    (item) =>
+                      !(
+                        item.itemId === continueWatchingItem.itemId &&
+                        item.episodeId === continueWatchingItem.episodeId
+                      )
+                  );
+                  pl = { ...pl, continueWatchingSeries: updatedSeries };
+                } else {
+                  // Remove old entry for same movie
+                  let updatedMovies = (pl.continueWatchingMovies || []).filter(
+                    (item) => item.itemId !== continueWatchingItem.itemId
+                  );
+                  pl = { ...pl, continueWatchingMovies: updatedMovies };
+                }
+
+                return pl;
+              });
+
+              // Save cleaned playlists back to localStorage
+              localStorage.setItem("playlistsData", JSON.stringify(playlists));
+
+              // Finally, add updated item via your function
+              if (continueWatchingItem.type === "series") {
+                addItemToHistory(
+                  continueWatchingItem,
                   "continueWatchingSeries"
                 );
-              }
-            } else if (fromValue === "movie") {
-              // MOVIES: Remove from continue watching when completed
-              removeItemFromHistoryById(
-                localStorage.getItem("selectedMovieId"),
-                "continueWatchingMovies"
-              );
-            }
-            // If there are still incomplete episodes, keep the series in continue watching
-          } else if (resumeTime > 5 && !isVideoCompleted) {
-            const continueWatchingItem = {
-              itemId: playingItemData.season
-                ? localStorage.getItem("selectedSeriesId")
-                : localStorage.getItem("selectedMovieId"),
-              episodeId: playingItemData.season
-                ? localStorage.getItem("selectedEpisodeId")
-                : null,
-              resumeTime,
-              duration,
-              type: playingItemData.season ? "series" : "movie",
-            };
-
-            // Load playlists
-            let playlists = JSON.parse(localStorage.getItem("playlistsData")) || [];
-
-            playlists = playlists.map((pl) => {
-              if (pl.playlistName !== currentPlaylistName) return pl;
-
-              if (continueWatchingItem.type === "series") {
-                // Remove old entry for same series+episode
-                let updatedSeries = (pl.continueWatchingSeries || []).filter(
-                  (item) =>
-                    !(
-                      item.itemId === continueWatchingItem.itemId &&
-                      item.episodeId === continueWatchingItem.episodeId
-                    )
-                );
-                pl = { ...pl, continueWatchingSeries: updatedSeries };
               } else {
-                // Remove old entry for same movie
-                let updatedMovies = (pl.continueWatchingMovies || []).filter(
-                  (item) => item.itemId !== continueWatchingItem.itemId
+                addItemToHistory(
+                  continueWatchingItem,
+                  "continueWatchingMovies"
                 );
-                pl = { ...pl, continueWatchingMovies: updatedMovies };
               }
+            }
 
-              return pl;
-            });
+            // Set player to null first to prevent further access
+            player = null;
 
-            // Save cleaned playlists back to localStorage
-            localStorage.setItem("playlistsData", JSON.stringify(playlists));
+            // Then safely dispose
+            try {
+              if (typeof currentPlayer.pause === "function") {
+                currentPlayer.pause();
+              }
+            } catch (err) {
+              console.warn("Player pause error:", err);
+            }
 
-            // Finally, add updated item via your function
-            if (continueWatchingItem.type === "series") {
-              addItemToHistory(continueWatchingItem, "continueWatchingSeries");
-            } else {
-              addItemToHistory(continueWatchingItem, "continueWatchingMovies");
+            try {
+              if (typeof currentPlayer.dispose === "function") {
+                currentPlayer.dispose();
+              }
+            } catch (err) {
+              console.warn("Player dispose error:", err);
             }
           }
 
-          // Set player to null first to prevent further access
-          player = null;
+          if (fromValue == "movie") {
+            const isContinueWatchingMovie = allRecentlyWatchedMovies.some(
+              (movie) =>
+                movie &&
+                movie.itemId === localStorage.getItem("selectedMovieId")
+            );
 
-          // Then safely dispose
-          try {
-            if (typeof currentPlayer.pause === "function") {
-              currentPlayer.pause();
-            }
-          } catch (err) {
-            console.warn("Player pause error:", err);
+            localStorage.setItem(
+              "isContinueWatchingMovie",
+              isContinueWatchingMovie == false ? "true" : "false"
+            );
+
+            buildDynamicSidebarOptions();
+            localStorage.setItem("currentPage", "movieDetailPage");
+            Router.showPage("movieDetailPage");
+          } else {
+            const isContinueWatchingSeries = allRecentlyWatchedSeries.some(
+              (series) =>
+                series &&
+                series.itemId === localStorage.getItem("selectedSeriesId")
+            );
+
+            localStorage.setItem(
+              "isContinueWatchingSeries",
+              isContinueWatchingSeries === false ? "true" : "false"
+            );
+            buildDynamicSidebarOptions();
+            localStorage.setItem("currentPage", "seriesDetailPage");
+            Router.showPage("seriesDetailPage");
           }
-
-          try {
-            if (typeof currentPlayer.dispose === "function") {
-              currentPlayer.dispose();
-            }
-          } catch (err) {
-            console.warn("Player dispose error:", err);
-          }
-        }
-
-        if (fromValue == "movie") {
-
-           const isContinueWatchingMovie = allRecentlyWatchedMovies.some(movie => 
-            movie && movie.itemId === localStorage.getItem("selectedMovieId")
-        );
-
-        localStorage.setItem("isContinueWatchingMovie", isContinueWatchingMovie==false ? "true" : "false");
-
-        buildDynamicSidebarOptions();
-          localStorage.setItem("currentPage", "movieDetailPage");
-          Router.showPage("movieDetailPage");
         } else {
-            const isContinueWatchingSeries = allRecentlyWatchedSeries.some(series => 
-            series && series.itemId === localStorage.getItem("selectedSeriesId")
-        );
-
-        localStorage.setItem("isContinueWatchingSeries", isContinueWatchingSeries===false ? "true" : "false");
-        buildDynamicSidebarOptions();
-          localStorage.setItem("currentPage", "seriesDetailPage");
-          Router.showPage("seriesDetailPage");
-        }
-      } else {
-        if (typeof currentPlayer.dispose === "function") {
-          currentPlayer.dispose();
-        }
-        if (fromValue == "movie") {
-          localStorage.setItem("currentPage", "movieDetailPage");
-          Router.showPage("movieDetailPage");
-        } else {
-          localStorage.setItem("currentPage", "seriesDetailPage");
-          Router.showPage("seriesDetailPage");
+          if (typeof currentPlayer.dispose === "function") {
+            currentPlayer.dispose();
+          }
+          if (fromValue == "movie") {
+            localStorage.setItem("currentPage", "movieDetailPage");
+            Router.showPage("movieDetailPage");
+          } else {
+            localStorage.setItem("currentPage", "seriesDetailPage");
+            Router.showPage("seriesDetailPage");
+          }
         }
       }
     }
@@ -711,33 +784,44 @@ if (fromValue === "movie") {
     function removeEpisodeFromContinueWatching(completedEpisodeId) {
       try {
         const seriesId = localStorage.getItem("selectedSeriesId");
-        const currentPlaylistName = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
-        const playlistsData = JSON.parse(localStorage.getItem("playlistsData")) || [];
-        const currentPlaylist = playlistsData.filter((pl) => pl.playlistName === currentPlaylistName)[0];
-        
+        const currentPlaylistName = JSON.parse(
+          localStorage.getItem("selectedPlaylist")
+        ).playlistName;
+        const playlistsData =
+          JSON.parse(localStorage.getItem("playlistsData")) || [];
+        const currentPlaylist = playlistsData.filter(
+          (pl) => pl.playlistName === currentPlaylistName
+        )[0];
+
         if (!currentPlaylist || !currentPlaylist.continueWatchingSeries) return;
-        
+
         // Remove the specific episode from continue watching
-        const updatedContinueWatching = currentPlaylist.continueWatchingSeries.filter(
-          item => !(item.itemId === seriesId && item.episodeId === completedEpisodeId.toString())
-        );
-        
+        const updatedContinueWatching =
+          currentPlaylist.continueWatchingSeries.filter(
+            (item) =>
+              !(
+                item.itemId === seriesId &&
+                item.episodeId === completedEpisodeId.toString()
+              )
+          );
+
         // Update the playlist
-        const updatedPlaylists = playlistsData.map(pl => {
+        const updatedPlaylists = playlistsData.map((pl) => {
           if (pl.playlistName === currentPlaylistName) {
             return {
               ...pl,
-              continueWatchingSeries: updatedContinueWatching
+              continueWatchingSeries: updatedContinueWatching,
             };
           }
           return pl;
         });
-        
+
         // Save back to localStorage
         localStorage.setItem("playlistsData", JSON.stringify(updatedPlaylists));
-        
-        console.log(`Removed episode ${completedEpisodeId} from continue watching`);
-        
+
+        console.log(
+          `Removed episode ${completedEpisodeId} from continue watching`
+        );
       } catch (error) {
         console.warn("Error removing episode from continue watching:", error);
       }
@@ -747,41 +831,48 @@ if (fromValue === "movie") {
     function checkIfAllEpisodesCompleted(currentEpisodeId, seriesEpisodes) {
       try {
         const seriesId = localStorage.getItem("selectedSeriesId");
-        const currentPlaylistName = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
-        const playlistsData = JSON.parse(localStorage.getItem("playlistsData")) || [];
-        const currentPlaylist = playlistsData.filter((pl) => pl.playlistName === currentPlaylistName)[0];
-        const continueWatchingEpisodes = currentPlaylist ? currentPlaylist.continueWatchingSeries || [] : [];
-        
+        const currentPlaylistName = JSON.parse(
+          localStorage.getItem("selectedPlaylist")
+        ).playlistName;
+        const playlistsData =
+          JSON.parse(localStorage.getItem("playlistsData")) || [];
+        const currentPlaylist = playlistsData.filter(
+          (pl) => pl.playlistName === currentPlaylistName
+        )[0];
+        const continueWatchingEpisodes = currentPlaylist
+          ? currentPlaylist.continueWatchingSeries || []
+          : [];
+
         // Get all episodes from the series
         const allEpisodes = [];
-        Object.keys(seriesEpisodes).forEach(seasonKey => {
+        Object.keys(seriesEpisodes).forEach((seasonKey) => {
           const seasonEpisodes = seriesEpisodes[seasonKey] || [];
-          seasonEpisodes.forEach(episode => {
+          seasonEpisodes.forEach((episode) => {
             allEpisodes.push({
               id: episode.id.toString(),
               season: seasonKey,
-              episode_num: episode.episode_num
+              episode_num: episode.episode_num,
             });
           });
         });
-        
+
         // Check if there are any episodes that are still in continue watching
         // (meaning they're incomplete)
-        const hasIncompleteEpisodes = allEpisodes.some(episode => {
+        const hasIncompleteEpisodes = allEpisodes.some((episode) => {
           // Skip the current episode that just got completed (we're about to remove it)
           if (episode.id === currentEpisodeId.toString()) {
             return false;
           }
-          
+
           // Check if this episode exists in continueWatching (meaning it's incomplete)
-          const isInContinueWatching = continueWatchingEpisodes.some(cw => 
-            cw.itemId === seriesId && cw.episodeId === episode.id
+          const isInContinueWatching = continueWatchingEpisodes.some(
+            (cw) => cw.itemId === seriesId && cw.episodeId === episode.id
           );
-          
+
           // If it's in continueWatching, it means it's incomplete
           return isInContinueWatching;
         });
-        
+
         // If there are NO incomplete episodes, then ALL episodes are completed
         return !hasIncompleteEpisodes;
       } catch (error) {
@@ -913,17 +1004,19 @@ if (fromValue === "movie") {
               focusSeekBar();
               e.preventDefault();
               break;
-              
-case "Enter":
-  // Apply aspect ratio change using utility
-  const videoEl = document.querySelector("#videojs-player-tag_html5_api");
-  if (videoEl && window.VideoAspectRatio) {
-    const newLabel = window.VideoAspectRatio.cycle(videoEl);
-    window.VideoAspectRatio.showOverlay(newLabel);
-  }
-  e.preventDefault();
-  break;
-              
+
+            case "Enter":
+              // Apply aspect ratio change using utility
+              const videoEl = document.querySelector(
+                "#videojs-player-tag_html5_api"
+              );
+              if (videoEl && window.VideoAspectRatio) {
+                const newLabel = window.VideoAspectRatio.cycle(videoEl);
+                window.VideoAspectRatio.showOverlay(newLabel);
+              }
+              e.preventDefault();
+              break;
+
             case "Escape":
             case "Back":
             case "BrowserBack":
@@ -942,23 +1035,31 @@ case "Enter":
         if (seekBar) {
           switch (e.key) {
             case "ArrowLeft":
-              if (!isLive && player && typeof player.currentTime === "function") {
+              if (
+                !isLive &&
+                player &&
+                typeof player.currentTime === "function"
+              ) {
                 try {
                   // Store play state and pause during seek
                   wasPlayingBeforeSeek = !player.paused();
                   if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     player.pause();
                   }
-                  
+
                   const newTime = Math.max(0, player.currentTime() - 10);
                   player.currentTime(newTime);
                   showOverlay("backward");
                   seekBar.value = newTime;
-                  
+
                   // Only resume if it was playing AND not manually paused
                   if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     setTimeout(() => {
-                      player.play().catch(err => console.log("Resume after seek failed:", err));
+                      player
+                        .play()
+                        .catch((err) =>
+                          console.log("Resume after seek failed:", err)
+                        );
                     }, 200);
                   }
                 } catch (err) {
@@ -969,23 +1070,34 @@ case "Enter":
               break;
 
             case "ArrowRight":
-              if (!isLive && player && typeof player.currentTime === "function") {
+              if (
+                !isLive &&
+                player &&
+                typeof player.currentTime === "function"
+              ) {
                 try {
                   // Store play state and pause during seek
                   wasPlayingBeforeSeek = !player.paused();
                   if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     player.pause();
                   }
-                  
-                  const newTime = Math.min(player.duration(), player.currentTime() + 10);
+
+                  const newTime = Math.min(
+                    player.duration(),
+                    player.currentTime() + 10
+                  );
                   player.currentTime(newTime);
                   showOverlay("forward");
                   seekBar.value = newTime;
-                  
+
                   // Only resume if it was playing AND not manually paused
                   if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     setTimeout(() => {
-                      player.play().catch(err => console.log("Resume after seek failed:", err));
+                      player
+                        .play()
+                        .catch((err) =>
+                          console.log("Resume after seek failed:", err)
+                        );
                     }, 200);
                   }
                 } catch (err) {
@@ -994,19 +1106,19 @@ case "Enter":
               }
               e.preventDefault();
               break;
-              
+
             case "ArrowUp":
               // Move focus to play/pause overlay
               focusPlayPause();
               e.preventDefault();
               break;
-              
+
             case "ArrowDown":
               // Move focus to aspect ratio button
               focusAspectRatio();
               e.preventDefault();
               break;
-              
+
             case "Enter":
               // Just unfocus seek bar, don't play/pause
               focusPlayPause();
@@ -1033,7 +1145,7 @@ case "Enter":
             focusSeekBar();
             e.preventDefault();
             break;
-            
+
           case "Enter":
             // Toggle play/pause
             if (player && typeof player.paused === "function") {
@@ -1049,7 +1161,7 @@ case "Enter":
             }
             e.preventDefault();
             break;
-            
+
           case "ArrowRight":
             if (!isLive && player && typeof player.currentTime === "function") {
               try {
@@ -1058,14 +1170,18 @@ case "Enter":
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                   player.pause();
                 }
-                
+
                 player.currentTime(player.currentTime() + 10);
                 showOverlay("forward");
-                
+
                 // Only resume if it was playing AND not manually paused
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                   setTimeout(() => {
-                    player.play().catch(err => console.log("Resume after seek failed:", err));
+                    player
+                      .play()
+                      .catch((err) =>
+                        console.log("Resume after seek failed:", err)
+                      );
                   }, 200);
                 }
               } catch (err) {
@@ -1082,14 +1198,18 @@ case "Enter":
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                   player.pause();
                 }
-                
+
                 player.currentTime(player.currentTime() - 10);
                 showOverlay("backward");
-                
+
                 // Only resume if it was playing AND not manually paused
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                   setTimeout(() => {
-                    player.play().catch(err => console.log("Resume after seek failed:", err));
+                    player
+                      .play()
+                      .catch((err) =>
+                        console.log("Resume after seek failed:", err)
+                      );
                   }, 200);
                 }
               } catch (err) {
@@ -1098,7 +1218,7 @@ case "Enter":
             }
             break;
         }
-        
+
         // If we handled the key in play/pause mode, return
         if (["ArrowDown", "Enter"].includes(e.key)) {
           return;
@@ -1129,14 +1249,18 @@ case "Enter":
               if (wasPlayingBeforeSeek) {
                 player.pause();
               }
-              
+
               player.currentTime(player.currentTime() + 10);
               showOverlay("forward");
-              
+
               // Only resume if it was playing
               if (wasPlayingBeforeSeek) {
                 setTimeout(() => {
-                  player.play().catch(err => console.log("Resume after seek failed:", err));
+                  player
+                    .play()
+                    .catch((err) =>
+                      console.log("Resume after seek failed:", err)
+                    );
                 }, 200);
               }
             } catch (err) {
@@ -1144,7 +1268,7 @@ case "Enter":
             }
           }
           break;
-          
+
         case "ArrowLeft":
           if (!isLive && player && typeof player.currentTime === "function") {
             try {
@@ -1153,14 +1277,18 @@ case "Enter":
               if (wasPlayingBeforeSeek) {
                 player.pause();
               }
-              
+
               player.currentTime(player.currentTime() - 10);
               showOverlay("backward");
-              
+
               // Only resume if it was playing
               if (wasPlayingBeforeSeek) {
                 setTimeout(() => {
-                  player.play().catch(err => console.log("Resume after seek failed:", err));
+                  player
+                    .play()
+                    .catch((err) =>
+                      console.log("Resume after seek failed:", err)
+                    );
                 }, 200);
               }
             } catch (err) {
@@ -1168,7 +1296,7 @@ case "Enter":
             }
           }
           break;
-          
+
         case "Escape":
         case "Back":
         case "BrowserBack":
@@ -1226,24 +1354,26 @@ case "Enter":
   setTimeout(() => initPlayer(), 0);
 
   setTimeout(() => {
-    const videoHtmlElement = document.querySelector("#videojs-player-tag_html5_api");
+    const videoHtmlElement = document.querySelector(
+      "#videojs-player-tag_html5_api"
+    );
     if (videoHtmlElement && window.VideoAspectRatio) {
       window.VideoAspectRatio.initialize(videoHtmlElement);
     }
   }, 0);
 
-setTimeout(() => {
-  const aspectRatioButton = document.getElementById("aspectRatioButton");
-  if (aspectRatioButton) {
-    aspectRatioButton.addEventListener("click", () => {
-      const videoEl = document.querySelector("#videojs-player-tag_html5_api");
-      if (videoEl && window.VideoAspectRatio) {
-        const newLabel = window.VideoAspectRatio.cycle(videoEl);
-        window.VideoAspectRatio.showOverlay(newLabel);
-      }
-    });
-  }
-}, 0);
+  setTimeout(() => {
+    const aspectRatioButton = document.getElementById("aspectRatioButton");
+    if (aspectRatioButton) {
+      aspectRatioButton.addEventListener("click", () => {
+        const videoEl = document.querySelector("#videojs-player-tag_html5_api");
+        if (videoEl && window.VideoAspectRatio) {
+          const newLabel = window.VideoAspectRatio.cycle(videoEl);
+          window.VideoAspectRatio.showOverlay(newLabel);
+        }
+      });
+    }
+  }, 0);
 
   return `
   <div class="video-js-player-container">
@@ -1291,9 +1421,15 @@ setTimeout(() => {
         <input id="customSeek" type="range" value="0" min="0" step="0.1" />
         <span id="duration" class="time-display">0:00</span>
       </div>
-      ${isYouTube ? "" : `<div class="aspect-ratio-container">
-        <button class="aspect-ratio-button" id="aspectRatioButton"><i class="fa-solid fa-compress" style="color: ${isAspectRatioFocused ? 'var(--gold)' : 'white'}"></i>Aspect Ratio</button>
-      </div>`}
+      ${
+        isYouTube
+          ? ""
+          : `<div class="aspect-ratio-container">
+        <button class="aspect-ratio-button" id="aspectRatioButton"><i class="fa-solid fa-compress" style="color: ${
+          isAspectRatioFocused ? "var(--gold)" : "white"
+        }"></i>Aspect Ratio</button>
+      </div>`
+      }
 
     </div>
  

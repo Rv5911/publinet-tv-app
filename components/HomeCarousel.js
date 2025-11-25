@@ -60,6 +60,7 @@ async function HomeCarousel() {
     });
 
   console.log(sliderData, "SLIDER DATA WITH MOVIE DETAILS");
+  window.homeCarouselSliderData = sliderData;
 
   // If no valid details were fetched, return empty carousel
   if (sliderData.length === 0) {

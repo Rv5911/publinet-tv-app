@@ -273,15 +273,99 @@ async function HomePage() {
           e.preventDefault();
 
           if (navState.focus === "watchNow") {
-            // Alert the current slide index
             const activeIndex = window.carouselActiveIndex || 0;
-            alert(`Watch Now - Card Index: ${activeIndex}`);
+
+            const activeSlide = document.querySelector(
+              `.slide[data-index="${activeIndex}"]`
+            );
+            let streamIdFromDOM = null;
+            if (activeSlide) {
+              const btn = activeSlide.querySelector(".carousel-watch-now-btn");
+              if (btn) {
+                streamIdFromDOM = btn.getAttribute("data-stream-id");
+              }
+            }
+
+            const selectedItem =
+              window.homeCarouselSliderData &&
+              window.homeCarouselSliderData[activeIndex]
+                ? window.homeCarouselSliderData[activeIndex]
+                : null;
+
+            let currentPlaylistData = localStorage.getItem(
+              "currentPlaylistData"
+            );
+            if (!currentPlaylistData) return;
+            currentPlaylistData = JSON.parse(currentPlaylistData);
+
+            let movieVideoUrl = "";
+            if (
+              currentPlaylistData.server_info &&
+              currentPlaylistData.user_info &&
+              selectedItem.movie_data &&
+              selectedItem.movie_data.stream_id &&
+              selectedItem.movie_data.container_extension
+            ) {
+              movieVideoUrl =
+                currentPlaylistData.server_info.server_protocol +
+                "://" +
+                currentPlaylistData.server_info.url +
+                ":" +
+                currentPlaylistData.server_info.port +
+                "/movie/" +
+                currentPlaylistData.user_info.username +
+                "/" +
+                currentPlaylistData.user_info.password +
+                "/" +
+                selectedItem.movie_data.stream_id +
+                "." +
+                selectedItem.movie_data.container_extension;
+            }
+
+            localStorage.setItem(
+              "playingItemData",
+              JSON.stringify(selectedItem.movie_data)
+            );
+            localStorage.setItem("selectedVideoItemUrl", movieVideoUrl);
+            localStorage.setItem("from", "movie");
+            localStorage.setItem("fromHome", "true");
+
+            localStorage.setItem("currentPage", "videojsPlayer");
+
+            Router.showPage("videoJsPlayer");
+            const navbarEl = document.querySelector("#navbar-root");
+            if (navbarEl) {
+              navbarEl.style.display = "none";
+            }
+            document.body.style.backgroundImage = "none";
+            document.body.style.backgroundColor = "black";
+            document.removeEventListener("keydown", homePageKeydownEvents);
+            return;
           } else if (navState.focus === "categories") {
             const currentCard = document.querySelector(
               `.home-card[data-category="${navState.currentCategory}"][data-index="${navState.currentCard}"]`
             );
             if (currentCard) {
               const streamId = currentCard.getAttribute("data-stream-id");
+              console.log("CATEGORY SELECTED:", {
+                category: navState.currentCategory,
+                index: navState.currentCard,
+                streamId,
+              });
+
+              try {
+                localStorage.setItem(
+                  "selectedCategoryItem",
+                  JSON.stringify({
+                    category: navState.currentCategory,
+                    index: navState.currentCard,
+                    streamId,
+                  })
+                );
+              } catch (err) {
+                console.warn("Could not save selected category item:", err);
+              }
+
               alert(
                 `Category ${navState.currentCategory}, Card Index: ${navState.currentCard}, Stream ID: ${streamId}`
               );
