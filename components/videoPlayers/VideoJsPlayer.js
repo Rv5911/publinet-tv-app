@@ -568,7 +568,7 @@ function VideoJsPlayer(poster = "") {
       const selectedMovieId = localStorage.getItem("selectedMovieId");
 
       if (localStorage.getItem("fromHome") == "true") {
-        localStorage.setItem("currentPage", "homePage");
+        localStorage.removeItem("fromHome");
         Router.showPage("homePage");
       } else {
         const navbarEl = document.querySelector("#navbar-root");
