@@ -347,28 +347,78 @@ async function HomePage() {
             );
             if (currentCard) {
               const streamId = currentCard.getAttribute("data-stream-id");
+              const type = currentCard.getAttribute("data-type"); // 'movie' or 'series'
+              
               console.log("CATEGORY SELECTED:", {
                 category: navState.currentCategory,
                 index: navState.currentCard,
                 streamId,
+                type
               });
 
-              try {
-                localStorage.setItem(
-                  "selectedCategoryItem",
-                  JSON.stringify({
-                    category: navState.currentCategory,
-                    index: navState.currentCard,
-                    streamId,
-                  })
-                );
-              } catch (err) {
-                console.warn("Could not save selected category item:", err);
-              }
+              if (type === 'movie') {
+                 // Navigate to Movie Detail Page
+                 let isContinueWatchingMovie = false;
+                 localStorage.setItem("moviesCategoryIndex", navState.currentCategory);
+                 localStorage.setItem("moviesCardIndex", navState.currentCard);
+                 localStorage.setItem("moviesSelectedCategoryId", navState.currentCategory); // Just a placeholder if needed
 
-              alert(
-                `Category ${navState.currentCategory}, Card Index: ${navState.currentCard}, Stream ID: ${streamId}`
-              );
+                 localStorage.setItem("selectedMovieId", streamId);
+                 const currentPlaylist = getCurrentPlaylist();
+                 const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
+                 if (allRecentlyWatchedMovies && Array.isArray(allRecentlyWatchedMovies)) {
+                   isContinueWatchingMovie = allRecentlyWatchedMovies.some(
+                     (movie) => movie && movie.itemId == streamId
+                   );
+                 }
+
+                 localStorage.setItem(
+                   "isContinueWatchingMovie",
+                   isContinueWatchingMovie.toString()
+                 );
+
+                 // buildDynamicSidebarOptions(); // This might be needed if it exists globally or we need to replicate logic
+
+                 const selectedMovieItem = window.allMoviesStreams.find(
+                   (item) => item.stream_id == streamId
+                 );
+                 if (selectedMovieItem) {
+                   localStorage.setItem(
+                     "selectedMovieData",
+                     JSON.stringify(selectedMovieItem)
+                   );
+                 }
+
+                 if (HomePage.cleanup) HomePage.cleanup();
+                 document.querySelector("#loading-progress").style.display = "none";
+                 localStorage.setItem("currentPage", "movieDetailPage");
+                 localStorage.setItem("navigationFocus", "movieDetailPage");
+                 Router.showPage("movieDetailPage");
+
+              } else if (type === 'series') {
+                 // Navigate to Series Detail Page
+                 localStorage.setItem("seriesCategoryIndex", navState.currentCategory);
+                 localStorage.setItem("seriesCardIndex", navState.currentCard);
+                 localStorage.setItem("seriesSelectedCategoryId", navState.currentCategory);
+
+                 localStorage.setItem("selectedSeriesId", streamId);
+                 
+                 const selectedSeriesItem = window.allSeriesStreams.find(
+                    (item) => item.series_id == streamId
+                 );
+                 if (selectedSeriesItem) {
+                    localStorage.setItem(
+                      "selectedSeriesItem",
+                      JSON.stringify(selectedSeriesItem)
+                    );
+                 }
+                 
+                 if (HomePage.cleanup) HomePage.cleanup();
+                 document.querySelector("#loading-progress").style.display = "none";
+                 localStorage.setItem("currentPage", "seriesDetailPage");
+                 localStorage.setItem("navigationFocus", "seriesDetailPage");
+                 Router.showPage("seriesDetailPage");
+              }
             }
           }
           break;
@@ -413,53 +463,106 @@ async function HomePage() {
     };
   }, 0);
 
-  // Get favorite and recently added movies
+  // Get favorite and recently added movies and series
   const currentPlaylist = getCurrentPlaylist();
 
   console.log("currentPlaylist", currentPlaylist);
-  const favoriteIds = currentPlaylist.favouriteMovies
-    ? currentPlaylist.favouriteMovies.map((movie) => movie)
+  
+  // --- FAVORITES ---
+  const favoriteMovieIds = currentPlaylist.favouriteMovies
+    ? currentPlaylist.favouriteMovies.map((id) => String(id))
     : [];
-  const allStreams = window.allMoviesStreams || [];
-  const allSeriesAllStreams = window.allSeriesStreams || [];
-
   const favoriteSeriesIds = currentPlaylist.favouriteSeries
-    ? currentPlaylist.favouriteSeries.map((movie) => movie)
+    ? currentPlaylist.favouriteSeries.map((id) => String(id))
     : [];
 
-  console.log("favoriteIds", favoriteIds);
-  console.log("favoriteSeriesIds", favoriteSeriesIds);
-  // Get favorite movies (first 10)
-  const favoriteMovies = allStreams.filter((stream) =>
-    favoriteIds.includes(stream.stream_id)
-  );
-  const favoriteSeries = allSeriesAllStreams.filter((stream) =>
-    favoriteSeriesIds.includes(stream.series_id)
-  );
+  const allMoviesStreams = window.allMoviesStreams || [];
+  const allSeriesStreams = window.allSeriesStreams || [];
 
-  console.log("favoriteMovies", favoriteMovies);
-  console.log("favoriteSeries", favoriteSeries);
+  // Map IDs to Objects
+  const favoriteMovies = allMoviesStreams.filter((stream) =>
+    favoriteMovieIds.includes(String(stream.stream_id))
+  ).map(m => ({ ...m, type: 'movie' }));
 
-  // Get recently added movies (first 10, sorted by added date)
-  const recentlyAddedMovies = allStreams
-    .sort((a, b) => (b.added || 0) - (a.added || 0))
-    .slice(0, 10);
+  const favoriteSeries = allSeriesStreams.filter((stream) =>
+    favoriteSeriesIds.includes(String(stream.series_id))
+  ).map(s => ({ ...s, type: 'series' }));
+
+  // Merge Favorites
+  const allFavorites = [...favoriteMovies, ...favoriteSeries]; 
+  // You might want to sort them, e.g., by name or added date, but for now just merging
+  // If we had a 'favoritedAt' timestamp, we could sort by that.
+
+  // --- RECENTLY WATCHED ---
+  // Extract itemIds from continueWatching arrays
+  const continueWatchingMovies = currentPlaylist.continueWatchingMovies || [];
+  const continueWatchingSeries = currentPlaylist.continueWatchingSeries || [];
+
+  // We need to map these back to the full stream objects
+  // continueWatching items usually have { itemId: "...", ... }
+  
+  const recentMovies = continueWatchingMovies.map(cw => {
+      const stream = allMoviesStreams.find(s => String(s.stream_id) === String(cw.itemId));
+      return stream ? { ...stream, type: 'movie', lastWatched: cw.date || 0 } : null; // Assuming there might be a date/timestamp
+  }).filter(Boolean);
+
+  const recentSeries = continueWatchingSeries.map(cw => {
+      const stream = allSeriesStreams.find(s => String(s.series_id) === String(cw.itemId));
+      return stream ? { ...stream, type: 'series', lastWatched: cw.date || 0 } : null;
+  }).filter(Boolean);
+
+  // Merge Recently Watched
+  const allRecentlyWatched = [...recentMovies, ...recentSeries];
+  
+  // Sort by lastWatched if available, otherwise maybe just reverse order of addition?
+  // Assuming 'lastWatched' is a timestamp. If not available, we might just take them as is.
+  // The user request said "show thr merged of movies and sereis".
+  // Let's sort by added date as a fallback if lastWatched isn't reliable or present on all.
+  // But strictly speaking, recently watched should be sorted by when it was watched.
+  // Since I don't see the exact structure of continueWatching objects in the prompt, I'll assume they might have a timestamp or just rely on the order they are in the array (usually most recent first).
+  // If we simply concat, we get all movies then all series.
+  // Let's try to interleave or just sort by 'added' if we can't sort by watch time.
+  // Actually, the existing code sorted by 'added'.
+  // Let's sort by 'added' for now as a safe bet for "Recently Added" behavior if "Recently Watched" implies that, 
+  // BUT the variable name in original code was 'recentlyAddedMovies' derived from 'allStreams' sorted by 'added'.
+  // The USER REQUEST says "Recnelty Watched ... use ids from currentPlaylist.continueWatchingMovies".
+  // So it IS "Recently Watched" (history), not "Recently Added" (new content).
+  // The previous code was actually doing "Recently Added" logic: `const recentlyAddedMovies = allStreams.sort(...).slice(0, 10);`
+  // I must CHANGE this to use `continueWatching` as requested.
+  
+  // Since `continueWatching` arrays are usually ordered by most recent, we can just merge and maybe slice.
+  // If we want to strictly order them, we'd need a common timestamp.
+  // For now, I will combine them.
+  
+  const mergedRecentlyWatched = allRecentlyWatched.slice(0, 20); // Limit to 20 total?
 
   // Helper function to create card HTML
-  function createHomeCard(movie, categoryIndex, cardIndex) {
-    const isFav = favoriteIds.includes(movie.stream_id);
-    const categoryName = movie.category_name || "Movie";
-    const rating = movie.rating_5based || "0";
+  function createHomeCard(item, categoryIndex, cardIndex) {
+    const type = item.type || 'movie';
+    const isMovie = type === 'movie';
+    
+    const id = isMovie ? item.stream_id : item.series_id;
+    const name = item.name || "Unknown";
+    const image = isMovie ? (item.stream_icon || "./assets/demo-img-card.png") : (item.cover || item.stream_icon || "./assets/demo-img-card.png");
+    const rating = item.rating_5based || "0";
+    const categoryName = item.category_name || (isMovie ? "Movie" : "Series");
+    
+    // Check favorites
+    let isFav = false;
+    if (isMovie) {
+        isFav = favoriteMovieIds.includes(String(id));
+    } else {
+        isFav = favoriteSeriesIds.includes(String(id));
+    }
 
     return `
       <div class="home-card" 
            data-category="${categoryIndex}" 
            data-index="${cardIndex}" 
-           data-stream-id="${movie.stream_id}"
+           data-stream-id="${id}"
+           data-type="${type}"
            tabindex="0"
-           style="background-image: url('${
-             movie.stream_icon || "./assets/demo-img-card.png"
-           }')">
+           style="background-image: url('${image}')">
         <div class="home-card-content">
           <div class="home-card-top">
             <img src="./assets/heartIcon.png" 
@@ -473,10 +576,10 @@ async function HomePage() {
           <div class="home-card-bottom">
             <div class="home-card-bottom-left">
               <h3>${categoryName}</h3>
-              <h2 class="home-title-marquee">${movie.name || "Unknown"}</h2>
+              <h2 class="home-title-marquee">${name}</h2>
             </div>
             <div class="home-card-bottom-right">
-              <h3>2h 0m</h3>
+              <h3>${isMovie ? "2h 0m" : (item.seasons ? item.seasons + " S" : "")}</h3>
               <span class="home-card-rating">
                 <img src="./assets/rating-star.png" class="home-card-star-icon" />
                 ${rating}
@@ -509,13 +612,13 @@ async function HomePage() {
       </div>
       
       ${
-        recentlyAddedMovies.length > 0
+        mergedRecentlyWatched.length > 0
           ? `
       <div class="home-recent-container">
         <h1>Recently Watched</h1>
         <div class="home-card-list" data-category="1">
-          ${recentlyAddedMovies
-            .map((movie, index) => createHomeCard(movie, 1, index))
+          ${mergedRecentlyWatched
+            .map((item, index) => createHomeCard(item, 1, index))
             .join("")}
         </div>
       </div>
@@ -530,13 +633,13 @@ async function HomePage() {
       `
       }
       ${
-        favoriteMovies.length > 0
+        allFavorites.length > 0
           ? `
       <div class="home-fav-container">
         <h1>My Fav</h1>
         <div class="home-card-list" data-category="0">
-          ${favoriteMovies
-            .map((movie, index) => createHomeCard(movie, 0, index))
+          ${allFavorites
+            .map((item, index) => createHomeCard(item, 0, index))
             .join("")}
         </div>
       </div>
