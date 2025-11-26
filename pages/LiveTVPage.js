@@ -1505,30 +1505,35 @@ function LiveTvPage() {
           : ""
       }
     </div>
-    <div class="channel-card-info">
+    <div class="channel-card-content">
       <p class="channel-card-name">${ch.name}</p>
-      <div class="channel-card-buttons">
-        ${
-          selectedCategoryId === "channelHistory"
-            ? `<button class="channel-fav-btn" data-stream-id="${ch.stream_id}">
-            ${
-              isFav
-                ? `<i class="fa-solid fa-heart"></i>`
-                : `<i class="fa-regular fa-heart"></i>`
-            }
-          </button>
-          <button class="channel-remove-btn" data-stream-id="${ch.stream_id}">
-            <i class="fa-solid fa-xmark" style="font-weight: 900; font-size: 14px;"></i>
-          </button>`
-            : `<button class="channel-fav-btn" data-stream-id="${ch.stream_id}">
-            ${
-              isFav
-                ? `<i class="fa-solid fa-heart"></i>`
-                : `<i class="fa-regular fa-heart"></i>`
-            }
-          </button>`
-        }
-      </div>
+      <p class="channel-card-program-info">Program info Entertainment</p>
+    </div>
+    <div class="channel-card-buttons">
+      ${
+        selectedCategoryId === "channelHistory"
+          ? `<button class="channel-fav-btn" data-stream-id="${ch.stream_id}">
+          ${
+            isFav
+              ? `<i class="fa-solid fa-heart"></i>`
+              : `<i class="fa-regular fa-heart"></i>`
+          }
+        </button>
+        <button class="channel-remove-btn" data-stream-id="${ch.stream_id}">
+          <i class="fa-solid fa-xmark" style="font-weight: 900; font-size: 14px;"></i>
+        </button>`
+          : `<button class="channel-fav-btn" data-stream-id="${ch.stream_id}">
+          ${
+            isFav
+              ? `<i class="fa-solid fa-heart"></i>`
+              : `<i class="fa-regular fa-heart"></i>`
+          }
+        </button>`
+      }
+    </div>
+    <div class="channel-card-progress-container">
+      <div class="channel-card-progress-bar" style="width: 47%;"></div>
+      <div class="channel-card-progress-time">13.41 × 285.77</div>
     </div>`;
 
       if (listContainer) {
