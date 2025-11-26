@@ -115,6 +115,7 @@
     black 90%,
     transparent 100%
   );
+  position: relative;
 }
 
 .livetv-channel-category {
@@ -186,6 +187,7 @@
     black 85%,
     transparent 100%
   );
+  position: relative;
 }
 
 .channel-card {
