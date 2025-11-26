@@ -594,7 +594,13 @@ async function HomePage() {
   // Show loading overlay initially
   const loadingOverlay = document.querySelector("#loading-overlay");
   if (loadingOverlay) {
-    loadingOverlay.classList.remove("hidden");
+    if (localStorage.getItem("currentPage") === "homePage") {
+      loadingOverlay.classList.add("hidden");
+      const progress = document.querySelector("#loading-progress");
+      if (progress) progress.style.display = "none";
+    } else {
+      loadingOverlay.classList.remove("hidden");
+    }
   }
 
   // Await the carousel HTML (this is async and fetches movie details)
