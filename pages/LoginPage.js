@@ -5,8 +5,8 @@ function LoginPage() {
 
   // Delay setup until after page is in DOM
   setTimeout(function () {
-    localStorage.removeItem("navigationFocus")
-    if(localStorage.getItem("currentPage") !== "login") return
+    localStorage.removeItem("navigationFocus");
+    if (localStorage.getItem("currentPage") !== "login") return;
     if (LoginPage.cleanup) LoginPage.cleanup();
 
     const playlistInput = document.querySelector(".playlistname-input");
@@ -28,6 +28,7 @@ function LoginPage() {
 
     let currentIndex = 0;
     let lastFocusedInput = null;
+    3;
 
     // Wrap password input safely
     const passwordWrapper = document.createElement("div");
@@ -39,13 +40,13 @@ function LoginPage() {
     eyeIcon.src = "../assets/eye-closed.png";
     eyeIcon.className = "eye-icon-login";
     eyeIcon.alt = "Toggle password visibility";
-    
+
     // Add error handling for image loading
-    eyeIcon.onerror = function() {
+    eyeIcon.onerror = function () {
       console.error("Eye icon image failed to load");
       eyeIcon.alt = passwordVisible ? "Hide" : "Show";
     };
-    
+
     passwordWrapper.appendChild(eyeIcon);
 
     let passwordVisible = false;
@@ -53,9 +54,9 @@ function LoginPage() {
       passwordVisible = !passwordVisible;
       passwordInput.type = passwordVisible ? "text" : "password";
       eyeIcon.src = passwordVisible
-        ? "../assets/eye-open.png"  // When password IS visible, show OPEN eye
+        ? "../assets/eye-open.png" // When password IS visible, show OPEN eye
         : "../assets/eye-closed.png"; // When password is NOT visible, show CLOSED eye
-      
+
       // Update alt text for accessibility
       eyeIcon.alt = passwordVisible ? "Hide password" : "Show password";
     }
@@ -114,11 +115,7 @@ function LoginPage() {
       }
 
       logAllDnsEntries();
-      loginApi(
-        username,
-        password,
-        playlistName
-      ).then((response) => {
+      loginApi(username, password, playlistName).then((response) => {
         if (response) {
           LoginPage.cleanup();
         }
@@ -126,8 +123,8 @@ function LoginPage() {
     }
 
     function loginPageKeydownEvents(e) {
-      if(localStorage.getItem("currentPage") !== "login"){
-        return
+      if (localStorage.getItem("currentPage") !== "login") {
+        return;
       }
       const key = e.key;
       const focused = inputs[currentIndex];
@@ -182,9 +179,9 @@ function LoginPage() {
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
-            const playlistsData = localStorage.getItem("playlistsData") ? JSON.parse(
-              localStorage.getItem("playlistsData")
-            ): [];
+            const playlistsData = localStorage.getItem("playlistsData")
+              ? JSON.parse(localStorage.getItem("playlistsData"))
+              : [];
             if (playlistsData.length === 0) {
               Toaster.showToast(
                 "error",
@@ -218,9 +215,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input login-input" type="text" value="My Playlist223" placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input" value="Abel57" type="text" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input" type="password" value="222333" placeholder="Enter Password"></div>
+          <div><input class="playlistname-input login-input" type="text" value="Small testline" placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input" value="bolnetwork" type="text" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input" type="password" value="BRKB3exRQc" placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>
