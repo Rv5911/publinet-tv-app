@@ -1,6 +1,6 @@
 async function HomeCarousel() {
   // Use window.allStream or fallback to window.allMoviesStreams
-  const allStreams = window.allStream || window.allMoviesStreams || [];
+  const allStreams = window.allMoviesStreams ? window.allMoviesStreams : [];
 
   // Filter out adult content if needed, similar to previous logic
   let filteredItems = allStreams.filter((item) => {
@@ -30,7 +30,9 @@ async function HomeCarousel() {
   if (filteredItems.length > 4) {
     randomIndex = Math.floor(Math.random() * (filteredItems.length - 4));
   }
-  const selectedItems = filteredItems.slice(randomIndex, randomIndex + 4);
+  // const selectedItems = filteredItems.slice(randomIndex, randomIndex + 4);
+  const selectedItems = filteredItems.slice(0, 4);
+  //
 
   // Show loading state while fetching
   const loadingHtml = `

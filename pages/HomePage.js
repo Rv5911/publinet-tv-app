@@ -153,28 +153,27 @@ async function HomePage() {
               }
             }
           } else if (navState.focus === "categories") {
-            // Move to next category (only from My Fav to Recently Added)
+            // Move to next category (from Recently Watched to My Fav)
             console.log(
               "ArrowDown in categories - currentCategory:",
               navState.currentCategory
             );
-            if (navState.currentCategory === 0) {
-              const recentList = document.querySelector(
-                `.home-card-list[data-category="1"]`
+            if (navState.currentCategory === 1) {
+              const favList = document.querySelector(
+                `.home-card-list[data-category="0"]`
               );
-              const hasRecentCards =
-                recentList &&
-                recentList.querySelectorAll(".home-card").length > 0;
+              const hasFavCards =
+                favList && favList.querySelectorAll(".home-card").length > 0;
 
-              if (hasRecentCards) {
-                navState.currentCategory = 1;
+              if (hasFavCards) {
+                navState.currentCategory = 0;
                 navState.currentCard = 0;
-                console.log("Moving from My Fav to Recently Added");
+                console.log("Moving from Recently Watched to My Fav");
                 updateFocus();
               }
             } else {
               console.log(
-                "Already at Recently Added (category 1), cannot go further down"
+                "Already at My Fav (category 0), cannot go further down"
               );
             }
           }
@@ -215,25 +214,26 @@ async function HomePage() {
               }
             }, 50);
           } else if (navState.focus === "categories") {
-            if (navState.currentCategory === 1) {
-              // From Recently Added to My Fav
-              const favList = document.querySelector(
-                `.home-card-list[data-category="0"]`
+            if (navState.currentCategory === 0) {
+              // From My Fav to Recently Watched
+              const recentList = document.querySelector(
+                `.home-card-list[data-category="1"]`
               );
-              const hasFavCards =
-                favList && favList.querySelectorAll(".home-card").length > 0;
+              const hasRecentCards =
+                recentList &&
+                recentList.querySelectorAll(".home-card").length > 0;
 
-              if (hasFavCards) {
-                navState.currentCategory = 0;
+              if (hasRecentCards) {
+                navState.currentCategory = 1;
                 navState.currentCard = 0;
                 updateFocus();
               } else {
-                // My Fav empty, go to Watch Now
+                // Recently Watched empty, go to Watch Now
                 navState.focus = "watchNow";
                 updateFocus();
               }
             } else {
-              // From My Fav to Watch Now
+              // From Recently Watched to Watch Now
               navState.focus = "watchNow";
               updateFocus();
             }

@@ -1840,18 +1840,43 @@ function SeriesPage() {
 
   const currentSort = localStorage.getItem("sortvalue") || "default";
 
-  let loadingHTML =
+  // Check if there's no initial data and return early
+  if (
+    !window.allSeriesStreams ||
+    !window.allseriesCategories ||
     window.allSeriesStreams.length == 0 ||
     window.allseriesCategories.length == 0
-      ? `
-<div class="series-page-no-data">
-<p>No Series Data Available</p>
-</div>
-`
-      : '<div class="series-page-loading">' +
-        '<div class="loading-spinner"></div>' +
-        "<p>Loading Series...</p>" +
-        "</div>";
+  ) {
+    let loadingHTML = `
+      <div class="series-page-container">
+        <div class="no-data-container">
+          <div class="no-data-content">
+            <h2>No Data Available</h2>
+            <p>No series found</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    localStorage.setItem(
+      "previousPage",
+      localStorage.getItem("currentPage") || ""
+    );
+    localStorage.setItem("currentPage", "seriesPage");
+    const activeEl = document.activeElement;
+    const isSearchFocused = activeEl && activeEl.id === "search-input";
+    if (!isSearchFocused) {
+      localStorage.setItem("navigationFocus", "seriesPage");
+    }
+
+    return loadingHTML;
+  }
+
+  let loadingHTML =
+    '<div class="series-page-loading">' +
+    '<div class="loading-spinner"></div>' +
+    "<p>Loading Series...</p>" +
+    "</div>";
 
   localStorage.setItem(
     "previousPage",

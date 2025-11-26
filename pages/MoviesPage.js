@@ -1729,17 +1729,41 @@ function MoviesPage() {
   // Get current sort option
   const currentSort = localStorage.getItem("sortvalue") || "default";
 
-  let loadingHTML =
-    window.moviesCategories.length == 0 || window.allMoviesStreams.length == 0
-      ? `
-        <div class="movies-page-no-data">
-        <p>No Movies Data Available</p>
+  // Check if there's no initial data and return early
+  if (
+    window.moviesCategories.length == 0 ||
+    window.allMoviesStreams.length == 0
+  ) {
+    let loadingHTML = `
+      <div class="movies-page-container">
+        <div class="no-data-container">
+          <div class="no-data-content">
+            <h2>No Data Available</h2>
+            <p>No movies found</p>
+          </div>
         </div>
-        `
-      : '<div class="movies-page-loading">' +
-        '<div class="loading-spinner"></div>' +
-        "<p>Loading Movies...</p>" +
-        "</div>";
+      </div>
+    `;
+
+    localStorage.setItem(
+      "previousPage",
+      localStorage.getItem("currentPage") || ""
+    );
+    localStorage.setItem("currentPage", "moviesPage");
+    const activeEl = document.activeElement;
+    const isSearchFocused = activeEl && activeEl.id === "search-input";
+    if (!isSearchFocused) {
+      localStorage.setItem("navigationFocus", "moviesPage");
+    }
+
+    return loadingHTML;
+  }
+
+  let loadingHTML =
+    '<div class="movies-page-loading">' +
+    '<div class="loading-spinner"></div>' +
+    "<p>Loading Movies...</p>" +
+    "</div>";
 
   localStorage.setItem(
     "previousPage",

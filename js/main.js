@@ -1,11 +1,10 @@
 window.onload = function () {
-  window.moviesCategories = [];
-  window.allMoviesStreams = [];
-  window.allSeriesStreams = [];
-  window.allseriesCategories = [];
-  window.allLiveStreams = [];
-  window.liveCategories = [];
-
+  window.moviesCategories = window.AllMovieCategories;
+  window.allMoviesStreams = window.AllMoviesData;
+  window.allSeriesStreams = window.AllSeriesData;
+  window.allseriesCategories = window.AllSeriesCategories;
+  window.allLiveStreams = window.AllLiveData;
+  window.liveCategories = window.AllLiveCategories;
 
   if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
     const keys = tizen.tvinputdevice.getSupportedKeys();
@@ -47,22 +46,23 @@ window.onload = function () {
   Router.showPage("splashScreen");
 
   setTimeout(() => {
-    const playlistsData = localStorage.getItem("playlistsData")
-      ? JSON.parse(localStorage.getItem("playlistsData"))
-      : [];
-    const isLogin = localStorage.getItem("isLogin") === "true";
-    if(isLogin){
-      localStorage.setItem("currentPage", "preLoginPage");
-      Router.showPage("preLoginPage");
-    }
-    else if (playlistsData.length > 0 && !isLogin) {
-      localStorage.removeItem("navigationFocus");
-      localStorage.setItem("currentPage", "listPage");
-      Router.showPage("listPage");
-    } else {
-      localStorage.setItem("currentPage", "login");
-      Router.showPage("login");
-    }
+    // const playlistsData = localStorage.getItem("playlistsData")
+    //   ? JSON.parse(localStorage.getItem("playlistsData"))
+    //   : [];
+    // const isLogin = localStorage.getItem("isLogin") === "true";
+    // if (isLogin) {
+    //   localStorage.setItem("currentPage", "preLoginPage");
+    //   Router.showPage("preLoginPage");
+    // } else if (playlistsData.length > 0 && !isLogin) {
+    //   localStorage.removeItem("navigationFocus");
+    //   localStorage.setItem("currentPage", "listPage");
+    //   Router.showPage("listPage");
+    // } else {
+    //   localStorage.setItem("currentPage", "login");
+    //   Router.showPage("login");
+    // }
+    localStorage.setItem("currentPage", "homePage");
+    Router.showPage("homePage");
   }, 0);
 
   if (typeof Toaster === "function") Toaster();
@@ -79,7 +79,7 @@ function renderNavbarVisibility() {
     "settingsPage",
     "accountPage",
     "preLoginPage",
-    "videoJsPlayer"
+    "videoJsPlayer",
   ];
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;
