@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mega TV</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet" />
 
     <!-- CSS FILES -->
     <link rel="stylesheet" href="./css/style.css" />
@@ -32,6 +27,8 @@
     <link rel="stylesheet" href="./css/preLoginPage.css" />
     <link rel="stylesheet" href="./css/videoPlayer.css" />
     <link rel="stylesheet" href="./css/movieDetailPage.css" />
+    <link rel="stylesheet" href="./css/livepage.css" />
+
     <link rel="stylesheet" href="./css/seriesDetailPage.css" />
     <link rel="stylesheet" href="./css/parentalPinDialog.css" />
     <link rel="stylesheet" href="./css/exitModal.css" />
@@ -48,47 +45,44 @@
     <script src="https://unpkg.com/videojs-youtube/dist/Youtube.min.js"></script>
 
     <!-- Flowplayer CSS/JS for TS streams -->
-    <link
-      rel="stylesheet"
-      href="https://releases.flowplayer.org/7.2.7/skin/skin.css"
-    />
+    <link rel="stylesheet" href="https://releases.flowplayer.org/7.2.7/skin/skin.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://releases.flowplayer.org/7.2.7/flowplayer.min.js"></script>
     <!-- Flowplayer HLS plugin and hls.js to enable HLS playback across browsers -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
     <script src="https://releases.flowplayer.org/hlsjs/flowplayer.hlsjs.min.js"></script>
-  </head>
+</head>
 
-  <body>
+<body>
     <!-- ✅ Navbar Root -->
     <div id="navbar-root"></div>
 
     <div id="main-app-container">
-      <div id="splash-page" class="page" style="display: none"></div>
-      <div id="login-page" class="page" style="display: none"></div>
-      <div id="list-users-page" class="page" style="display: none"></div>
-      <div id="home-page" class="page" style="display: none"></div>
-      <div id="movies-page" class="page" style="display: none"></div>
-      <div id="series-page" class="page" style="display: none"></div>
-      <div id="series-detail-page" class="page" style="display: none"></div>
-      <div id="livetv-page" class="page" style="display: none"></div>
-      <div id="movies-detail-page" class="page" style="display: none"></div>
+        <div id="splash-page" class="page" style="display: none"></div>
+        <div id="login-page" class="page" style="display: none"></div>
+        <div id="list-users-page" class="page" style="display: none"></div>
+        <div id="home-page" class="page" style="display: none"></div>
+        <div id="movies-page" class="page" style="display: none"></div>
+        <div id="series-page" class="page" style="display: none"></div>
+        <div id="series-detail-page" class="page" style="display: none"></div>
+        <div id="livetv-page" class="page" style="display: none"></div>
+        <div id="movies-detail-page" class="page" style="display: none"></div>
 
-      <div id="account-page" class="page" style="display: none"></div>
+        <div id="account-page" class="page" style="display: none"></div>
 
-      <div id="parental-modal" class="page" style="display: none"></div>
-      <div id="prelogin-page" class="page" style="display: none"></div>
-      <div id="videojs-player" class="page" style="display: none"></div>
-      <div id="exit-modal" class="page" style="display: none"></div>
+        <div id="parental-modal" class="page" style="display: none"></div>
+        <div id="prelogin-page" class="page" style="display: none"></div>
+        <div id="videojs-player" class="page" style="display: none"></div>
+        <div id="exit-modal" class="page" style="display: none"></div>
 
-      <div id="settings-page" class="page" style="display: none"></div>
+        <div id="settings-page" class="page" style="display: none"></div>
 
-      <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
-        <div id="loading-progress">0%</div>
-      </div>
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <div id="loading-progress">0%</div>
+        </div>
 
-      <div id="toast-container"></div>
+        <div id="toast-container"></div>
     </div>
 
     <!-- JS FILES -->
@@ -114,6 +108,8 @@
     <script src="./pages/PreLoginPage.js"></script>
     <script src="./pages/MovieDetailPage.js"></script>
     <script src="./pages/SeriesDetailPage.js"></script>
+    <script src="./pages/LivePage.js"></script>
+
 
     <script src="./pages/LiveVideoJsComponent.js"></script>
 
@@ -132,5 +128,6 @@
 
     <script src="./api/apiFunctions.js"></script>
     <script src="./js/main.js"></script>
-  </body>
+</body>
+
 </html>
