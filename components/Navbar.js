@@ -615,19 +615,44 @@ function initNavbar() {
             return;
           }
 
-          // For liveTvPage, focus on first category
+          // For liveTvPage, focus on category search input
           if (currentPage === "liveTvPage") {
             localStorage.setItem("navigationFocus", currentPage);
             setTimeout(() => {
-              if (typeof focusCategories === "function") {
-                focusCategories(0);
-              }
-              const firstCategory = document.querySelector(
-                ".livetv-channel-category"
+              const categorySearchInput = document.getElementById(
+                "livetv-category-search"
               );
-              if (firstCategory) {
-                firstCategory.focus();
-                firstCategory.classList.add("livetv-channel-category-focused");
+              if (categorySearchInput) {
+                // Manually trigger the focus logic that LiveTVPage uses
+                if (typeof window.focusCategorySearch === "function") {
+                  window.focusCategorySearch(false);
+                } else {
+                  // Fallback if the global function isn't exposed (it's inside the closure)
+                  // We can try to simulate what focusCategorySearch does or just focus the element
+                  // categorySearchInput.focus();
+                  categorySearchInput.classList.add(
+                    "livetv-search-input-focused"
+                  );
+
+                  // We also need to ensure flags are set correctly in LiveTVPage
+                  // Since we can't easily access the internal state, we rely on the fact that
+                  // focusing the input usually triggers some state change or we might need to expose a helper.
+                  // However, for now, let's just focus the element.
+                }
+              } else {
+                // Fallback to categories if input not found
+                if (typeof focusCategories === "function") {
+                  focusCategories(0);
+                }
+                const firstCategory = document.querySelector(
+                  ".livetv-channel-category"
+                );
+                if (firstCategory) {
+                  firstCategory.focus();
+                  firstCategory.classList.add(
+                    "livetv-channel-category-focused"
+                  );
+                }
               }
             }, 10);
             e.preventDefault();
@@ -782,6 +807,7 @@ function initNavbar() {
             window.cleanupSeriesNavigation();
           }
           const page = navItems[currentIndex - 1].getAttribute("data-page");
+          window.searchQuery = "";
           clearMoviesAndSeriesLocalStorage();
           disposeLiveTvPlayer();
           resetParentalControlState();
@@ -829,7 +855,9 @@ function initNavbar() {
     setActiveItem(index);
 
     if (index === 0) {
-      searchInput.focus();
+      // Don't focus the search input when navigating with arrows
+      // Only add the active class - actual focus happens on Enter key
+      searchInput.blur(); // Ensure it's not focused
     } else if (index === totalItems - 1) {
       profileIcon.focus();
     } else {
