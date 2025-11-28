@@ -18,7 +18,7 @@ window.onload = function () {
     if (
       sidebar &&
       sidebar.classList &&
-      !sidebar.classList.contains("hidden") &&
+      !sidebar.classList.contains("option-remove") &&
       [
         "ArrowUp",
         "ArrowDown",
@@ -32,7 +32,17 @@ window.onload = function () {
       return;
     }
 
+    // Check if user is typing in an input field
+    const isInputFocused =
+      document.activeElement &&
+      (document.activeElement.tagName === "INPUT" ||
+        document.activeElement.tagName === "TEXTAREA");
+
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+      // Allow default behavior for Left/Right arrows in input fields
+      if (isInputFocused && ["ArrowLeft", "ArrowRight"].includes(e.key)) {
+        return;
+      }
       e.preventDefault();
     }
   });

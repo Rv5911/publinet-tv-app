@@ -213,7 +213,10 @@ function updatePlaylistsData(updateFn) {
   try {
     const playlists = JSON.parse(localStorage.getItem("playlistsData") || "[]");
     const name = getSelectedPlaylistName();
-    if (!name) return { success: false };
+    if (!name)
+      return {
+        success: false,
+      };
     const updated = playlists.map((pl) => {
       if (pl.playlistName === name) {
         return updateFn(pl);
@@ -221,15 +224,23 @@ function updatePlaylistsData(updateFn) {
       return pl;
     });
     localStorage.setItem("playlistsData", JSON.stringify(updated));
-    return { success: true };
+    return {
+      success: true,
+    };
   } catch (e) {
     console.error("updatePlaylistsData error", e);
-    return { success: false, error: e };
+    return {
+      success: false,
+      error: e,
+    };
   }
 }
 
 function removeAllFavoriteMovies() {
-  const res = updatePlaylistsData((pl) => ({ ...pl, favouriteMovies: [] }));
+  const res = updatePlaylistsData((pl) => ({
+    ...pl,
+    favouriteMovies: [],
+  }));
   if (res.success) {
     if (typeof refreshMoviesFavoritesList === "function")
       refreshMoviesFavoritesList();
@@ -243,7 +254,10 @@ function removeAllFavoriteMovies() {
 }
 
 function removeAllFavoriteSeries() {
-  const res = updatePlaylistsData((pl) => ({ ...pl, favouriteSeries: [] }));
+  const res = updatePlaylistsData((pl) => ({
+    ...pl,
+    favouriteSeries: [],
+  }));
   if (res.success) {
     if (typeof refreshSeriesFavoritesList === "function")
       refreshSeriesFavoritesList();
@@ -261,7 +275,10 @@ function removeFavoriteMovieById(streamId) {
   const res = updatePlaylistsData((pl) => {
     const fav = Array.isArray(pl.favouriteMovies) ? pl.favouriteMovies : [];
     const filtered = fav.filter((id) => String(id) !== String(streamId));
-    return { ...pl, favouriteMovies: filtered };
+    return {
+      ...pl,
+      favouriteMovies: filtered,
+    };
   });
   if (res.success) {
     // Update detail page button if present
@@ -291,7 +308,10 @@ function removeFavoriteSeriesById(seriesId) {
   const res = updatePlaylistsData((pl) => {
     const fav = Array.isArray(pl.favouriteSeries) ? pl.favouriteSeries : [];
     const filtered = fav.filter((id) => String(id) !== String(seriesId));
-    return { ...pl, favouriteSeries: filtered };
+    return {
+      ...pl,
+      favouriteSeries: filtered,
+    };
   });
   if (res.success) {
     const favBtn = document.querySelector(".series-detail-fav-button");
@@ -398,7 +418,9 @@ function initNavbar() {
   searchInput.addEventListener("input", (e) => {
     window.searchQuery = e.target.value || "";
     window.dispatchEvent(
-      new CustomEvent("global-search", { detail: window.searchQuery })
+      new CustomEvent("global-search", {
+        detail: window.searchQuery,
+      })
     );
     const currentPage = localStorage.getItem("currentPage");
     clearTimeout(searchDebounceTimer);
@@ -531,7 +553,12 @@ function initNavbar() {
       return;
     }
 
-    if (["ArrowLeft", "ArrowRight"].includes(key)) e.preventDefault();
+    // Allow ArrowLeft/ArrowRight default behavior if search input is focused
+    if (isSearchFocused && ["ArrowLeft", "ArrowRight"].includes(key)) {
+      // Do not prevent default
+    } else if (["ArrowLeft", "ArrowRight"].includes(key)) {
+      e.preventDefault();
+    }
 
     switch (key) {
       case "ArrowRight":
@@ -913,6 +940,7 @@ function initNavbar() {
       updateSidebarSelection(sidebarItems, sortIndex);
     }
   }
+
   function setSortOption(sortType) {
     sortCheckboxes.forEach((checkbox) => {
       checkbox.checked = false;

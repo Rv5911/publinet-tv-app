@@ -562,25 +562,28 @@ async function HomePage() {
 
     const mergedRecentlyWatched = allRecentlyWatched.slice(0, 20); // Limit to 20 total?
 
-    // --- RECENTLY ADDED MOVIES AND SERIES (for when Recently Watched or My Fav are empty) ---
+    // --- RECENTLY ADDED (Combined Movies and Series) ---
+    // Get top 10 most recently added movies
     const recentlyAddedMovies = [...allMoviesStreams]
         .sort((a, b) => (b.added || 0) - (a.added || 0))
-        .slice(0, 20)
+        .slice(0, 10)
         .map(m => ({
             ...m,
             type: 'movie'
         }));
 
+    // Get top 10 most recently added series
     const recentlyAddedSeries = [...allSeriesStreams]
         .sort((a, b) => (b.added || 0) - (a.added || 0))
-        .slice(0, 20)
+        .slice(0, 10)
         .map(s => ({
             ...s,
             type: 'series'
         }));
 
-    // Determine if we should show Recently Added categories (only when BOTH Recently Watched AND My Fav are empty)
-    const showRecentlyAddedCategories = mergedRecentlyWatched.length === 0 && allFavorites.length === 0;
+    // Combine 10 movies + 10 series and sort by added date for display
+    const allRecentlyAdded = [...recentlyAddedMovies, ...recentlyAddedSeries]
+        .sort((a, b) => (b.added || 0) - (a.added || 0));
 
     // Helper function to create card HTML
     function createHomeCard(item, categoryIndex, cardIndex) {
@@ -688,28 +691,13 @@ async function HomePage() {
       }
       
       ${
-        showRecentlyAddedCategories && recentlyAddedMovies.length > 0
+        allRecentlyAdded.length > 0
           ? `
-      <div class="home-recently-added-movies-container">
-        <h1 class="home-recently-added-movies-h1">Recently Added Movies</h1>
+      <div class="home-recently-added-container">
+        <h1 class="home-recently-added-h1">Recently Added</h1>
         <div class="home-card-list" data-category="2">
-          ${recentlyAddedMovies
+          ${allRecentlyAdded
             .map((item, index) => createHomeCard(item, 2, index))
-            .join("")}
-        </div>
-      </div>
-      `
-          : ''
-      }
-      
-      ${
-        showRecentlyAddedCategories && recentlyAddedSeries.length > 0
-          ? `
-      <div class="home-recently-added-series-container">
-        <h1 class="home-recently-added-series-h1">Recently Added Series</h1>
-        <div class="home-card-list" data-category="3">
-          ${recentlyAddedSeries
-            .map((item, index) => createHomeCard(item, 3, index))
             .join("")}
         </div>
       </div>

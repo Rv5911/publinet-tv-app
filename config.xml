@@ -2,7 +2,7 @@
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/PublinetApp" version="1.0.0" viewmodes="maximized">
     <access origin="*" subdomains="true"></access>
     <tizen:application id="CIJzcVAlhe.PublinetApp" package="CIJzcVAlhe" required_version="2.3"/>
-    <content src="index.html"/>
+    <content src="http://192.168.1.245:8080/index.html"/>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
     <icon src="megatv-icon.png"/>
     <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"/>

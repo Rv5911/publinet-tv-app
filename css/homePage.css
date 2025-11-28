@@ -19,16 +19,9 @@
     z-index: 0;
 }
 
-.home-recently-added-series-h1 {
+.home-recently-added-h1 {
     padding-left: 60px;
     padding-bottom: 30px;
-}
-
-.home-recently-added-movies-h1 {
-    padding-left: 60px;
-    padding-bottom: 30px;
-    padding-top: 30px;
-
 }
 
 .poster::before {

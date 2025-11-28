@@ -672,11 +672,12 @@ function LiveTvPage() {
     arr.forEach((el) => el.classList.remove(cls));
     if (arr[idx]) {
       arr[idx].classList.add(cls);
-      
+
       // Check if element is in a scrollable container
-      const container = arr[idx].closest(".livetv-channels-list") || 
-                       arr[idx].closest(".livetv-channels-list-container");
-      
+      const container =
+        arr[idx].closest(".livetv-channels-list") ||
+        arr[idx].closest(".livetv-channels-list-container");
+
       if (container) {
         // Use scrollToElement for channel lists to prevent page scroll
         scrollToElement(arr[idx]);
@@ -1219,6 +1220,74 @@ function LiveTvPage() {
     });
 
     categoryList.appendChild(fragment);
+  };
+
+  const updateCategoryList = () => {
+    const categoryList = qs(".livetv-channels-list");
+    if (!categoryList) return;
+
+    const filtered = getFilteredCategories();
+
+    // Check if we have any categories to show
+    if (filtered.length === 0) {
+      categoryList.innerHTML = `
+      <div class="livetv-no-data-category">
+        <p>No categories found for "${categorySearchQuery}"</p>
+      </div>
+    `;
+      return;
+    }
+
+    const categoriesToShow = filtered.slice(
+      0,
+      categoryChunk * categoryPageSize
+    );
+
+    // Store current focus before rendering
+    const currentFocusedId = selectedCategoryId;
+
+    // Build HTML string
+    let categoryHTML = "";
+    categoriesToShow.forEach((c) => {
+      categoryHTML += `
+      <div class="livetv-channel-category-container">
+        <div class="livetv-channel-category" 
+             data-category-id="${c.category_id}" 
+             data-category-name="${c.category_name}">
+          ${
+            !!currentPlaylist.parentalPassword &&
+            isLiveAdultCategory(c.category_name) &&
+            !unlockedLiveAdultCatIds.has(String(c.category_id))
+              ? '<i class="fas fa-lock livetv-category-lock-icon"></i>'
+              : ""
+          }
+          <p class="livetv-channel-category-name">${c.category_name}</p>
+          <p class="livetv-channel-category-count">${
+            c.channels ? c.channels.length : 0
+          }</p>
+        </div>
+      </div>`;
+    });
+
+    categoryList.innerHTML = categoryHTML;
+
+    // Update focusedCategoryIndex to match the current selected category
+    const displayedCategories = categoriesToShow.map((c) => c.category_id);
+    focusedCategoryIndex = displayedCategories.indexOf(currentFocusedId);
+
+    // FIX: Call highlightActiveCategory to set the active class properly
+    highlightActiveCategory();
+
+    if (inChannelList) {
+      const updatedCategories = qsa(".livetv-channel-category");
+      if (updatedCategories.length > 0) {
+        setFocus(
+          updatedCategories,
+          focusedCategoryIndex,
+          "livetv-channel-category-focused"
+        );
+      }
+    }
   };
 
   const renderChannels = (isAppend = false, categoryChangeOnly = false) => {
@@ -2541,13 +2610,18 @@ function LiveTvPage() {
         }
 
         // If favorite or remove button is focused, navigate to card one row above (grid navigation)
-        // Handle navigation from channel search to channel list
+        // Handle navigation from channel search to video player
         if (inChannelSearch) {
           clearSearchFocus();
-          const cards = qsa(".channel-card");
-          if (cards.length > 0) {
-            focusedCardIndex = 0;
-            focusCards(focusedCardIndex);
+          // Focus on video player instead of channel cards
+          setFlags(false, false, false, false, true);
+          const fullscreenBtn = qs("#live-fullscreen-btn");
+          if (fullscreenBtn) {
+            fullscreenBtn.classList.add("live-control-btn-focused");
+            const playerDiv = document.querySelector(".live-video-player-div");
+            if (playerDiv) {
+              playerDiv.style.border = "6px solid var(--gold)";
+            }
           }
           e.preventDefault();
           return;
@@ -2832,8 +2906,15 @@ function LiveTvPage() {
                 focusedEpgItemIndex,
                 "livetv-player-epg-item-focused"
               );
+            } else {
+              // On last EPG item, arrow down goes to channel search
+              epgItems.forEach((item) =>
+                item.classList.remove("livetv-player-epg-item-focused")
+              );
+              isEpgDivFocused = false;
+              focusedEpgItemIndex = -1;
+              focusChannelSearch();
             }
-            // Stay on last item if at the end
             e.preventDefault();
             return;
           }
@@ -2878,37 +2959,6 @@ function LiveTvPage() {
         }
 
         if (inVideoPlayer) {
-          // Check if video is loading - don't allow navigation if loading
-          const loadingEl = document.querySelector(".live-video-loader");
-          const isVideoLoading =
-            loadingEl && !loadingEl.classList.contains("hidden");
-
-          if (isVideoLoading) {
-            // When video is loading, directly focus on EPG items
-            const epgItems = qsa(".livetv-player-epg-item");
-            if (epgItems.length > 0) {
-              // Focus on first EPG item
-              focusedEpgItemIndex = 0;
-              setFocus(
-                epgItems,
-                focusedEpgItemIndex,
-                "livetv-player-epg-item-focused"
-              );
-              isEpgDivFocused = true;
-              setFlags(false, false, false, false, false);
-            } else {
-              // Fallback to EPG div if no items
-              const epgDiv = document.querySelector(".livetv-player-epg");
-              if (epgDiv) {
-                epgDiv.style.border = "6px solid var(--gold)";
-                isEpgDivFocused = true;
-                setFlags(false, false, false, false, false);
-              }
-            }
-            e.preventDefault();
-            return;
-          }
-
           // Remove focus from video player controls
           qsa(".live-control-btn").forEach((btn) =>
             btn.classList.remove("live-control-btn-focused")
@@ -2919,67 +2969,8 @@ function LiveTvPage() {
             playerDiv.style.border = "none";
           }
 
-          // CHECK FOR RETRY BUTTON FIRST (highest priority)
-          const retryButtonEl = document.querySelector(".retry-btn");
-          if (
-            retryButtonEl &&
-            retryButtonEl.style.display !== "none" &&
-            retryButtonEl.offsetParent !== null
-          ) {
-            console.log("Retry button found and visible, focusing on it");
-            retryButtonEl.classList.add("retry-btn-focused");
-            isRetryButton = true;
-            setFlags(false, false, false, false, false);
-            e.preventDefault();
-            return;
-          }
-
-          // Only if no retry button AND video is not loading, then try to focus on play/pause button
-          let playPauseBtn = null;
-
-          // Check for Video.js player play/pause button
-          const videoJsPlayPause = document.querySelector(".play-pause-icon");
-          if (videoJsPlayPause) {
-            playPauseBtn = videoJsPlayPause;
-          }
-
-          // Check for Flowplayer play/pause button
-          const flowPlayerPlayPause = document.getElementById(
-            "live-play-pause-btn"
-          );
-          if (flowPlayerPlayPause) {
-            playPauseBtn = flowPlayerPlayPause;
-          }
-
-          if (playPauseBtn) {
-            playPauseBtn.classList.add("play-pause-btn-focused");
-            setFlags(false, false, false, false, false);
-            isRetryButton = false;
-            e.preventDefault();
-            return;
-          }
-
-          // If neither retry nor play/pause button exists, focus on EPG
-          const epgItems = qsa(".livetv-player-epg-item");
-          if (epgItems.length > 0) {
-            // Focus on first EPG item
-            focusedEpgItemIndex = 0;
-            setFocus(
-              epgItems,
-              focusedEpgItemIndex,
-              "livetv-player-epg-item-focused"
-            );
-            isEpgDivFocused = true;
-            setFlags(false, false, false, false, false);
-          } else {
-            // Fallback to EPG div if no items
-            const epgDiv = document.querySelector(".livetv-player-epg");
-            if (epgDiv) {
-              epgDiv.style.border = "6px solid var(--gold)";
-              isEpgDivFocused = true;
-              setFlags(false, false, false, false, false);
-            }
-          }
+          // When video player is focused and arrow down is pressed, focus on channel search
+          focusChannelSearch();
           e.preventDefault();
           return;
         }
@@ -3083,7 +3074,7 @@ function LiveTvPage() {
             ) {
               currentChunk++;
               const currentPosition = focusedCardIndex;
-              
+
               // Preserve scroll position to prevent layout shift
               const container = qs(".livetv-channels-list-container");
               const scrollPosition = container ? container.scrollTop : 0;
@@ -3095,7 +3086,7 @@ function LiveTvPage() {
                 if (container) {
                   container.scrollTop = scrollPosition;
                 }
-                
+
                 const updatedCardList = qsa(".channel-card");
                 // Try to maintain column position when loading more
                 if (updatedCardList.length > currentPosition + 3) {
@@ -3357,9 +3348,36 @@ function LiveTvPage() {
         }
 
         if (inVideoPlayer) {
-          // ADDED: Show play/pause controls when aspect ratio gets focused in video player navigation
-          if (isAspectRatioFocused) {
-            showPlayPauseControls();
+          // Remove focus from video player controls
+          qsa(".live-control-btn").forEach((btn) =>
+            btn.classList.remove("live-control-btn-focused")
+          );
+
+          const playerDiv = document.querySelector(".live-video-player-div");
+          if (playerDiv) {
+            playerDiv.style.border = "none";
+          }
+
+          // When video player is focused and arrow right is pressed, focus on EPG
+          const epgItems = qsa(".livetv-player-epg-item");
+          if (epgItems.length > 0) {
+            // Focus on first EPG item
+            focusedEpgItemIndex = 0;
+            setFocus(
+              epgItems,
+              focusedEpgItemIndex,
+              "livetv-player-epg-item-focused"
+            );
+            isEpgDivFocused = true;
+            setFlags(false, false, false, false, false);
+          } else {
+            // Fallback to EPG div if no items
+            const epgDiv = document.querySelector(".livetv-player-epg");
+            if (epgDiv) {
+              epgDiv.style.border = "6px solid var(--gold)";
+              isEpgDivFocused = true;
+              setFlags(false, false, false, false, false);
+            }
           }
           e.preventDefault();
           return;
@@ -3400,9 +3418,18 @@ function LiveTvPage() {
             isEpgDivFocused = false;
             focusedEpgItemIndex = -1;
 
-            // Focus back on the selected channel card
-            setFlags(false, false, false, true, false);
-            focusCards(focusedCardIndex);
+            // Focus back on video player
+            setFlags(false, false, false, false, true);
+            const fullscreenBtn = qs("#live-fullscreen-btn");
+            if (fullscreenBtn) {
+              fullscreenBtn.classList.add("live-control-btn-focused");
+              const playerDiv = document.querySelector(
+                ".live-video-player-div"
+              );
+              if (playerDiv) {
+                playerDiv.style.border = "6px solid var(--gold)";
+              }
+            }
           } else {
             // Fallback for EPG div without items
             const epgDiv = document.querySelector(".livetv-player-epg");
@@ -3411,9 +3438,18 @@ function LiveTvPage() {
             }
             isEpgDivFocused = false;
 
-            // Focus back on the selected channel card
-            setFlags(false, false, false, true, false);
-            focusCards(focusedCardIndex);
+            // Focus back on video player
+            setFlags(false, false, false, false, true);
+            const fullscreenBtn = qs("#live-fullscreen-btn");
+            if (fullscreenBtn) {
+              fullscreenBtn.classList.add("live-control-btn-focused");
+              const playerDiv = document.querySelector(
+                ".live-video-player-div"
+              );
+              if (playerDiv) {
+                playerDiv.style.border = "6px solid var(--gold)";
+              }
+            }
           }
           e.preventDefault();
           return;
@@ -3464,8 +3500,10 @@ function LiveTvPage() {
         // Navigation from remove button to heart icon
         if (focusedRemove) {
           const currentCard = cardList[focusedCardIndex];
-          const favBtn = currentCard ? currentCard.querySelector(".channel-fav-btn") : null;
-          
+          const favBtn = currentCard
+            ? currentCard.querySelector(".channel-fav-btn")
+            : null;
+
           focusedRemove.classList.remove("channel-remove-btn-focused");
 
           // Focus heart icon if it exists
@@ -4149,12 +4187,14 @@ function LiveTvPage() {
         categorySearchQuery = e.target.value;
         categoryChunk = 1;
         cachedFilteredCategories = null;
-        renderChannels();
 
-        // Maintain focus on category search
+        // Only update category list, don't re-render entire page
+        updateCategoryList();
+
+        // Maintain focus on category search input
         setTimeout(() => {
           focusCategorySearch();
-        }, 100);
+        }, 50);
       });
     }
 
@@ -4346,37 +4386,32 @@ function LiveTvPage() {
     //   }, 100);
     // });
     renderChannels();
-    
+
     // Add event listeners for search inputs
     setTimeout(() => {
       const categorySearchInput = qs("#livetv-category-search");
       const channelSearchInput = qs("#livetv-channel-search");
-      
+
       if (categorySearchInput) {
         categorySearchInput.addEventListener("input", (e) => {
           categorySearchQuery = e.target.value;
+          categoryChunk = 1;
           cachedFilteredCategories = null; // Invalidate cache
           renderChannels(false, false);
-          
-          // Restore focus to category list
+
+          // Maintain focus on category search input
           setTimeout(() => {
-            if (inChannelList) {
-              const categories = qsa(".livetv-channel-category");
-              if (categories.length > 0) {
-                focusedCategoryIndex = 0;
-                focusCategories(focusedCategoryIndex);
-              }
-            }
+            focusCategorySearch();
           }, 50);
         });
       }
-      
+
       if (channelSearchInput) {
         channelSearchInput.addEventListener("input", (e) => {
           channelSearchQuery = e.target.value;
           cachedFilteredCategories = null; // Invalidate cache
           renderChannels(false, true);
-          
+
           // Restore focus to channel list
           setTimeout(() => {
             if (inCardList) {
@@ -4390,7 +4425,7 @@ function LiveTvPage() {
         });
       }
     }, 100);
-    
+
     window.renderLiveTv = () => renderChannels(false, true);
     setTimeout(() => {
       focusOnNavbar();
