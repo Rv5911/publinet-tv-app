@@ -30,7 +30,7 @@ const Router = (function () {
     },
     liveTvPage: {
       el: document.getElementById("livetv-page"),
-      render: LiveTvPage,
+      render: LivePage,
     },
     accountPage: {
       el: document.getElementById("account-page"),
