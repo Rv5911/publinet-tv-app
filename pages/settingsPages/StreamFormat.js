@@ -116,7 +116,18 @@ function StreamFormat() {
             radios[currentFocus].dispatchEvent(
               new Event("change", { bubbles: true })
             );
-            // REMOVED the code that moves to next element
+
+            // Show toast message for selected option
+            var selectedOption = radios[currentFocus].value;
+            var optionLabel = "";
+            if (selectedOption === "m3u8") {
+              optionLabel = "Default";
+            } else if (selectedOption === "ts") {
+              optionLabel = "MPEGTS(.TS)";
+            } else if (selectedOption === "hls") {
+              optionLabel = "HLS(.m3u8)";
+            }
+
             // Focus stays on the currently selected radio button
             updateFocusStyles();
           } else {
@@ -215,6 +226,8 @@ function StreamFormat() {
 
       // Remove focus styles after saving
       removeAllFocusStyles();
+
+      Toaster.showToast("success", selectedValue + " format selected");
 
       // Reset focus to first radio
       if (radios.length > 0) {

@@ -17,6 +17,7 @@ function LivePage() {
   // Search State
   let categorySearchQuery = "";
   let channelSearchQuery = "";
+  let currentSortOption = "default";
 
   // Chunking State
   let categoryChunk = 1;
@@ -72,18 +73,18 @@ function LivePage() {
 
     render();
     document.addEventListener("keydown", handleKeydown);
+    document.addEventListener("sortChanged", handleSortChange);
 
     // Add fullscreen event listeners
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
     document.addEventListener("mozfullscreenchange", handleFullscreenChange);
     document.addEventListener("msfullscreenchange", handleFullscreenChange);
-
-    updateFocus();
   };
 
   const cleanup = () => {
     document.removeEventListener("keydown", handleKeydown);
+    document.removeEventListener("sortChanged", handleSortChange);
 
     // Remove fullscreen event listeners
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -177,6 +178,19 @@ function LivePage() {
       );
     }
 
+    // Apply Sorting
+    if (currentSortOption === "a-z") {
+      streams.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    } else if (currentSortOption === "z-a") {
+      streams.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
+    } else if (currentSortOption === "recently-added") {
+      streams.sort((a, b) => {
+        const timeA = a.added ? parseInt(a.added) : 0;
+        const timeB = b.added ? parseInt(b.added) : 0;
+        return timeB - timeA;
+      });
+    }
+
     return streams;
   };
 
@@ -243,6 +257,7 @@ function LivePage() {
     setTimeout(() => {
       setupInputListeners();
       setupScrollListener();
+      setupClickListeners();
     }, 100);
   };
 
@@ -451,6 +466,13 @@ function LivePage() {
   };
 
   const updateFocus = () => {
+    if (localStorage.getItem("navigationFocus") === "navbar") {
+      document
+        .querySelectorAll(".lp-focused")
+        .forEach((el) => el.classList.remove("lp-focused"));
+      return;
+    }
+
     document
       .querySelectorAll(".lp-focused")
       .forEach((el) => el.classList.remove("lp-focused"));
@@ -802,11 +824,29 @@ function LivePage() {
     }
   };
 
+  const handleSortChange = (e) => {
+    if (e.detail.page === "liveTvPage") {
+      currentSortOption = e.detail.sortType;
+      channelChunk = 1;
+      renderChannels();
+    }
+  };
+
   const handleKeydown = (e) => {
     // Check if sidebar is open
     const sidebar = document.getElementById("sidebar");
     if (sidebar && !sidebar.classList.contains("option-remove")) {
       return; // Let Navbar handle the event
+    }
+
+    // Only process keydown events if navigationFocus is on this page
+    const navigationFocus = localStorage.getItem("navigationFocus");
+    if (
+      navigationFocus !== "liveTvPage" &&
+      navigationFocus !== "sidebarSearch" &&
+      navigationFocus !== "channelSearch"
+    ) {
+      return; // Don't process keydown events until user navigates into the page
     }
 
     if (localStorage.getItem("currentPage") === "liveTvPage") {
@@ -1145,6 +1185,65 @@ function LivePage() {
     }
   };
 
+  const setupClickListeners = () => {
+    const categoryList = document.getElementById("lp-category-list");
+    if (categoryList) {
+      categoryList.addEventListener("click", (e) => {
+        const item = e.target.closest(".lp-category-item");
+        if (item) {
+          const index = parseInt(item.dataset.index, 10);
+          if (!isNaN(index)) {
+            localStorage.setItem("navigationFocus", "liveTvPage");
+            focusedSection = "sidebar";
+            sidebarIndex = index;
+            updateFocus();
+
+            const cats = getFilteredCategories();
+            if (cats[sidebarIndex]) {
+              selectedCategoryId = cats[sidebarIndex].category_id;
+              channelChunk = 1;
+              renderCategories();
+              renderChannels();
+              playChannel("");
+              channelIndex = 0;
+              buttonFocusIndex = -1;
+            }
+          }
+        }
+      });
+    }
+
+    const channelGrid = document.getElementById("lp-channels-grid");
+    if (channelGrid) {
+      channelGrid.addEventListener("click", (e) => {
+        const card = e.target.closest(".lp-channel-card");
+        if (card) {
+          localStorage.setItem("navigationFocus", "liveTvPage");
+          const index = parseInt(card.dataset.index, 10);
+          if (!isNaN(index)) {
+            focusedSection = "channels";
+            channelIndex = index;
+            updateFocus();
+
+            const favBtn = e.target.closest(".lp-channel-fav-btn");
+            const removeBtn = e.target.closest(".lp-channel-remove-btn");
+
+            const stream = filteredStreams[channelIndex];
+            if (stream) {
+              if (favBtn) {
+                toggleFavorite(stream, true);
+              } else if (removeBtn) {
+                removeFromHistory(stream);
+              } else {
+                playChannel(stream);
+              }
+            }
+          }
+        }
+      });
+    }
+  };
+
   const setupInputListeners = () => {
     const catInput = document.getElementById("lp-cat-search-input");
     if (catInput) {
@@ -1154,6 +1253,7 @@ function LivePage() {
         renderCategories();
       });
       catInput.addEventListener("focus", () => {
+        localStorage.setItem("navigationFocus", "liveTvPage");
         focusedSection = "sidebarSearch";
         updateFocus();
       });
@@ -1167,6 +1267,7 @@ function LivePage() {
         renderChannels();
       });
       chanInput.addEventListener("focus", () => {
+        localStorage.setItem("navigationFocus", "liveTvPage");
         focusedSection = "channelSearch";
         updateFocus();
       });

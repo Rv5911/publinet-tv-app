@@ -103,12 +103,28 @@ function buildDynamicSidebarOptions() {
     const currentPage = localStorage.getItem("currentPage");
 
     // Handle Sort Option Visibility
-    const sortOption = sidebar.querySelector(".sidebar-sort");
     if (sortOption) {
       const SORT_ENABLED_PAGES = ["moviesPage", "seriesPage", "liveTvPage"];
       if (SORT_ENABLED_PAGES.includes(currentPage)) {
         sortOption.classList.remove("option-remove");
         sortOption.style.display = ""; // Revert to CSS default
+
+        // Hide Top Rated for Live TV
+        const topRatedOption = sidebar.querySelector(
+          '.sort-checkbox[data-sort="top-rated"]'
+        );
+        if (topRatedOption) {
+          const li = topRatedOption.closest("li");
+          if (li) {
+            if (currentPage === "liveTvPage") {
+              li.style.display = "none";
+              li.classList.add("option-remove");
+            } else {
+              li.style.display = "";
+              li.classList.remove("option-remove");
+            }
+          }
+        }
       } else {
         sortOption.classList.add("option-remove");
         sortOption.style.display = "none";
@@ -125,6 +141,7 @@ function buildDynamicSidebarOptions() {
 
     const allRecentlyWatchedMovies = currentPlaylist.continueWatchingMovies;
     const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries;
+    const allRecentlyWatchedChannels = currentPlaylist.ChannelListLive;
     const selectedMovieId = localStorage.getItem("selectedMovieId");
     const selectedSeriesId = localStorage.getItem("selectedSeriesId");
 
@@ -160,6 +177,13 @@ function buildDynamicSidebarOptions() {
       if (allRecentlyWatchedSeries && allRecentlyWatchedSeries.length > 0) {
         label = "Remove All Recently Watched Series";
         action = "remove-all-series";
+      } else {
+        return;
+      }
+    } else if (currentPage === "liveTvPage") {
+      if (allRecentlyWatchedChannels && allRecentlyWatchedChannels.length > 0) {
+        label = "Clear Channel History";
+        action = "clear-channel-history";
       } else {
         return;
       }
@@ -266,6 +290,18 @@ function removeAllFavoriteSeries() {
       .forEach((h) => (h.style.display = "none"));
     if (typeof Toaster !== "undefined" && Toaster.showToast) {
       Toaster.showToast("success", "Removed all favorite series");
+    }
+  }
+}
+
+function removeAllChannelHistory() {
+  const res = updatePlaylistsData((pl) => ({
+    ...pl,
+    ChannelListLive: [],
+  }));
+  if (res.success) {
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("success", "Cleared channel history");
     }
   }
 }
@@ -1048,6 +1084,10 @@ function initNavbar() {
             Router.showPage("seriesDetailPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
+          } else if (action === "clear-channel-history") {
+            removeAllChannelHistory();
+            localStorage.setItem("currentPage", "liveTvPage");
+            Router.showPage("liveTvPage");
           }
           closeSidebar();
           break;

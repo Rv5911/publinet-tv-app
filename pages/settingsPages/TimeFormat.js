@@ -117,6 +117,16 @@ function TimeFormat() {
             radios[currentFocus].dispatchEvent(
               new Event("change", { bubbles: true })
             );
+
+            // Show toast message for selected option
+            var selectedOption = radios[currentFocus].value;
+            var optionLabel = "";
+            if (selectedOption === "12h") {
+              optionLabel = "12 Hours Format";
+            } else if (selectedOption === "24h") {
+              optionLabel = "24-Hour Format";
+            }
+
             // Focus stays on the currently selected radio button
             updateFocusStyles();
           } else {
@@ -213,6 +223,7 @@ function TimeFormat() {
 
       // Remove focus styles after saving
       removeAllFocusStyles();
+      Toaster.showToast("success", selectedValue + " selected");
 
       // Reset focus to first radio
       if (radios.length > 0) {
