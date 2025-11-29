@@ -9,7 +9,10 @@ function LivePage() {
   let sidebarIndex = 0;
   let channelIndex = 0;
   let buttonFocusIndex = -1; // -1 = no button focused, 0 = heart, 1 = remove
-  let playerButtonFocusIndex = -1; // -1 = none, 0 = play/pause, 1 = aspect ratio
+  let playerSubFocus = 0; // 0 = Video Border, 1 = Play/Pause, 2 = Aspect Ratio
+  let epgIndex = -1; // -1 = Header (Favorite), 0+ = List Items
+  let currentEpgData = [];
+  let currentPlayingStream = null;
 
   // Search State
   let categorySearchQuery = "";
@@ -69,11 +72,27 @@ function LivePage() {
 
     render();
     document.addEventListener("keydown", handleKeydown);
+
+    // Add fullscreen event listeners
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("msfullscreenchange", handleFullscreenChange);
+
     updateFocus();
   };
 
   const cleanup = () => {
     document.removeEventListener("keydown", handleKeydown);
+
+    // Remove fullscreen event listeners
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    document.removeEventListener(
+      "webkitfullscreenchange",
+      handleFullscreenChange
+    );
+    document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.removeEventListener("msfullscreenchange", handleFullscreenChange);
 
     const grid = document.getElementById("lp-channels-grid");
     if (grid) {
@@ -330,15 +349,11 @@ function LivePage() {
           }
         </div>
         <div class="lp-channel-info">
+        <div class="lp-name-and-buttons">
+
+
           <div class="lp-channel-name">${stream.name}</div>
-          <div class="lp-program-info">Entertainment</div>
-          <div class="lp-progress-bar">
-            <div class="lp-progress-fill" style="width: ${
-              Math.random() * 100
-            }%"></div>
-          </div>
-        </div>
-        <div class="lp-channel-buttons">
+         <div class="lp-channel-buttons">
           <button class="lp-channel-fav-btn" data-stream-id="${
             stream.stream_id
           }" data-button-index="0">
@@ -352,6 +367,15 @@ function LivePage() {
               : ""
           }
         </div>
+          </div>
+          <div class="lp-program-info">Entertainment</div>
+          <div class="lp-progress-bar">
+            <div class="lp-progress-fill" style="width: ${
+              Math.random() * 100
+            }%"></div>
+          </div>
+        </div>
+       
       `;
 
       fragment.appendChild(card);
@@ -360,12 +384,13 @@ function LivePage() {
     grid.appendChild(fragment);
   };
 
-  const toggleFavorite = (stream) => {
+  const toggleFavorite = (stream, showToast = true) => {
     if (!window.toggleFavoriteItem) return;
 
     const result = window.toggleFavoriteItem(stream, "favoritesLiveTV");
 
-    if (window.Toaster && window.Toaster.showToast) {
+    // Only show toaster if explicitly requested
+    if (showToast && window.Toaster && window.Toaster.showToast) {
       window.Toaster.showToast(
         result.isFav ? "success" : "error",
         result.isFav ? "Added to favorites" : "Removed from favorites"
@@ -430,7 +455,31 @@ function LivePage() {
       .querySelectorAll(".lp-focused")
       .forEach((el) => el.classList.remove("lp-focused"));
 
-    if (focusedSection === "sidebar") {
+    // Blur all inputs when not in search sections
+    if (
+      focusedSection !== "sidebarSearch" &&
+      focusedSection !== "channelSearch"
+    ) {
+      const catInput = document.getElementById("lp-cat-search-input");
+      const chanInput = document.getElementById("lp-chan-search-input");
+      if (catInput) catInput.blur();
+      if (chanInput) chanInput.blur();
+    }
+
+    if (focusedSection === "epg") {
+      const epgList = document.getElementById("lp-epg-list");
+      const headerFavBtn = document.getElementById("lp-epg-fav-btn");
+
+      if (epgIndex === -1) {
+        if (headerFavBtn) headerFavBtn.classList.add("lp-focused");
+      } else {
+        const items = document.querySelectorAll(".lp-epg-item");
+        if (items[epgIndex]) {
+          items[epgIndex].classList.add("lp-focused");
+          items[epgIndex].scrollIntoView({ block: "nearest" });
+        }
+      }
+    } else if (focusedSection === "sidebar") {
       const items = document.querySelectorAll(".lp-category-item");
       if (items[sidebarIndex]) {
         items[sidebarIndex].classList.add("lp-focused");
@@ -445,7 +494,29 @@ function LivePage() {
       }
     } else if (focusedSection === "player") {
       const player = document.getElementById("lp-player-container");
-      if (player) player.classList.add("lp-focused");
+      if (player) {
+        player.classList.add("lp-player-active"); // Keep controls visible
+
+        // Remove specific focus classes first
+        player.classList.remove("lp-focused");
+        document
+          .querySelectorAll(".lp-control-focused")
+          .forEach((el) => el.classList.remove("lp-control-focused"));
+
+        if (playerSubFocus === 0) {
+          player.classList.add("lp-focused"); // Show border
+        } else if (playerSubFocus === 1) {
+          const btn =
+            document.querySelector(".play-pause-icon") ||
+            document.getElementById("live-play-pause-btn");
+          if (btn) btn.classList.add("lp-control-focused");
+        } else if (playerSubFocus === 2) {
+          const btn =
+            document.querySelector(".videojs-aspect-ratio-div") ||
+            document.querySelector(".flow-aspect-ratio-div");
+          if (btn) btn.classList.add("lp-control-focused");
+        }
+      }
       document.activeElement.blur();
     } else if (focusedSection === "channelSearch") {
       const box = document.getElementById("lp-chan-search-box");
@@ -585,49 +656,226 @@ function LivePage() {
   };
 
   const updateEPG = (stream) => {
+    currentPlayingStream = stream;
+    const epgList = document.getElementById("lp-epg-list");
+    const epgHeader = document.querySelector(".lp-epg-header");
+
+    if (!epgList || !epgHeader) return;
+
+    // Render Header immediately
+    const isFav = window.isItemFavoriteForPlaylist
+      ? window.isItemFavoriteForPlaylist(stream, "favoritesLiveTV")
+      : false;
+
+    epgHeader.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+            <span style="font-size: 16px;">${stream.name}</span>
+            <button id="lp-epg-fav-btn" class="lp-epg-fav-btn">
+                <i class="${
+                  isFav ? "fa-solid" : "fa-regular"
+                } fa-heart" style="color:${isFav ? "#ff4444" : "inherit"}"></i>
+            </button>
+        </div>
+    `;
+
+    epgList.innerHTML = `
+      <div style="padding:20px; text-align:center; color:#aaa;">
+        <i class="fas fa-spinner fa-spin"></i> Loading EPG...
+      </div>
+    `;
+
+    if (window.getLiveStreamEpg) {
+      window
+        .getLiveStreamEpg(stream.stream_id)
+        .then((data) => {
+          currentEpgData = data && data.epg_listings ? data.epg_listings : [];
+          renderEPGList();
+        })
+        .catch((err) => {
+          console.error("EPG Fetch Error", err);
+          currentEpgData = [];
+          renderEPGList();
+        });
+    } else {
+      currentEpgData = [];
+      renderEPGList();
+    }
+  };
+
+  const decodeBase64 = (str) => {
+    try {
+      return decodeURIComponent(escape(window.atob(str)));
+    } catch (e) {
+      return str;
+    }
+  };
+
+  const formatTime = (dateStr, format) => {
+    let date;
+    if (!isNaN(dateStr)) {
+      const ts = dateStr.toString().length === 10 ? dateStr * 1000 : dateStr;
+      date = new Date(parseInt(ts));
+    } else {
+      date = new Date(dateStr);
+    }
+    if (isNaN(date.getTime())) return "";
+
+    const options =
+      format === "12hrs"
+        ? { hour: "numeric", minute: "2-digit", hour12: true }
+        : { hour: "2-digit", minute: "2-digit", hour12: false };
+    return new Intl.DateTimeFormat(undefined, options).format(date);
+  };
+
+  const renderEPGList = () => {
     const epgList = document.getElementById("lp-epg-list");
     if (!epgList) return;
 
-    epgList.innerHTML = `
-      <div style="padding:20px;">
-        <div style="margin-bottom:15px;">
-          <strong style="color:var(--lp-accent);">Now Playing</strong>
-          <p style="margin:5px 0; font-size:14px;">${stream.name}</p>
-        </div>
-        <div style="margin-bottom:15px;">
-          <strong style="color:var(--lp-text-primary);">Program</strong>
-          <p style="margin:5px 0; font-size:13px; color:var(--lp-text-secondary);">Live Entertainment</p>
-        </div>
-        <div>
-          <p style="font-size:12px; color:#666;">EPG data not available</p>
-        </div>
-      </div>
-    `;
+    if (!currentEpgData || currentEpgData.length === 0) {
+      epgList.innerHTML = `
+            <div style="padding:20px; text-align:center; color:#666;">
+                No Program Information Available
+            </div>
+          `;
+      return;
+    }
+
+    // Get Time Format
+    const currentPlaylist = getCurrentPlaylist();
+    const timeFormatSetting =
+      currentPlaylist && currentPlaylist.timeFormat
+        ? currentPlaylist.timeFormat
+        : "12hrs";
+
+    epgList.innerHTML = currentEpgData
+      .map((prog, idx) => {
+        let timeDisplay = "";
+        if (prog.start && prog.end) {
+          const startStr = formatTime(
+            prog.start_timestamp || prog.start,
+            timeFormatSetting
+          );
+          const endStr = formatTime(
+            prog.stop_timestamp || prog.end,
+            timeFormatSetting
+          );
+          if (startStr && endStr) {
+            timeDisplay = `${startStr} - ${endStr}`;
+          } else {
+            timeDisplay = "Upcoming";
+          }
+        }
+
+        const title = prog.title ? decodeBase64(prog.title) : "No Title";
+        const description = prog.description
+          ? decodeBase64(prog.description)
+          : prog.descr || "";
+
+        return `
+            <div class="lp-epg-item" data-index="${idx}">
+                <div class="lp-epg-time" style="font-size:12px; color:#fdbd0f; margin-bottom:4px;">${timeDisplay}</div>
+                <div class="lp-epg-title" style="font-size:14px; font-weight:bold; margin-bottom:2px;">${title}</div>
+                <div class="lp-epg-desc" style="font-size:12px; color:#aaa;">${description}</div>
+            </div>
+          `;
+      })
+      .join("");
+  };
+
+  const isVideoPlaceholderVisible = () => {
+    const videoWrapper = document.querySelector(".lp-video-wrapper");
+    if (!videoWrapper) return false;
+    // Check if the placeholder text exists
+    return videoWrapper.innerText.includes("Select a channel to play");
+  };
+
+  const handleFullscreenChange = () => {
+    const playerContainer = document.getElementById("lp-player-container");
+    if (!playerContainer) return;
+
+    if (document.fullscreenElement) {
+      // Entering fullscreen - remove border
+      playerContainer.style.border = "none";
+    } else {
+      // Exiting fullscreen - restore border
+      playerContainer.style.border = "3px solid transparent";
+    }
   };
 
   const handleKeydown = (e) => {
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-      e.preventDefault();
+    // Check if sidebar is open
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar && !sidebar.classList.contains("option-remove")) {
+      return; // Let Navbar handle the event
     }
 
-    switch (e.key) {
-      case "ArrowUp":
-        navigateUp();
-        break;
-      case "ArrowDown":
-        navigateDown();
-        break;
-      case "ArrowLeft":
-        navigateLeft();
-        break;
-      case "ArrowRight":
-        navigateRight();
-        break;
-      case "Enter":
-        handleEnter();
-        break;
+    if (localStorage.getItem("currentPage") === "liveTvPage") {
+      // Fullscreen isolation logic
+      if (document.fullscreenElement) {
+        // Allow Enter for play/pause/controls
+        if (e.key === "Enter") {
+          // Let it pass through to handleEnter or default behavior
+        } else {
+          // Block all other keys (Arrow keys, etc.)
+          e.stopPropagation();
+          return;
+        }
+      }
+
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+      }
+
+      switch (e.key) {
+        case "ArrowUp":
+          navigateUp();
+          break;
+        case "ArrowDown":
+          navigateDown();
+          break;
+        case "ArrowLeft":
+          if (focusedSection === "epg") {
+            focusedSection = "player";
+            playerSubFocus = 0; // Back to video border
+          } else {
+            navigateLeft();
+          }
+          break;
+        case "ArrowRight":
+          if (focusedSection === "player") {
+            focusedSection = "epg";
+            epgIndex = -1; // Focus header first
+          } else {
+            navigateRight();
+          }
+          break;
+        case "Enter":
+          if (focusedSection === "epg" && epgIndex === -1) {
+            // Toggle Favorite
+            if (currentPlayingStream) {
+              toggleFavorite(currentPlayingStream);
+              // Re-render header to update icon
+              const isFav = window.isItemFavoriteForPlaylist
+                ? window.isItemFavoriteForPlaylist(
+                    currentPlayingStream,
+                    "favoritesLiveTV"
+                  )
+                : false;
+              const icon = document.querySelector("#lp-epg-fav-btn i");
+              if (icon) {
+                icon.className = isFav
+                  ? "fa-solid fa-heart"
+                  : "fa-regular fa-heart";
+                icon.style.color = isFav ? "#ff4444" : "inherit";
+              }
+            }
+          } else {
+            handleEnter();
+          }
+          break;
+      }
+      updateFocus();
     }
-    updateFocus();
   };
 
   const navigateUp = () => {
@@ -636,9 +884,33 @@ function LivePage() {
         sidebarIndex--;
       } else {
         focusedSection = "sidebarSearch";
+        updateFocus();
+      }
+    } else if (focusedSection === "sidebarSearch") {
+      // Navigate up to Navbar
+      localStorage.setItem("navigationFocus", "navbar");
+      const navItem = document.querySelector(
+        '.nav-item[data-page="liveTvPage"]'
+      );
+      if (navItem) navItem.focus();
+      const catInput = document.getElementById("lp-cat-search-input");
+      if (catInput) catInput.blur();
+    } else if (focusedSection === "player") {
+      if (playerSubFocus === 1) {
+        // From Play/Pause to Video Border
+        playerSubFocus = 0;
+      } else if (playerSubFocus === 0) {
+        // From Video Border to Navbar
+        localStorage.setItem("navigationFocus", "navbar");
+        const navItem = document.querySelector(
+          '.nav-item[data-page="liveTvPage"]'
+        );
+        if (navItem) navItem.focus();
       }
     } else if (focusedSection === "channelSearch") {
+      // From Channel Search to Video Player Border
       focusedSection = "player";
+      playerSubFocus = 0;
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex >= 0) {
         buttonFocusIndex = -1;
@@ -649,6 +921,24 @@ function LivePage() {
         channelIndex -= 4;
       } else {
         focusedSection = "channelSearch";
+      }
+    } else if (focusedSection === "epg") {
+      if (epgIndex > 0) {
+        epgIndex--;
+      } else if (epgIndex === 0) {
+        // From first EPG item to Navbar
+        localStorage.setItem("navigationFocus", "navbar");
+        const navItem = document.querySelector(
+          '.nav-item[data-page="liveTvPage"]'
+        );
+        if (navItem) navItem.focus();
+      } else if (epgIndex === -1) {
+        // From EPG header to Navbar
+        localStorage.setItem("navigationFocus", "navbar");
+        const navItem = document.querySelector(
+          '.nav-item[data-page="liveTvPage"]'
+        );
+        if (navItem) navItem.focus();
       }
     }
   };
@@ -670,7 +960,39 @@ function LivePage() {
         sidebarIndex++;
       }
     } else if (focusedSection === "player") {
-      focusedSection = "channelSearch";
+      if (playerSubFocus === 0) {
+        // Check if video is playing
+        const videoWrapper = document.querySelector(".lp-video-wrapper");
+        const hasVideo =
+          videoWrapper &&
+          !videoWrapper.innerText.includes("Select a channel to play");
+
+        if (hasVideo) {
+          // Video is playing - go to Play/Pause button
+          playerSubFocus = 1;
+        } else {
+          // No video - go to Channel Search
+          focusedSection = "channelSearch";
+          playerSubFocus = 0;
+        }
+      } else if (playerSubFocus === 1) {
+        // From Play/Pause to Channel Search
+        focusedSection = "channelSearch";
+        playerSubFocus = 0;
+      }
+    } else if (focusedSection === "epg") {
+      if (epgIndex === -1) {
+        // From EPG header to first item
+        if (currentEpgData && currentEpgData.length > 0) {
+          epgIndex = 0;
+        }
+      } else if (currentEpgData && epgIndex < currentEpgData.length - 1) {
+        epgIndex++;
+      } else if (epgIndex === currentEpgData.length - 1) {
+        // From last EPG item to Channel Search
+        focusedSection = "channelSearch";
+        epgIndex = -1;
+      }
     } else if (focusedSection === "channelSearch") {
       focusedSection = "channels";
       channelIndex = 0;
@@ -697,8 +1019,15 @@ function LivePage() {
   };
 
   const navigateLeft = () => {
-    if (focusedSection === "player") {
+    if (focusedSection === "epg") {
+      // From EPG to Video Player
+      focusedSection = "player";
+      playerSubFocus = 0;
+      epgIndex = -1;
+    } else if (focusedSection === "player") {
+      // From Video Player to Category List
       focusedSection = "sidebar";
+      if (sidebarIndex === -1) sidebarIndex = 0;
     } else if (focusedSection === "channelSearch") {
       focusedSection = "sidebar";
     } else if (focusedSection === "channels") {
@@ -716,7 +1045,25 @@ function LivePage() {
 
   const navigateRight = () => {
     if (focusedSection === "sidebar" || focusedSection === "sidebarSearch") {
-      focusedSection = "player";
+      // From Category to Video Player or Channel List
+      const videoWrapper = document.querySelector(".lp-video-wrapper");
+      const hasVideo =
+        videoWrapper &&
+        !videoWrapper.innerText.includes("Select a channel to play");
+
+      if (hasVideo) {
+        focusedSection = "player";
+        playerSubFocus = 0;
+      } else {
+        // No video - go to first channel
+        focusedSection = "channels";
+        channelIndex = 0;
+        buttonFocusIndex = -1;
+      }
+    } else if (focusedSection === "player") {
+      // From Video Player to EPG
+      focusedSection = "epg";
+      epgIndex = -1; // Focus header first
     } else if (focusedSection === "channels") {
       const currentCard =
         document.querySelectorAll(".lp-channel-card")[channelIndex];
@@ -750,24 +1097,50 @@ function LivePage() {
         channelChunk = 1;
         renderCategories();
         renderChannels();
+        playChannel("");
         channelIndex = 0;
         buttonFocusIndex = -1;
+      }
+    } else if (focusedSection === "player") {
+      // Toggle fullscreen on Enter ONLY if border is focused
+      const playerContainer = document.getElementById("lp-player-container");
+      if (playerContainer) {
+        if (playerSubFocus === 0) {
+          // Video Border focused - Toggle Fullscreen
+          if (!document.fullscreenElement) {
+            playerContainer.requestFullscreen().catch((err) => {
+              console.error("Error attempting to enable fullscreen:", err);
+            });
+          } else {
+            document.exitFullscreen();
+          }
+        } else if (playerSubFocus === 1) {
+          // Play/Pause focused - Click it
+          const btn =
+            document.querySelector(".play-pause-icon") ||
+            document.getElementById("live-play-pause-btn");
+          if (btn) btn.click();
+        } else if (playerSubFocus === 2) {
+          // Aspect Ratio focused - Click it
+          const btn =
+            document.querySelector(".videojs-aspect-ratio-div") ||
+            document.querySelector(".flow-aspect-ratio-div");
+          if (btn) btn.click();
+        }
       }
     } else if (focusedSection === "channels") {
       const stream = filteredStreams[channelIndex];
       if (!stream) return;
 
       if (buttonFocusIndex === 0) {
-        // Heart button
-        toggleFavorite(stream);
+        // Heart button - show toaster
+        toggleFavorite(stream, true);
       } else if (buttonFocusIndex === 1) {
         // Remove button
         removeFromHistory(stream);
       } else {
         // Play channel
         playChannel(stream);
-        // focusedSection = "player";
-        // buttonFocusIndex = -1;
       }
     }
   };
@@ -780,6 +1153,10 @@ function LivePage() {
         categoryChunk = 1;
         renderCategories();
       });
+      catInput.addEventListener("focus", () => {
+        focusedSection = "sidebarSearch";
+        updateFocus();
+      });
     }
 
     const chanInput = document.getElementById("lp-chan-search-input");
@@ -788,6 +1165,10 @@ function LivePage() {
         channelSearchQuery = e.target.value;
         channelChunk = 1;
         renderChannels();
+      });
+      chanInput.addEventListener("focus", () => {
+        focusedSection = "channelSearch";
+        updateFocus();
       });
     }
   };

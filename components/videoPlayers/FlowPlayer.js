@@ -486,9 +486,9 @@ function FlowLivePlayerComponent(
 
   return `
     <div class="livetvPlayer-main-container">
-    <div class="live-video-player live-video-player-div" style="width:150%; height:100%;">
+    <div class="live-video-player live-video-player-div" style="width:100%; height:100%;">
 
-            <button id="live-play-pause-btn" style="display:none;" class="play-pause-icon" tabindex="-1">
+            <button id="live-play-pause-btn"  class="play-pause-icon" tabindex="-1">
           <i class="fa-solid fa-pause live-play-pause-btn-icon"></i>
         </button>
                            <div class="flow-aspect-ratio-div">
@@ -524,7 +524,7 @@ function FlowLivePlayerComponent(
                 <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
 
     </div>
-     <div class="livetv-player-epg" style="display: none;">
+     <div class="livetv-player-epg" style="display:none;" >
         <div class="livetv-player-epg-item">
           <p class="livetv-player-epg-title">Loading EPG...</p>
         </div>

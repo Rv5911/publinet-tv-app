@@ -620,38 +620,20 @@ function initNavbar() {
             localStorage.setItem("navigationFocus", currentPage);
             setTimeout(() => {
               const categorySearchInput = document.getElementById(
-                "livetv-category-search"
+                "lp-cat-search-input"
               );
               if (categorySearchInput) {
-                // Manually trigger the focus logic that LiveTVPage uses
-                if (typeof window.focusCategorySearch === "function") {
-                  window.focusCategorySearch(false);
-                } else {
-                  // Fallback if the global function isn't exposed (it's inside the closure)
-                  // We can try to simulate what focusCategorySearch does or just focus the element
-                  // categorySearchInput.focus();
-                  categorySearchInput.classList.add(
-                    "livetv-search-input-focused"
-                  );
-
-                  // We also need to ensure flags are set correctly in LiveTVPage
-                  // Since we can't easily access the internal state, we rely on the fact that
-                  // focusing the input usually triggers some state change or we might need to expose a helper.
-                  // However, for now, let's just focus the element.
-                }
+                categorySearchInput.focus();
+                // Update LivePage state if needed via a custom event or direct access if possible
+                // For now, focusing the input should trigger the focus listener we will add in LivePage.js
               } else {
                 // Fallback to categories if input not found
-                if (typeof focusCategories === "function") {
-                  focusCategories(0);
-                }
-                const firstCategory = document.querySelector(
-                  ".livetv-channel-category"
-                );
+                const firstCategory =
+                  document.querySelector(".lp-category-item");
                 if (firstCategory) {
-                  firstCategory.focus();
-                  firstCategory.classList.add(
-                    "livetv-channel-category-focused"
-                  );
+                  // If we can't focus input, try to focus the first category
+                  // This might need coordination with LivePage.js state
+                  // But ideally the input should exist.
                 }
               }
             }, 10);

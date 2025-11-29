@@ -679,11 +679,11 @@ function LiveVideoJsComponent(
 
   return `
   <div class="livetvPlayer-main-container">
-    <div class="live-video-player live-video-player-div" style="width:150%; height:100%;">
+    <div class="live-video-player live-video-player-div" style="width:100%; height:100%;">
                <div class="videojs-aspect-ratio-div">
 <button id="videojs-aspect-ratio" class="videojs-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
       </div>
-      <div class="play-pause-icon" style="display: none;">
+      <div class="play-pause-icon" >
         <i class="fa-solid fa-play"></i>
 
       </div>
@@ -715,7 +715,7 @@ function LiveVideoJsComponent(
           : `<video id="${id}" class="video-js vjs-big-play-centered vjs-fullscreen " playsinline webkit-playsinline style="height:100%; width:100%;"></video>`
       }
 
-          <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
+          <div id="aspectRatioOverlay" class="aspect-ratio-overlay "></div>
 
     </div>
           <div class="livetv-player-epg" style="display: none;">
