@@ -403,7 +403,6 @@ function LivePage() {
           }
         </div>
           </div>
-          <div class="lp-program-info">Entertainment</div>
           <div class="lp-progress-bar">
             <div class="lp-progress-fill" style="width: ${
               Math.random() * 100
@@ -781,14 +780,23 @@ function LivePage() {
 
     // Only show heart if favorite, and NOT as a button/focusable
     const heartIcon = isFav
-      ? `<i class="fa-solid fa-heart" style="color:#ff4444; margin-right: 10px;"></i>`
+      ? `<i class="fa-solid fa-heart" style="color:#ff4444; margin-left: 10px;"></i>`
       : "";
 
     epgHeader.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-            <span style="font-size: 16px;">${stream.name}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
+                <img src="${stream.stream_icon || "assets/main-logo.png"}" 
+                     style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" 
+                     onerror="this.src='assets/main-logo.png'">
+            </div>
+            <div>
+
+
+            
             ${heartIcon}
         </div>
+            </div>
     `;
 
     epgList.innerHTML = `
@@ -1145,22 +1153,30 @@ function LivePage() {
       channelIndex = 0;
       buttonFocusIndex = -1;
     } else if (focusedSection === "channels") {
-      if (buttonFocusIndex >= 0) {
-        buttonFocusIndex = -1;
-        return;
-      }
+      const currentCard =
+        document.querySelectorAll(".lp-channel-card")[channelIndex];
+      if (currentCard) {
+        const buttons = currentCard.querySelectorAll(
+          ".lp-channel-fav-btn, .lp-channel-remove-btn"
+        );
 
-      if (channelIndex + 4 < filteredStreams.length) {
-        const loadedCount = channelChunk * channelPageSize;
-        if (
-          channelIndex + 4 >= loadedCount &&
-          loadedCount < filteredStreams.length
-        ) {
-          // Load more channels
-          channelChunk++;
-          renderChannels();
+        if (buttonFocusIndex === -1 && buttons.length > 0) {
+          buttonFocusIndex = 0;
+        } else if (buttonFocusIndex >= 0) {
+          buttonFocusIndex = -1;
+          if (channelIndex + 4 < filteredStreams.length) {
+            const loadedCount = channelChunk * channelPageSize;
+            if (
+              channelIndex + 4 >= loadedCount &&
+              loadedCount < filteredStreams.length
+            ) {
+              // Load more channels
+              channelChunk++;
+              renderChannels();
+            }
+            channelIndex += 4;
+          }
         }
-        channelIndex += 4;
       }
     }
   };
@@ -1288,7 +1304,81 @@ function LivePage() {
         // Remove button
         removeFromHistory(stream);
       } else {
-        // Play channel
+        // Check for adult content lock before playing
+        const category = categories.find(
+          (c) => c.category_id === stream.category_id
+        );
+        const isAdultChannel = category
+          ? isLiveAdultCategory(category.category_name)
+          : false;
+        const parentalEnabled =
+          currentPlaylist && !!currentPlaylist.parentalPassword;
+
+        // Determine if channel is unlocked
+        let isChannelUnlocked = true;
+        let unlockSet = null;
+
+        if (isAdultChannel && parentalEnabled) {
+          if (selectedCategoryId === "All") {
+            isChannelUnlocked = unlockedLiveAdultChannelsInAll.has(
+              String(stream.stream_id)
+            );
+            unlockSet = unlockedLiveAdultChannelsInAll;
+          } else if (selectedCategoryId === "favorites") {
+            isChannelUnlocked = unlockedLiveAdultChannelsInFavorites.has(
+              String(stream.stream_id)
+            );
+            unlockSet = unlockedLiveAdultChannelsInFavorites;
+          } else if (selectedCategoryId === "channelHistory") {
+            isChannelUnlocked = unlockedLiveAdultChannelsInHistory.has(
+              String(stream.stream_id)
+            );
+            unlockSet = unlockedLiveAdultChannelsInHistory;
+          } else {
+            isChannelUnlocked = unlockedLiveAdultCatIds.has(
+              String(selectedCategoryId)
+            );
+            unlockSet = null;
+          }
+        }
+
+        if (
+          isAdultChannel &&
+          parentalEnabled &&
+          !isChannelUnlocked &&
+          unlockSet
+        ) {
+          // Show parental PIN dialog
+          ParentalPinDialog(
+            () => {
+              // PIN correct - unlock and play
+              unlockSet.add(String(stream.stream_id));
+              const card = document.querySelector(
+                `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
+              );
+              if (card) {
+                const logoContainer = card.querySelector(
+                  ".lp-channel-logo-container"
+                );
+                if (logoContainer) {
+                  logoContainer.classList.remove("lp-channel-card-locked");
+                }
+                const lockIcon = card.querySelector(".lp-channel-lock-icon");
+                if (lockIcon) lockIcon.remove();
+              }
+              playChannel(stream);
+            },
+            () => {
+              // PIN incorrect - do nothing
+              console.log("Parental PIN incorrect");
+            },
+            currentPlaylist,
+            "liveTvPage"
+          );
+          return;
+        }
+
+        // Play channel if not locked or already unlocked
         playChannel(stream);
       }
     }
@@ -1344,6 +1434,86 @@ function LivePage() {
               } else if (removeBtn) {
                 removeFromHistory(stream);
               } else {
+                // Check for adult content lock before playing
+                const category = categories.find(
+                  (c) => c.category_id === stream.category_id
+                );
+                const isAdultChannel = category
+                  ? isLiveAdultCategory(category.category_name)
+                  : false;
+                const parentalEnabled =
+                  currentPlaylist && !!currentPlaylist.parentalPassword;
+
+                // Determine if channel is unlocked
+                let isChannelUnlocked = true;
+                let unlockSet = null;
+
+                if (isAdultChannel && parentalEnabled) {
+                  if (selectedCategoryId === "All") {
+                    isChannelUnlocked = unlockedLiveAdultChannelsInAll.has(
+                      String(stream.stream_id)
+                    );
+                    unlockSet = unlockedLiveAdultChannelsInAll;
+                  } else if (selectedCategoryId === "favorites") {
+                    isChannelUnlocked =
+                      unlockedLiveAdultChannelsInFavorites.has(
+                        String(stream.stream_id)
+                      );
+                    unlockSet = unlockedLiveAdultChannelsInFavorites;
+                  } else if (selectedCategoryId === "channelHistory") {
+                    isChannelUnlocked = unlockedLiveAdultChannelsInHistory.has(
+                      String(stream.stream_id)
+                    );
+                    unlockSet = unlockedLiveAdultChannelsInHistory;
+                  } else {
+                    isChannelUnlocked = unlockedLiveAdultCatIds.has(
+                      String(selectedCategoryId)
+                    );
+                    unlockSet = null;
+                  }
+                }
+
+                if (
+                  isAdultChannel &&
+                  parentalEnabled &&
+                  !isChannelUnlocked &&
+                  unlockSet
+                ) {
+                  // Show parental PIN dialog
+                  ParentalPinDialog(
+                    () => {
+                      // PIN correct - unlock and play
+                      unlockSet.add(String(stream.stream_id));
+                      const card = document.querySelector(
+                        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
+                      );
+                      if (card) {
+                        const logoContainer = card.querySelector(
+                          ".lp-channel-logo-container"
+                        );
+                        if (logoContainer) {
+                          logoContainer.classList.remove(
+                            "lp-channel-card-locked"
+                          );
+                        }
+                        const lockIcon = card.querySelector(
+                          ".lp-channel-lock-icon"
+                        );
+                        if (lockIcon) lockIcon.remove();
+                      }
+                      playChannel(stream);
+                    },
+                    () => {
+                      // PIN incorrect - do nothing
+                      console.log("Parental PIN incorrect");
+                    },
+                    currentPlaylist,
+                    "liveTvPage"
+                  );
+                  return;
+                }
+
+                // Play channel if not locked or already unlocked
                 playChannel(stream);
               }
             }

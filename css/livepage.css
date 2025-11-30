@@ -140,7 +140,7 @@
 /* Control Focus Styles */
 .lp-control-focused {
   transform: scale(1.1);
-  filter: drop-shadow(0 0 5px #fdbd0f);
+  border: 3px solid var(--gold) !important;
 }
 
 .videojs-aspect-ratio-div.lp-control-focused button,
@@ -337,7 +337,7 @@
 .lp-channel-logo-container {
   width: 100%;
   height: 100px;
-  background: #e8e8f0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,7 +347,9 @@
 
 .lp-channel-logo {
   max-width: 100%;
+  background: white;
   max-height: 100%;
+  padding: 10px 50px;
   object-fit: contain;
 }
 
@@ -406,7 +408,6 @@
 .lp-channel-buttons {
   display: flex;
   gap: 8px;
-  padding: 0 12px 12px 12px;
   background: #1e1e3f;
 }
 
@@ -566,5 +567,6 @@
 .lp-name-and-buttons {
   display: flex;
   width: 100%;
+  zoom: 1.4;
   justify-content: space-between;
 }
