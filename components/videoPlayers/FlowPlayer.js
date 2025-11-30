@@ -492,7 +492,7 @@ function FlowLivePlayerComponent(
           <i class="fa-solid fa-pause live-play-pause-btn-icon"></i>
         </button>
                            <div class="flow-aspect-ratio-div">
-<button id="flow-aspect-ratio" class="flow-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
+<button id="flow-aspect-ratio"  style="display:none;" class="flow-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
       </div>
       <div class="live-top-overlays">
         <div class="live-channel-name">${channelName || ""}</div>

@@ -936,8 +936,8 @@ function LivePage() {
 
         return `
             <div class="lp-epg-item" data-index="${idx}">
-                <div class="lp-epg-time" style="font-size:12px; color:#fdbd0f; margin-bottom:4px;">${timeDisplay}</div>
-                <div class="lp-epg-title" style="font-size:14px; font-weight:bold; margin-bottom:2px;">${title}</div>
+                <div class="lp-epg-time" style="font-size:14px; color:white; margin-bottom:4px;">${timeDisplay}</div>
+                <div class="lp-epg-title" style="font-size:16px; font-weight:bold; margin-bottom:2px;">${title}</div>
             </div>
           `;
       })
@@ -955,12 +955,38 @@ function LivePage() {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
+    const playPauseIcon =
+      document.querySelector(".play-pause-icon") ||
+      document.getElementById("live-play-pause-btn");
+
+    // Clear auto-hide timer when fullscreen state changes
+    if (playPauseIcon && playPauseIcon._hideTimeout) {
+      clearTimeout(playPauseIcon._hideTimeout);
+      playPauseIcon._hideTimeout = null;
+    }
+
     if (document.fullscreenElement) {
-      // Entering fullscreen - remove border
-      // playerContainer.style.border = "none";
+      // Entering fullscreen - hide border and play/pause icon initially
+      playerContainer.classList.remove("lp-focused");
+      playerContainer.classList.remove("lp-player-active");
+      if (playPauseIcon) {
+        playPauseIcon.style.display = "none";
+      }
     } else {
-      // Exiting fullscreen - restore border
-      // playerContainer.style.border = "3px solid transparent";
+      // Exiting fullscreen - show play/pause icon with focus
+      playerContainer.classList.add("lp-focused");
+      playerContainer.classList.add("lp-player-active");
+
+      // Always show play/pause icon when exiting fullscreen
+      if (playPauseIcon) {
+        playPauseIcon.style.display = "flex";
+        playPauseIcon.classList.add("lp-control-focused");
+      }
+
+      // Set focus to play/pause button
+      focusedSection = "player";
+      playerSubFocus = 1;
+      updateFocus();
     }
   };
 
@@ -989,9 +1015,19 @@ function LivePage() {
       return; // Don't process keydown events until user navigates into the page
     }
 
-    // If in fullscreen, allow Enter to toggle play/pause
+    // If in fullscreen, allow Enter to toggle play/pause and show icon
     if (document.fullscreenElement && e.key === "Enter") {
       e.preventDefault();
+      const playPauseIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+
+      // Show the icon first
+      if (playPauseIcon) {
+        playPauseIcon.style.display = "flex";
+      }
+
+      // Then toggle play/pause (which will handle auto-hide)
       togglePlayPauseGlobal();
       return;
     }
@@ -1030,19 +1066,7 @@ function LivePage() {
         break;
       case "ArrowDown":
         if (focusedSection === "player" && playerSubFocus === 1) {
-          // From Play/Pause to Aspect Ratio
-          const aspectBtn =
-            document.querySelector(".videojs-aspect-ratio-div") ||
-            document.querySelector(".flow-aspect-ratio-div");
-          if (aspectBtn) {
-            playerSubFocus = 2;
-          } else {
-            // No aspect ratio button - go to Channel Search
-            focusedSection = "channelSearch";
-            playerSubFocus = 0;
-          }
-        } else if (focusedSection === "player" && playerSubFocus === 2) {
-          // From Aspect Ratio to Channel Search
+          // From Play/Pause directly to Channel Search (skip aspect ratio)
           focusedSection = "channelSearch";
           playerSubFocus = 0;
         } else {
@@ -1050,10 +1074,7 @@ function LivePage() {
         }
         break;
       case "ArrowLeft":
-        if (focusedSection === "player" && playerSubFocus === 2) {
-          // From Aspect Ratio back to Play/Pause
-          playerSubFocus = 1;
-        } else if (focusedSection === "player" && playerSubFocus === 1) {
+        if (focusedSection === "player" && playerSubFocus === 1) {
           // From Play/Pause back to Video Border
           focusedSection = "player";
           playerSubFocus = 0; // Back to video border

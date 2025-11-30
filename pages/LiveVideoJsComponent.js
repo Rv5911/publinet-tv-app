@@ -681,7 +681,7 @@ function LiveVideoJsComponent(
   <div class="livetvPlayer-main-container">
     <div class="live-video-player live-video-player-div" style="width:100%; height:100%;">
                <div class="videojs-aspect-ratio-div">
-<button id="videojs-aspect-ratio" class="videojs-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
+<button id="videojs-aspect-ratio" style="display:none;" class="videojs-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
       </div>
       <div class="play-pause-icon" >
         <i class="fa-solid fa-play"></i>
