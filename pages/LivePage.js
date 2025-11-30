@@ -235,9 +235,10 @@ function LivePage() {
     container.innerHTML = `
       <div class="lp-sidebar">
         <div class="lp-search-box" id="lp-cat-search-box">
-          <i class="fas fa-search" style="color: #aaa; margin-right: 10px;"></i>
           <input type="text" class="lp-search-input" id="lp-cat-search-input" placeholder="Search Categories" value="${categorySearchQuery}">
-        </div>
+          <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
+    
+          </div>
         <ul class="lp-category-list" id="lp-category-list"></ul>
       </div>
       <div class="lp-content">
@@ -262,9 +263,10 @@ function LivePage() {
         <div class="lp-channels-section">
           <div class="lp-channels-header">
             <div class="lp-channel-search-bar" id="lp-chan-search-box">
-              <i class="fas fa-search" style="color: #aaa; margin-right: 10px;"></i>
               <input type="text" class="lp-channel-search-input" id="lp-chan-search-input" placeholder="Search Channels" value="${channelSearchQuery}">
-            </div>
+              <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
+            
+              </div>
           </div>
           <div class="lp-channels-grid" id="lp-channels-grid"></div>
         </div>
@@ -286,6 +288,13 @@ function LivePage() {
     if (!list) return;
 
     const cats = getFilteredCategories();
+
+    if (cats.length === 0) {
+      list.innerHTML =
+        '<div style="padding:20px; color:#aaa; text-align:center;">No category found</div>';
+      return;
+    }
+
     list.innerHTML = cats
       .map(
         (cat, idx) => `
@@ -549,8 +558,7 @@ function LivePage() {
       const box = document.getElementById("lp-cat-search-box");
       if (box) {
         box.classList.add("lp-focused");
-        const input = document.getElementById("lp-cat-search-input");
-        if (input) input.focus();
+        // Don't auto-focus the input, only add the border class
       }
     } else if (focusedSection === "player") {
       const player = document.getElementById("lp-player-container");
@@ -585,8 +593,7 @@ function LivePage() {
       const box = document.getElementById("lp-chan-search-box");
       if (box) {
         box.classList.add("lp-focused");
-        const input = document.getElementById("lp-chan-search-input");
-        if (input) input.focus();
+        // Don't auto-focus the input, only add the border class
       }
     } else if (focusedSection === "channels") {
       const items = document.querySelectorAll(".lp-channel-card");
@@ -982,67 +989,94 @@ function LivePage() {
       return; // Don't process keydown events until user navigates into the page
     }
 
-    if (localStorage.getItem("currentPage") === "liveTvPage") {
-      // Fullscreen isolation logic
-      if (document.fullscreenElement) {
-        // Allow Enter for play/pause
-        if (e.key === "Enter") {
-          togglePlayPauseGlobal();
-          e.preventDefault();
-          return;
-        } else if (e.key === "Backspace" || e.key === "Escape") {
-          // Exit fullscreen
-          if (document.exitFullscreen) {
-            document.exitFullscreen();
-          } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-          }
-          e.preventDefault();
-          return;
-        } else {
-          // Block all other keys (Arrow keys, etc.)
-          e.stopPropagation();
-          e.preventDefault();
-          return;
-        }
-      }
-
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault();
-      }
-
-      switch (e.key) {
-        case "ArrowUp":
-          navigateUp();
-          break;
-        case "ArrowDown":
-          navigateDown();
-          break;
-        case "ArrowLeft":
-          if (focusedSection === "epg") {
-            focusedSection = "player";
-            playerSubFocus = 0; // Back to video border
-          } else {
-            navigateLeft();
-          }
-          break;
-        case "ArrowRight":
-          if (focusedSection === "player") {
-            // Only go to EPG if there is data
-            if (currentEpgData && currentEpgData.length > 0) {
-              focusedSection = "epg";
-              epgIndex = 0; // Focus first item directly
-            }
-          } else {
-            navigateRight();
-          }
-          break;
-        case "Enter":
-          handleEnter();
-          break;
-      }
-      updateFocus();
+    // If in fullscreen, allow Enter to toggle play/pause
+    if (document.fullscreenElement && e.key === "Enter") {
+      e.preventDefault();
+      togglePlayPauseGlobal();
+      return;
     }
+
+    // Handle Enter key to focus search inputs
+    if (focusedSection === "sidebarSearch" && e.key === "Enter") {
+      const catInput = document.getElementById("lp-cat-search-input");
+      if (catInput) {
+        catInput.focus();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    if (focusedSection === "channelSearch" && e.key === "Enter") {
+      const chanInput = document.getElementById("lp-chan-search-input");
+      if (chanInput) {
+        chanInput.focus();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    // Prevent default for navigation keys
+    if (
+      ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(
+        e.key
+      )
+    ) {
+      e.preventDefault();
+    }
+
+    switch (e.key) {
+      case "ArrowUp":
+        navigateUp();
+        break;
+      case "ArrowDown":
+        if (focusedSection === "player" && playerSubFocus === 1) {
+          // From Play/Pause to Aspect Ratio
+          const aspectBtn =
+            document.querySelector(".videojs-aspect-ratio-div") ||
+            document.querySelector(".flow-aspect-ratio-div");
+          if (aspectBtn) {
+            playerSubFocus = 2;
+          } else {
+            // No aspect ratio button - go to Channel Search
+            focusedSection = "channelSearch";
+            playerSubFocus = 0;
+          }
+        } else if (focusedSection === "player" && playerSubFocus === 2) {
+          // From Aspect Ratio to Channel Search
+          focusedSection = "channelSearch";
+          playerSubFocus = 0;
+        } else {
+          navigateDown();
+        }
+        break;
+      case "ArrowLeft":
+        if (focusedSection === "player" && playerSubFocus === 2) {
+          // From Aspect Ratio back to Play/Pause
+          playerSubFocus = 1;
+        } else if (focusedSection === "player" && playerSubFocus === 1) {
+          // From Play/Pause back to Video Border
+          focusedSection = "player";
+          playerSubFocus = 0; // Back to video border
+        } else {
+          navigateLeft();
+        }
+        break;
+      case "ArrowRight":
+        if (focusedSection === "player") {
+          // Only go to EPG if there is data
+          if (currentEpgData && currentEpgData.length > 0) {
+            focusedSection = "epg";
+            epgIndex = 0; // Focus first item directly
+          }
+        } else {
+          navigateRight();
+        }
+        break;
+      case "Enter":
+        handleEnter();
+        break;
+    }
+    updateFocus();
   };
 
   const navigateUp = () => {
