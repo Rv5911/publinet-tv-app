@@ -1168,12 +1168,6 @@
   background: #000 !important;
 }
 
-/* Ensure EPG section stays visible */
-:fullscreen .livetv-player-epg {
-  display: flex !important;
-  background: rgba(0, 0, 0, 0.8) !important;
-}
-
 #live-fullscreen-btn {
   opacity: 0 !important;
 }

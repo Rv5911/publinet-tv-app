@@ -106,6 +106,26 @@ function LivePage() {
       } catch (e) {}
       window.livePlayer = null;
     }
+
+    // Reset Navigation State
+    focusedSection = "sidebar";
+    sidebarIndex = 0;
+    channelIndex = 0;
+    buttonFocusIndex = -1;
+    playerSubFocus = 0;
+    epgIndex = -1;
+    currentPlayingStream = null;
+
+    // Reset Search State
+    categorySearchQuery = "";
+    channelSearchQuery = "";
+
+    // Reset Selection
+    selectedCategoryId = "All";
+
+    // Reset Chunking
+    categoryChunk = 1;
+    channelChunk = 1;
   };
 
   LivePage.cleanup = cleanup;
@@ -387,7 +407,9 @@ function LivePage() {
           <div class="lp-progress-bar">
             <div class="lp-progress-fill" style="width: ${
               Math.random() * 100
-            }%"></div>
+            }%">
+              <div class="lp-progress-dot"></div>
+            </div>
           </div>
         </div>
        
@@ -470,12 +492,29 @@ function LivePage() {
       document
         .querySelectorAll(".lp-focused")
         .forEach((el) => el.classList.remove("lp-focused"));
+      document
+        .querySelectorAll(".lp-control-focused")
+        .forEach((el) => el.classList.remove("lp-control-focused"));
       return;
     }
 
     document
       .querySelectorAll(".lp-focused")
       .forEach((el) => el.classList.remove("lp-focused"));
+
+    // Globally remove control focus
+    document
+      .querySelectorAll(".lp-control-focused")
+      .forEach((el) => el.classList.remove("lp-control-focused"));
+
+    // Globally hide play/pause icon if not in player section
+    const playPauseIcon =
+      document.querySelector(".play-pause-icon") ||
+      document.getElementById("live-play-pause-btn");
+
+    if (playPauseIcon && focusedSection !== "player") {
+      playPauseIcon.style.display = "none";
+    }
 
     // Blur all inputs when not in search sections
     if (
@@ -518,20 +557,23 @@ function LivePage() {
       const player = document.getElementById("lp-player-container");
       if (player) {
         player.classList.add("lp-player-active"); // Keep controls visible
+        player.classList.add("lp-focused"); // Always show border when player section is active
 
-        // Remove specific focus classes first
-        player.classList.remove("lp-focused");
-        document
-          .querySelectorAll(".lp-control-focused")
-          .forEach((el) => el.classList.remove("lp-control-focused"));
+        if (playPauseIcon) {
+          // Only show if we are in the player section
+          // Logic: If playerSubFocus is 0 (wrapper) or 1 (button), show it.
+          if (playerSubFocus === 0 || playerSubFocus === 1) {
+            // In fullscreen, don't force it to flex here, let the toggle logic handle it
+            if (!document.fullscreenElement) {
+              playPauseIcon.style.display = "flex";
+            }
+          } else {
+            playPauseIcon.style.display = "none";
+          }
+        }
 
-        if (playerSubFocus === 0) {
-          player.classList.add("lp-focused"); // Show border
-        } else if (playerSubFocus === 1) {
-          const btn =
-            document.querySelector(".play-pause-icon") ||
-            document.getElementById("live-play-pause-btn");
-          if (btn) btn.classList.add("lp-control-focused");
+        if (playerSubFocus === 1) {
+          if (playPauseIcon) playPauseIcon.classList.add("lp-control-focused");
         } else if (playerSubFocus === 2) {
           const btn =
             document.querySelector(".videojs-aspect-ratio-div") ||
@@ -567,7 +609,55 @@ function LivePage() {
   };
 
   const playChannel = (stream) => {
-    if (!stream) return;
+    if (!stream) {
+      // Stop Player Logic
+      const videoWrapper = document.querySelector(".lp-video-wrapper");
+      if (videoWrapper) {
+        if (
+          typeof LiveVideoJsComponent !== "undefined" &&
+          typeof LiveVideoJsComponent.cleanup === "function"
+        ) {
+          try {
+            LiveVideoJsComponent.cleanup();
+          } catch (err) {}
+        }
+
+        if (window.livePlayer) {
+          try {
+            window.livePlayer.dispose();
+          } catch (e) {}
+          window.livePlayer = null;
+        }
+
+        videoWrapper.innerHTML = `
+          <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#666;">
+            <i class="fas fa-play-circle" style="font-size: 50px; margin-bottom:10px;"></i>
+            <p>Select a channel to play</p>
+          </div>
+        `;
+      }
+
+      // Reset EPG
+      const epgList = document.getElementById("lp-epg-list");
+      if (epgList) {
+        epgList.innerHTML = `
+          <div style="padding:20px; text-align:center; color:#aaa;">
+            Select a channel to view program information
+          </div>
+        `;
+      }
+      const epgHeader = document.querySelector(".lp-epg-header");
+      if (epgHeader) {
+        epgHeader.innerHTML = `<span>Program Guide</span>`;
+      }
+
+      currentPlayingStream = null;
+
+      document.querySelectorAll(".lp-channel-card").forEach((c) => {
+        c.classList.remove("lp-channel-card-playing");
+      });
+      return;
+    }
 
     // Show loading indicator
     const videoWrapper = document.querySelector(".lp-video-wrapper");
@@ -689,14 +779,15 @@ function LivePage() {
       ? window.isItemFavoriteForPlaylist(stream, "favoritesLiveTV")
       : false;
 
+    // Only show heart if favorite, and NOT as a button/focusable
+    const heartIcon = isFav
+      ? `<i class="fa-solid fa-heart" style="color:#ff4444; margin-right: 10px;"></i>`
+      : "";
+
     epgHeader.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
             <span style="font-size: 16px;">${stream.name}</span>
-            <button id="lp-epg-fav-btn" class="lp-epg-fav-btn">
-                <i class="${
-                  isFav ? "fa-solid" : "fa-regular"
-                } fa-heart" style="color:${isFav ? "#ff4444" : "inherit"}"></i>
-            </button>
+            ${heartIcon}
         </div>
     `;
 
@@ -729,6 +820,41 @@ function LivePage() {
       return decodeURIComponent(escape(window.atob(str)));
     } catch (e) {
       return str;
+    }
+  };
+
+  const togglePlayPauseGlobal = () => {
+    if (!window.livePlayer) return;
+
+    // Toggle Play/Pause
+    if (typeof window.livePlayer.togglePlayPause === "function") {
+      window.livePlayer.togglePlayPause();
+    } else {
+      // Video.js instance
+      if (window.livePlayer.paused()) {
+        window.livePlayer.play();
+      } else {
+        window.livePlayer.pause();
+      }
+    }
+
+    // Handle Icon Visibility
+    const icon =
+      document.querySelector(".play-pause-icon") ||
+      document.getElementById("live-play-pause-btn");
+
+    if (icon) {
+      icon.style.display = "flex";
+
+      // Clear existing timeout if any
+      if (icon._hideTimeout) clearTimeout(icon._hideTimeout);
+
+      // Set new timeout to hide after 3 seconds
+      icon._hideTimeout = setTimeout(() => {
+        if (document.fullscreenElement) {
+          icon.style.display = "none";
+        }
+      }, 3000);
     }
   };
 
@@ -817,10 +943,10 @@ function LivePage() {
 
     if (document.fullscreenElement) {
       // Entering fullscreen - remove border
-      playerContainer.style.border = "none";
+      // playerContainer.style.border = "none";
     } else {
       // Exiting fullscreen - restore border
-      playerContainer.style.border = "3px solid transparent";
+      // playerContainer.style.border = "3px solid transparent";
     }
   };
 
@@ -852,12 +978,24 @@ function LivePage() {
     if (localStorage.getItem("currentPage") === "liveTvPage") {
       // Fullscreen isolation logic
       if (document.fullscreenElement) {
-        // Allow Enter for play/pause/controls
+        // Allow Enter for play/pause
         if (e.key === "Enter") {
-          // Let it pass through to handleEnter or default behavior
+          togglePlayPauseGlobal();
+          e.preventDefault();
+          return;
+        } else if (e.key === "Backspace" || e.key === "Escape") {
+          // Exit fullscreen
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          }
+          e.preventDefault();
+          return;
         } else {
           // Block all other keys (Arrow keys, etc.)
           e.stopPropagation();
+          e.preventDefault();
           return;
         }
       }
@@ -883,35 +1021,17 @@ function LivePage() {
           break;
         case "ArrowRight":
           if (focusedSection === "player") {
-            focusedSection = "epg";
-            epgIndex = -1; // Focus header first
+            // Only go to EPG if there is data
+            if (currentEpgData && currentEpgData.length > 0) {
+              focusedSection = "epg";
+              epgIndex = 0; // Focus first item directly
+            }
           } else {
             navigateRight();
           }
           break;
         case "Enter":
-          if (focusedSection === "epg" && epgIndex === -1) {
-            // Toggle Favorite
-            if (currentPlayingStream) {
-              toggleFavorite(currentPlayingStream);
-              // Re-render header to update icon
-              const isFav = window.isItemFavoriteForPlaylist
-                ? window.isItemFavoriteForPlaylist(
-                    currentPlayingStream,
-                    "favoritesLiveTV"
-                  )
-                : false;
-              const icon = document.querySelector("#lp-epg-fav-btn i");
-              if (icon) {
-                icon.className = isFav
-                  ? "fa-solid fa-heart"
-                  : "fa-regular fa-heart";
-                icon.style.color = isFav ? "#ff4444" : "inherit";
-              }
-            }
-          } else {
-            handleEnter();
-          }
+          handleEnter();
           break;
       }
       updateFocus();
@@ -972,13 +1092,6 @@ function LivePage() {
           '.nav-item[data-page="liveTvPage"]'
         );
         if (navItem) navItem.focus();
-      } else if (epgIndex === -1) {
-        // From EPG header to Navbar
-        localStorage.setItem("navigationFocus", "navbar");
-        const navItem = document.querySelector(
-          '.nav-item[data-page="liveTvPage"]'
-        );
-        if (navItem) navItem.focus();
       }
     }
   };
@@ -1021,12 +1134,7 @@ function LivePage() {
         playerSubFocus = 0;
       }
     } else if (focusedSection === "epg") {
-      if (epgIndex === -1) {
-        // From EPG header to first item
-        if (currentEpgData && currentEpgData.length > 0) {
-          epgIndex = 0;
-        }
-      } else if (currentEpgData && epgIndex < currentEpgData.length - 1) {
+      if (currentEpgData && epgIndex < currentEpgData.length - 1) {
         epgIndex++;
       } else if (epgIndex === currentEpgData.length - 1) {
         // From last EPG item to Channel Search
@@ -1102,8 +1210,10 @@ function LivePage() {
       }
     } else if (focusedSection === "player") {
       // From Video Player to EPG
-      focusedSection = "epg";
-      epgIndex = -1; // Focus header first
+      if (currentEpgData && currentEpgData.length > 0) {
+        focusedSection = "epg";
+        epgIndex = 0; // Focus first item directly
+      }
     } else if (focusedSection === "channels") {
       const currentCard =
         document.querySelectorAll(".lp-channel-card")[channelIndex];

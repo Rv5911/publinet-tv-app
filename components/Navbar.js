@@ -103,11 +103,12 @@ function buildDynamicSidebarOptions() {
     const currentPage = localStorage.getItem("currentPage");
 
     // Handle Sort Option Visibility
-    if (sortOption) {
+    const sortItem = sidebar.querySelector(".sidebar-sort");
+    if (sortItem) {
       const SORT_ENABLED_PAGES = ["moviesPage", "seriesPage", "liveTvPage"];
       if (SORT_ENABLED_PAGES.includes(currentPage)) {
-        sortOption.classList.remove("option-remove");
-        sortOption.style.display = ""; // Revert to CSS default
+        sortItem.classList.remove("option-remove");
+        sortItem.style.display = ""; // Revert to CSS default
 
         // Hide Top Rated for Live TV
         const topRatedOption = sidebar.querySelector(
@@ -126,8 +127,8 @@ function buildDynamicSidebarOptions() {
           }
         }
       } else {
-        sortOption.classList.add("option-remove");
-        sortOption.style.display = "none";
+        sortItem.classList.add("option-remove");
+        sortItem.style.display = "none";
       }
     }
     let label = "";
@@ -653,7 +654,7 @@ function initNavbar() {
 
           // For liveTvPage, focus on category search input
           if (currentPage === "liveTvPage") {
-            localStorage.setItem("navigationFocus", currentPage);
+            localStorage.setItem("navigationFocus", "sidebarSearch");
             setTimeout(() => {
               const categorySearchInput = document.getElementById(
                 "lp-cat-search-input"
@@ -1086,6 +1087,7 @@ function initNavbar() {
             document.body.style.backgroundColor = "black";
           } else if (action === "clear-channel-history") {
             removeAllChannelHistory();
+            disposeLiveTvPlayer();
             localStorage.setItem("currentPage", "liveTvPage");
             Router.showPage("liveTvPage");
           }

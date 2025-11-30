@@ -6,11 +6,17 @@
   padding-left: 40px;
   padding-top: 200px;
   padding-right: 40px;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  box-sizing: border-box;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
   animation: fadeInOut 1s ease-in-out;
   display: flex;
+}
+
+.lp-main-container * {
+  box-sizing: border-box;
 }
 
 /* Sidebar */
@@ -105,7 +111,7 @@
 /* Top Section */
 .lp-top-section {
   display: flex;
-  height: 40%;
+  height: 55%;
   border-bottom: 1px solid #444;
 }
 
@@ -124,17 +130,6 @@
 }
 
 /* Show controls when active or focused */
-.lp-player-container.lp-focused .play-pause-icon,
-.lp-player-container.lp-focused #live-play-pause-btn,
-.lp-player-container.lp-focused .videojs-aspect-ratio-div,
-.lp-player-container.lp-focused .flow-aspect-ratio-div,
-.lp-player-container.lp-player-active .play-pause-icon,
-.lp-player-container.lp-player-active #live-play-pause-btn,
-.lp-player-container.lp-player-active .videojs-aspect-ratio-div,
-.lp-player-container.lp-player-active .flow-aspect-ratio-div {
-  display: flex !important;
-}
-
 .lp-player-container.lp-focused .videojs-aspect-ratio-div,
 .lp-player-container.lp-focused .flow-aspect-ratio-div,
 .lp-player-container.lp-player-active .videojs-aspect-ratio-div,
@@ -213,7 +208,7 @@
 
 /* Channels Section */
 .lp-channels-section {
-  height: 60%;
+  height: 45%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -252,7 +247,7 @@
   overflow-y: auto;
   padding: 20px;
   display: grid;
-  max-height: calc(100vh - 350px); /* Fixed height for internal scrolling */
+  /* max-height removed to allow flex to handle height */
   grid-template-columns: repeat(4, 1fr);
   grid-row-gap: 15px;
   grid-column-gap: 15px;
@@ -269,7 +264,7 @@
   overflow: visible;
   cursor: pointer;
   transition: all 0.2s;
-  border: 2px solid #3a3a6a;
+  border: 3px solid transparent;
   display: flex;
   flex-direction: column;
 }
@@ -280,12 +275,53 @@
 }
 
 .lp-channel-card.lp-focused {
-  border-color: #fdbd0f;
-  box-shadow: 0 0 15px rgba(255, 165, 0, 0.5);
+  border: 3px solid var(--gold);
+  border-radius: 8px;
 }
 
 .lp-channel-card.lp-channel-card-playing {
-  border-color: #00ff00;
+  background: white !important;
+  border-color: white;
+  color: black !important;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-channel-name {
+  color: black !important;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-program-info {
+  color: #333 !important;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-channel-buttons {
+  background: white !important;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-channel-fav-btn,
+.lp-channel-card.lp-channel-card-playing .lp-channel-remove-btn {
+  color: #666;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-channel-fav-btn:hover,
+.lp-channel-card.lp-channel-card-playing .lp-channel-remove-btn:hover {
+  color: #000;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-channel-info {
+  background: white !important;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-progress-bar {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-progress-fill {
+  background: #000;
+}
+
+.lp-channel-card.lp-channel-card-playing .lp-progress-dot {
+  background: #000;
+  border: 2px solid white;
 }
 
 .lp-channel-logo-container {
@@ -331,16 +367,30 @@
 
 .lp-progress-bar {
   width: 100%;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
-  overflow: hidden;
+  position: relative;
+  margin-top: 5px;
 }
 
 .lp-progress-fill {
   height: 100%;
-  background: #fdbd0f;
-  transition: width 0.3s;
+  background: #fff;
+  border-radius: 2px;
+  position: relative;
+}
+
+.lp-progress-dot {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .lp-channel-buttons {

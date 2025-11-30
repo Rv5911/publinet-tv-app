@@ -237,7 +237,7 @@ function LiveVideoJsComponent(
         </div>
         <video id="${id}" class="video-js vjs-big-play-centered" playsinline webkit-playsinline style="height:100%; width:100%; display:none;"></video>
       </div>
-      <div class="livetv-player-epg">
+      <div class="livetv-player-epg"  style="display: none;">
         <div class="livetv-player-epg-item">
           <p class="livetv-player-epg-title">No EPG Found</p>
           <p class="livetv-player-epg-description">No EPG data available</p>
@@ -695,7 +695,7 @@ function LiveVideoJsComponent(
       <div class="live-video-error hidden">
         <div class="error-icon">⚠️</div>
         <p>Failed to load video</p>
-        <button class="retry-btn">Retry</button>
+        <!-- <button class="retry-btn">Retry</button> -->
       </div>
       <div class="live-video-controls">
         <button id="live-fullscreen-btn" class="live-control-btn" tabindex="-1">

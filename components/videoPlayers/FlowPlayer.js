@@ -169,7 +169,7 @@ function FlowLivePlayerComponent(
         </div>
         <div id="${id}" class="flowplayer" style="height:100%; width:100%; display:none;"></div>
       </div>
-      <div class="livetv-player-epg">
+      <div class="livetv-player-epg" style="display: none;">
         <div class="livetv-player-epg-item">
           <p class="livetv-player-epg-title">No EPG Found</p>
           <p class="livetv-player-epg-description">No EPG data available</p>
@@ -502,7 +502,7 @@ function FlowLivePlayerComponent(
       <div class="live-video-error hidden">
         <div class="error-icon">⚠️</div>
         <p>Failed to load video</p>
-        <button class="retry-btn">Retry</button>
+        <!-- <button class="retry-btn">Retry</button> -->
       </div>
       <div class="live-video-controls">
 
