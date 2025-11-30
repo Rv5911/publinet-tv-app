@@ -322,19 +322,25 @@
   overflow: hidden;
 }
 
-.series-card.focused .series-title-marquee {
+/* .series-card.focused .series-title-marquee {
   display: inline-block !important;
   white-space: nowrap !important;
   animation: marquee 10s linear infinite !important;
   text-overflow: clip !important;
   overflow: visible !important;
-  /* Start with text off-screen to the right */
   padding-left: 100% !important;
-  /* Allow full width of text */
   width: auto !important;
   max-width: none !important;
-  /* Remove ellipsis */
   text-overflow: clip !important;
+} */
+
+.series-card.focused .series-title-marquee {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  animation: none;
 }
 
 /* Large Card Specific Styles */
@@ -352,18 +358,22 @@
   height: 85px;
 }
 
-.series-card-large .series-card-bottom {
-  font-size: 18px;
+.series-card-large .series-card-bottom-right {
+  display: none;
 }
 
-.series-card-large .series-card-bottom-left h2,
-.series-card-large .series-card-bottom-right h2 {
+.series-card-large .series-card-bottom-left {
+  width: 100%;
+}
+
+.series-card-large .series-card-bottom-left h2 {
   font-size: 20px;
+
+  margin-bottom: 5px;
 }
 
-.series-card-large .series-card-bottom-left h3,
-.series-card-large .series-card-bottom-right h3 {
-  font-size: 18px;
+.series-card-large .series-card-bottom-left h3 {
+  font-size: 32px;
 }
 
 /* Loading indicator in card list */

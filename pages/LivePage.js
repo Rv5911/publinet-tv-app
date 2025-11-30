@@ -923,7 +923,6 @@ function LivePage() {
             <div class="lp-epg-item" data-index="${idx}">
                 <div class="lp-epg-time" style="font-size:12px; color:#fdbd0f; margin-bottom:4px;">${timeDisplay}</div>
                 <div class="lp-epg-title" style="font-size:14px; font-weight:bold; margin-bottom:2px;">${title}</div>
-                <div class="lp-epg-desc" style="font-size:12px; color:#aaa;">${description}</div>
             </div>
           `;
       })

@@ -5,10 +5,13 @@ function SettingsPage() {
     const container = document.querySelector(".settings-pages-container");
     const items = Array.from(container.querySelectorAll("p"));
     let activeIndex = 0;
-    let isInSubPage = false; 
+    let isInSubPage = true;
+    let currentOpenTab = items[0]; // Default to first item
 
     // Show StreamFormat by default
-    const secondContainer = document.querySelector(".settings-second-container");
+    const secondContainer = document.querySelector(
+      ".settings-second-container"
+    );
     secondContainer.innerHTML = StreamFormat();
     isInSubPage = true;
 
@@ -31,18 +34,24 @@ function SettingsPage() {
 
     function settingsKeydownEvents(e) {
       if (isInSubPage) return;
-      
-      if (localStorage.getItem("currentPage") !== "settingsPage" && localStorage.getItem("settingPage") !== "settingsPage") return;
-      
+
+      if (
+        localStorage.getItem("currentPage") !== "settingsPage" &&
+        localStorage.getItem("settingPage") !== "settingsPage"
+      )
+        return;
+
       const key = e.key;
       const selectedItem = items[activeIndex];
       console.log(selectedItem, "selectedItem");
-      
+
       switch (key) {
         case "ArrowDown":
           if (selectedItem.classList.contains("clear-app-cache")) return;
-          activeIndex = (activeIndex + 1) % items.length;
-          updateActiveItem();
+          if (activeIndex < items.length - 1) {
+            activeIndex++;
+            updateActiveItem();
+          }
           break;
 
         case "ArrowUp":
@@ -50,8 +59,14 @@ function SettingsPage() {
           activeIndex = (activeIndex - 1 + items.length) % items.length;
           updateActiveItem();
           break;
+
+        case "ArrowLeft":
+          // Do nothing
+          break;
+
         case "ArrowRight":
           localStorage.setItem("settingPage", "settingsPage");
+          handleSelection(currentOpenTab); // Use currently open tab
           break;
 
         case "Enter":
@@ -81,6 +96,11 @@ function SettingsPage() {
 
       isInSubPage = true;
 
+      // Only update currentOpenTab if it's a valid subpage item
+      if (!item.classList.contains("clear-app-cache")) {
+        currentOpenTab = item;
+      }
+
       if (item.classList.contains("stream-format")) {
         container.innerHTML = StreamFormat();
         // Set up cleanup for when returning from StreamFormat
@@ -96,28 +116,23 @@ function SettingsPage() {
       }
     }
 
-    function setupSubPageCleanup() {
-    }
+    function setupSubPageCleanup() {}
 
     setupSubPageCleanup();
 
-    const subPageContainerObserver = new MutationObserver(function() {
-      const subContainer = document.querySelector(".settings-second-container");
-      if (!subContainer) return;
-      const hasContent = subContainer.innerHTML.trim() !== "";
-      isInSubPage = hasContent;
-      if (!hasContent) {
-        updateActiveItem();
-      }
-    });
-    subPageContainerObserver.observe(document.querySelector(".settings-second-container"), { childList: true, subtree: true });
+    // Listen for exit event from subpages
+    function handleSubPageExit() {
+      isInSubPage = false;
+      updateActiveItem();
+    }
+    document.addEventListener("settings-subpage-exit", handleSubPageExit);
 
     document.addEventListener("keydown", settingsKeydownEvents);
 
     SettingsPage.cleanup = function () {
       document.removeEventListener("keydown", settingsKeydownEvents);
+      document.removeEventListener("settings-subpage-exit", handleSubPageExit);
       isInSubPage = false;
-      try { subPageContainerObserver.disconnect(); } catch (e) {}
     };
   }, 0);
 

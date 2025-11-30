@@ -94,7 +94,11 @@ function TimeFormat() {
             saveButton.blur();
           }
           document.removeEventListener("keydown", timeFormatKeydownEvents);
-          document.querySelector(".settings-second-container").innerHTML = "";
+          // document.querySelector(".settings-second-container").innerHTML = ""; // Don't clear content
+
+          // Dispatch exit event
+          document.dispatchEvent(new Event("settings-subpage-exit"));
+
           localStorage.setItem("currentPage", "settingsPage");
           localStorage.setItem("settingPage", "settingsPage");
           e.preventDefault();
