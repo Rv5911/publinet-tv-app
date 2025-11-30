@@ -537,6 +537,12 @@ function initNavbar() {
     const currentPage = localStorage.getItem("currentPage");
     const key = e.key;
 
+    // Pages where navbar should not be active
+    const NAVBAR_INACTIVE_PAGES = ["loginPage", "listPage", "settingsPage"];
+    if (NAVBAR_INACTIVE_PAGES.includes(currentPage)) {
+      return; // Don't process any navbar keydown events on these pages
+    }
+
     const isSearchFocused = document.activeElement === searchInput;
     if (
       isSearchFocused &&
