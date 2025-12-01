@@ -1,4 +1,14 @@
 function LivePage() {
+    // Create and show custom live page loader immediately (using HomePage loader styles)
+    const liveLoader = document.createElement("div");
+    liveLoader.id = "home-page-loader";
+    liveLoader.innerHTML = `
+    <div class="home-loader-content">
+      <div class="home-loader-spinner"></div>
+    </div>
+  `;
+    document.body.appendChild(liveLoader);
+
     let filteredStreams = [];
     let selectedCategoryId = "All";
 
@@ -323,6 +333,17 @@ function LivePage() {
             setupInputListeners();
             setupScrollListener();
             setupClickListeners();
+
+            // Hide the loader after everything is rendered
+            const loaderElement = document.querySelector("#home-page-loader");
+            if (loaderElement) {
+                loaderElement.style.animation = "fadeOut 0.3s ease-out";
+                setTimeout(() => {
+                    if (loaderElement && loaderElement.parentNode) {
+                        loaderElement.parentNode.removeChild(loaderElement);
+                    }
+                }, 300);
+            }
         }, 100);
     };
 
@@ -334,7 +355,7 @@ function LivePage() {
 
         if (cats.length === 0) {
             list.innerHTML =
-                '<div style="padding:20px; color:#aaa; text-align:center;">No category found</div>';
+                '<div style="padding:20px; color:#aaa; zoom:1.7; text-align:center;">No category found</div>';
             return;
         }
 

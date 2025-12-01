@@ -874,16 +874,16 @@ function initNavbar() {
         highlightNavItem(currentIndex);
         localStorage.setItem("navigationFocus", "navbar");
 
-        // Pages where search input should be hidden
-        const PAGES_WITHOUT_SEARCH = ["liveTvPage", "homePage"];
+        // Pages where search input should be visible
+        const PAGES_WITH_SEARCH = ["moviesPage", "seriesPage"];
 
         // Handle search input visibility
         const searchContainer = document.querySelector(".search-bar-container");
         if (searchContainer) {
-            if (PAGES_WITHOUT_SEARCH.includes(page)) {
-                searchContainer.style.visibility = "hidden";
-            } else {
+            if (PAGES_WITH_SEARCH.includes(page)) {
                 searchContainer.style.visibility = "visible";
+            } else {
+                searchContainer.style.visibility = "hidden";
             }
         }
     }
