@@ -740,3 +740,13 @@
   height: 33px;
   object-fit: contain;
 }
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

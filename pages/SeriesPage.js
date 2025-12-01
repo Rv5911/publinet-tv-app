@@ -1443,6 +1443,9 @@ function moveSeriesDown() {
       loadMoreSeriesCategories();
     }
   } else {
+    // Try to load more categories if we are at the bottom
+    loadMoreSeriesCategories();
+
     let currentCategory = getCurrentSeriesCategory();
     if (currentCategory && currentCategory.series) {
       let loadedCount = getSeriesLoadedChunkCount(currentIndex);

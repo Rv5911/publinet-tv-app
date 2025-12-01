@@ -779,6 +779,7 @@ async function SeriesDetailPage() {
           }
 
           selectedSeason = seasonObj.season_number || seasonObj.season || 1;
+          localStorage.setItem("selectedSeason", selectedSeason.toString());
           updateSeasonButton();
           hideDropdown();
           showSeasons();
@@ -1115,6 +1116,7 @@ async function SeriesDetailPage() {
 
   setTimeout(function () {
     showSeasons(); // Show Season 1 episodes by default
+    updateSeasonButton(); // Update the season button text and arrow
     initFocus();
     updatePlayButton();
 

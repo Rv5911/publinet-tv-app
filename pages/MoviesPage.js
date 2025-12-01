@@ -1331,6 +1331,9 @@ function moveMoviesDown() {
       loadMoreMoviesCategories();
     }
   } else {
+    // Try to load more categories if we are at the bottom
+    loadMoreMoviesCategories();
+
     let currentCategory = getCurrentMoviesCategory();
     if (currentCategory && currentCategory.movies) {
       let loadedCount = getMoviesLoadedChunkCount(currentIndex);
