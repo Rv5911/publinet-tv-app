@@ -260,8 +260,37 @@
     text-overflow: ellipsis;
 }
 
+/* Marquee effect for titles */
 .home-card-bottom-left {
+    position: relative;
+    overflow: hidden;
     padding-bottom: 3px;
+}
+
+.home-title-marquee {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.home-card.focused .home-title-marquee {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    animation: marquee 10s linear infinite !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    padding-left: 100% !important;
+    width: auto !important;
+    max-width: none !important;
+}
+
+.home-card:not(.focused) .home-title-marquee {
+    animation: none;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 100%;
 }
 
 .home-card-star-icon {
@@ -310,7 +339,7 @@
     }
 
     100% {
-        transform: translateX(-200%);
+        transform: translateX(-100%);
     }
 }
 

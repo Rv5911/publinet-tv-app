@@ -15,6 +15,16 @@
     display: flex;
 }
 
+@keyframes marquee {
+    0% {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
 .lp-main-container * {
     box-sizing: border-box;
 }
@@ -105,8 +115,29 @@
     background: rgba(255, 165, 0, 0.2);
 }
 
+.lp-category-name-wrapper {
+    flex: 1;
+    overflow: hidden;
+    margin-right: 10px;
+}
+
 .lp-category-name {
     font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.lp-category-item.lp-focused .lp-category-name {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    animation: marquee 10s linear infinite !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    padding-left: 100% !important;
+    width: auto !important;
+    max-width: none !important;
 }
 
 .lp-category-count {
@@ -398,14 +429,32 @@
     background: #1e1e3f;
 }
 
+.lp-channel-name-wrapper {
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
 .lp-channel-name {
     font-size: 13px;
     font-weight: 500;
-    margin-bottom: 6px;
+    margin: 0;
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
+}
+
+.lp-channel-card.lp-focused .lp-channel-name {
+    display: inline-block !important;
+    white-space: nowrap !important;
+    animation: marquee 10s linear infinite !important;
+    text-overflow: clip !important;
+    overflow: visible !important;
+    padding-left: 100% !important;
+    width: auto !important;
+    max-width: none !important;
 }
 
 .lp-program-info {

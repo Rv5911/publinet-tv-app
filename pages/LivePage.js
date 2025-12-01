@@ -367,7 +367,9 @@ function LivePage() {
             ? "lp-selected"
             : ""
         }" data-id="${cat.category_id}" data-index="${idx}">
-          <span class="lp-category-name">${cat.category_name}</span>
+          <div class="lp-category-name-wrapper">
+            <span class="lp-category-name">${cat.category_name}</span>
+          </div>
           <span class="lp-category-count">${getCategoryCount(
             cat.category_id
           )}</span>
@@ -475,7 +477,9 @@ function LivePage() {
         <div class="lp-name-and-buttons">
 
 
-          <div class="lp-channel-name">${stream.name}</div>
+          <div class="lp-channel-name-wrapper">
+            <div class="lp-channel-name">${stream.name}</div>
+          </div>
          <div class="lp-channel-buttons">
           <button class="lp-channel-fav-btn" data-stream-id="${
             stream.stream_id
