@@ -1,6 +1,4 @@
 function LivePage() {
-    let categories = window.liveCategories || [];
-    let allStreams = window.allLiveStreams || [];
     let filteredStreams = [];
     let selectedCategoryId = "All";
 
@@ -64,8 +62,42 @@ function LivePage() {
 
     // Initialize
     setTimeout(() => {
+        if (window.cleanupLivePage) {
+            window.cleanupLivePage();
+        }
         init();
     }, 0);
+
+    const cleanup = () => {
+        const searchInput = document.getElementById("search-input");
+        const searchIcon = document.querySelector(".nav-search-bar");
+        if (searchInput) searchInput.style.display = "";
+        if (searchIcon) searchIcon.style.display = "";
+
+        document.removeEventListener("keydown", handleKeydown);
+        document.removeEventListener("sortChanged", handleSortChange);
+        document.removeEventListener("fullscreenchange", handleFullscreenChange);
+        document.removeEventListener(
+            "webkitfullscreenchange",
+            handleFullscreenChange
+        );
+        document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+        document.removeEventListener("msfullscreenchange", handleFullscreenChange);
+
+        const grid = document.getElementById("lp-channels-grid");
+        if (grid) {
+            grid.removeEventListener("scroll", handleScroll);
+        }
+
+        if (window.livePlayer) {
+            try {
+                window.livePlayer.dispose();
+            } catch (e) {}
+            window.livePlayer = null;
+        }
+
+        window.cleanupLivePage = null;
+    };
 
     const init = () => {
         // Explicitly reset state on init
@@ -82,6 +114,8 @@ function LivePage() {
         selectedCategoryId = "All";
         categoryChunk = 1;
         channelChunk = 1;
+
+        console.log("LivePage init called");
 
         container = document.querySelector(".lp-main-container");
         if (!container) return;
@@ -101,69 +135,13 @@ function LivePage() {
         document.addEventListener("mozfullscreenchange", handleFullscreenChange);
         document.addEventListener("msfullscreenchange", handleFullscreenChange);
 
+        window.cleanupLivePage = cleanup;
         // Listen for focus changes from Navbar
         window.addEventListener(
             "navigation-focus-change",
             handleNavigationFocusChange
         );
     };
-
-    const cleanup = () => {
-        const searchInput = document.getElementById("search-input");
-        const searchIcon = document.querySelector(".nav-search-bar");
-        if (searchInput) searchInput.style.display = "";
-        if (searchIcon) searchIcon.style.display = "";
-        document.removeEventListener("keydown", handleKeydown);
-        document.removeEventListener("sortChanged", handleSortChange);
-
-        // Remove fullscreen event listeners
-        document.removeEventListener("fullscreenchange", handleFullscreenChange);
-        document.removeEventListener(
-            "webkitfullscreenchange",
-            handleFullscreenChange
-        );
-        document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
-        document.removeEventListener("msfullscreenchange", handleFullscreenChange);
-
-        window.removeEventListener(
-            "navigation-focus-change",
-            handleNavigationFocusChange
-        );
-
-        const grid = document.getElementById("lp-channels-grid");
-        if (grid) {
-            grid.removeEventListener("scroll", handleScroll);
-        }
-
-        if (window.livePlayer) {
-            try {
-                window.livePlayer.dispose();
-            } catch (e) {}
-            window.livePlayer = null;
-        }
-
-        // Reset Navigation State
-        focusedSection = "sidebar";
-        sidebarIndex = 0;
-        channelIndex = 0;
-        buttonFocusIndex = -1;
-        playerSubFocus = 0;
-        epgIndex = -1;
-        currentPlayingStream = null;
-
-        // Reset Search State
-        categorySearchQuery = "";
-        channelSearchQuery = "";
-
-        // Reset Selection
-        selectedCategoryId = "All";
-
-        // Reset Chunking
-        categoryChunk = 1;
-        channelChunk = 1;
-    };
-
-    LivePage.cleanup = cleanup;
 
     const handleNavigationFocusChange = () => {
         const navFocus = localStorage.getItem("navigationFocus");
@@ -188,8 +166,8 @@ function LivePage() {
             },
         ];
 
-        if (categories) {
-            cats = [...cats, ...categories];
+        if (window.liveCategories) {
+            cats = [...cats, ...window.liveCategories];
         }
 
         if (categorySearchQuery) {
@@ -221,8 +199,8 @@ function LivePage() {
             },
         ];
 
-        if (categories) {
-            cats = [...cats, ...categories];
+        if (window.liveCategories) {
+            cats = [...cats, ...window.liveCategories];
         }
 
         if (categorySearchQuery) {
@@ -240,7 +218,7 @@ function LivePage() {
         let streams = [];
 
         if (selectedCategoryId === "All") {
-            streams = allStreams;
+            streams = window.allLiveStreams || [];
         } else if (selectedCategoryId === "favorites") {
             // Always get fresh data from localStorage
             const currentPlaylist = getCurrentPlaylist();
@@ -250,7 +228,9 @@ function LivePage() {
             const currentPlaylist = getCurrentPlaylist();
             streams = currentPlaylist ? currentPlaylist.ChannelListLive || [] : [];
         } else {
-            streams = allStreams.filter((s) => s.category_id === selectedCategoryId);
+            streams = (window.allLiveStreams || []).filter(
+                (s) => String(s.category_id) === String(selectedCategoryId)
+            );
         }
 
         if (channelSearchQuery) {
@@ -276,7 +256,7 @@ function LivePage() {
     };
 
     const getCategoryCount = (catId) => {
-        if (catId === "All") return allStreams.length;
+        if (catId === "All") return (window.allLiveStreams || []).length;
         if (catId === "favorites") {
             const currentPlaylist = getCurrentPlaylist();
             return currentPlaylist && currentPlaylist.favoritesLiveTV ?
@@ -289,7 +269,9 @@ function LivePage() {
                 currentPlaylist.ChannelListLive.length :
                 0;
         }
-        return allStreams.filter((s) => s.category_id === catId).length;
+        return (window.allLiveStreams || []).filter(
+            (s) => String(s.category_id) === String(catId)
+        ).length;
     };
 
     const render = () => {
@@ -306,7 +288,7 @@ function LivePage() {
         <div class="lp-top-section">
           <div class="lp-player-container" id="lp-player-container">
             <div class="lp-video-wrapper">
-              <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#666;">
+              <div style="width:100%; height:100%; zoom:1.4; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#666;">
                 <i class="fas fa-play-circle" style="font-size: 50px; margin-bottom:10px;"></i>
                 <p>Select a channel to play</p>
               </div>
@@ -360,7 +342,9 @@ function LivePage() {
             .map(
                 (cat, idx) => `
         <li class="lp-category-item ${
-          selectedCategoryId === cat.category_id ? "lp-selected" : ""
+          String(selectedCategoryId) === String(cat.category_id)
+            ? "lp-selected"
+            : ""
         }" data-id="${cat.category_id}" data-index="${idx}">
           <span class="lp-category-name">${cat.category_name}</span>
           <span class="lp-category-count">${getCategoryCount(
@@ -370,15 +354,6 @@ function LivePage() {
       `
             )
             .join("");
-
-        // Update sidebarIndex to match the currently selected category
-        // This prevents the focus from shifting to a different category after re-render
-        const selectedIndex = cats.findIndex(
-            (cat) => cat.category_id === selectedCategoryId
-        );
-        if (selectedIndex !== -1 && focusedSection === "sidebar") {
-            sidebarIndex = selectedIndex;
-        }
     };
 
     const renderChannels = () => {
@@ -386,6 +361,9 @@ function LivePage() {
         if (!grid) return;
 
         filteredStreams = getFilteredChannels();
+        console.log(
+            `Rendering channels. Category: ${selectedCategoryId}, Count: ${filteredStreams.length}`
+        );
 
         if (filteredStreams.length === 0) {
             grid.innerHTML =
@@ -418,7 +396,7 @@ function LivePage() {
             const isHistory = selectedCategoryId === "channelHistory";
 
             // Detect adult channels
-            const category = categories.find(
+            const category = (window.liveCategories || []).find(
                 (c) => c.category_id === stream.category_id
             );
             const isAdultChannel = category ?
@@ -1182,6 +1160,12 @@ function LivePage() {
 
         // Only process keydown events if navigationFocus is on this page
         const navigationFocus = localStorage.getItem("navigationFocus");
+        const currentPage = localStorage.getItem("currentPage");
+
+        if (currentPage !== "liveTvPage" || !document.body.contains(container)) {
+            return;
+        }
+
         if (
             navigationFocus !== "liveTvPage" &&
             navigationFocus !== "sidebarSearch" &&
@@ -1448,6 +1432,7 @@ function LivePage() {
                 buttonFocusIndex = -1;
             } else if (channelIndex % 4 === 0) {
                 focusedSection = "sidebar";
+                if (sidebarIndex === -1) sidebarIndex = 0;
             } else {
                 channelIndex--;
             }
@@ -1466,10 +1451,14 @@ function LivePage() {
                 focusedSection = "player";
                 playerSubFocus = 0;
             } else {
-                // No video - go to first channel
-                focusedSection = "channels";
-                channelIndex = 0;
-                buttonFocusIndex = -1;
+                // No video - check if channels are available
+                if (filteredStreams && filteredStreams.length > 0) {
+                    // Go to first channel
+                    focusedSection = "channels";
+                    channelIndex = 0;
+                    buttonFocusIndex = -1;
+                }
+                // If no channels available, stay on sidebar
             }
         } else if (focusedSection === "player") {
             // From Video Player to EPG
@@ -1493,10 +1482,12 @@ function LivePage() {
                 ) {
                     buttonFocusIndex++;
                 } else if (buttonFocusIndex >= buttons.length - 1) {
-                    buttonFocusIndex = -1;
+                    // Only move to next channel if available
                     if (channelIndex < filteredStreams.length - 1) {
+                        buttonFocusIndex = -1;
                         channelIndex++;
                     }
+                    // If no next channel, stay on the last button (do nothing)
                 }
             }
         }
@@ -1505,14 +1496,37 @@ function LivePage() {
     const handleEnter = () => {
         if (focusedSection === "sidebar") {
             const cats = getFilteredCategories();
+
+            // CRITICAL FIX: Ensure sidebarIndex is in valid range
+            if (sidebarIndex < 0 || sidebarIndex >= cats.length) {
+                console.warn(`Invalid sidebarIndex: ${sidebarIndex}, resetting to 0`);
+                sidebarIndex = 0;
+            }
+
             if (cats[sidebarIndex]) {
-                selectedCategoryId = cats[sidebarIndex].category_id;
-                channelChunk = 1;
-                renderCategories();
-                renderChannels();
-                playChannel("");
-                channelIndex = 0;
-                buttonFocusIndex = -1;
+                const newCategoryId = cats[sidebarIndex].category_id;
+                console.log(`Category selected: ${newCategoryId}`);
+
+                // Only update if we're actually changing categories
+                if (String(selectedCategoryId) !== String(newCategoryId)) {
+                    selectedCategoryId = newCategoryId;
+                    channelChunk = 1; // Reset pagination
+                    channelIndex = 0; // Reset channel focus
+                    channelChunk = 1; // Reset pagination
+                    channelIndex = 0; // Reset channel focus
+                    buttonFocusIndex = -1;
+
+                    // Render categories and channels with the new selection
+                    renderCategories(); // Update visual selection
+                    renderChannels(); // Update channel list
+
+                    // Stop any playing channel
+                    playChannel("");
+                }
+
+                // Always ensure focus stays on sidebar and the selected category
+                // renderCategories() will update sidebarIndex to match selectedCategoryId
+                updateFocus();
             }
         } else if (focusedSection === "player") {
             // Toggle fullscreen on Enter ONLY if border is focused
@@ -1553,7 +1567,7 @@ function LivePage() {
                 removeFromHistory(stream);
             } else {
                 // Check for adult content lock before playing
-                const category = categories.find(
+                const category = (window.liveCategories || []).find(
                     (c) => c.category_id === stream.category_id
                 );
                 const isAdultChannel = category ?
@@ -1644,18 +1658,23 @@ function LivePage() {
                     if (!isNaN(index)) {
                         localStorage.setItem("navigationFocus", "liveTvPage");
                         focusedSection = "sidebar";
-                        sidebarIndex = index;
-                        updateFocus();
 
                         const cats = getFilteredCategories();
-                        if (cats[sidebarIndex]) {
-                            selectedCategoryId = cats[sidebarIndex].category_id;
+                        if (cats[index]) {
+                            selectedCategoryId = cats[index].category_id;
                             channelChunk = 1;
-                            renderCategories();
-                            renderChannels();
-                            playChannel("");
                             channelIndex = 0;
                             buttonFocusIndex = -1;
+
+                            // Render categories and channels with the new selection
+                            renderCategories();
+                            renderChannels();
+
+                            // Stop any playing channel
+                            playChannel("");
+
+                            // Update focus - renderCategories() will have set sidebarIndex correctly
+                            updateFocus();
                         }
                     }
                 }
@@ -1687,7 +1706,7 @@ function LivePage() {
                                 removeFromHistory(stream);
                             } else {
                                 // Check for adult content lock before playing
-                                const category = categories.find(
+                                const category = (window.liveCategories || []).find(
                                     (c) => c.category_id === stream.category_id
                                 );
                                 const isAdultChannel = category ?
@@ -1783,6 +1802,7 @@ function LivePage() {
             catInput.addEventListener("input", (e) => {
                 categorySearchQuery = e.target.value;
                 categoryChunk = 1;
+                sidebarIndex = 0; // Reset focus to top when searching
                 renderCategories();
             });
             catInput.addEventListener("focus", () => {

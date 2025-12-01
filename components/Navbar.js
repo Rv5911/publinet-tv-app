@@ -875,7 +875,7 @@ function initNavbar() {
         localStorage.setItem("navigationFocus", "navbar");
 
         // Pages where search input should be hidden
-        const PAGES_WITHOUT_SEARCH = ["liveTvPage"];
+        const PAGES_WITHOUT_SEARCH = ["liveTvPage", "homePage"];
 
         // Handle search input visibility
         const searchContainer = document.querySelector(".search-bar-container");
