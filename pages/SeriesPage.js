@@ -1756,6 +1756,70 @@ function doesSeriesCardExist(categoryIndex, cardIndex) {
 }
 
 function validateAndAdjustRestoredSeriesState() {
+  let targetCategoryIndex = seriesNavigationState.currentCategoryIndex;
+  let targetCardIndex = seriesNavigationState.currentCardIndex;
+  let allCategories = window.allSeriesCategories || [];
+
+  // 1. Ensure Category is Loaded
+  if (!seriesCategoryHasSeries(targetCategoryIndex)) {
+    if (targetCategoryIndex < allCategories.length) {
+      // Load missing categories
+      let container = document.querySelector(".series-page-container");
+      if (container) {
+        let currentLoaded = seriesChunkLoadingState.loadedCategories;
+        // Load up to targetIndex + 2 (buffer)
+        for (let i = currentLoaded; i <= targetCategoryIndex + 2; i++) {
+          if (i >= allCategories.length) break;
+          let category = allCategories[i];
+          if (
+            (category.series && category.series.length > 0) ||
+            category.id === "fav"
+          ) {
+            let categoryHTML = createSeriesCategorySection(category, i);
+            // Remove "No results found" if it exists
+            let noResults = container.querySelector(".no-more-categories");
+            if (noResults) noResults.remove();
+
+            container.insertAdjacentHTML("beforeend", categoryHTML);
+          }
+        }
+        seriesChunkLoadingState.loadedCategories = Math.max(
+          seriesChunkLoadingState.loadedCategories,
+          targetCategoryIndex + 3
+        );
+      }
+    }
+  }
+
+  // 2. Ensure Card is Loaded (Horizontal)
+  if (seriesCategoryHasSeries(targetCategoryIndex)) {
+    let currentCategory = allCategories[targetCategoryIndex];
+    let loadedCount = getSeriesLoadedChunkCount(targetCategoryIndex);
+
+    if (targetCardIndex >= loadedCount) {
+      // Load more chunks for this category
+      let cardList = document.querySelector(
+        '.series-card-list[data-category="' + targetCategoryIndex + '"]'
+      );
+      if (cardList) {
+        while (
+          getSeriesLoadedChunkCount(targetCategoryIndex) <= targetCardIndex
+        ) {
+          let newCardsHTML = loadSeriesChunk(
+            currentCategory,
+            targetCategoryIndex
+          );
+          if (!newCardsHTML) break;
+
+          let loadingEl = cardList.querySelector(".series-loading-indicator");
+          if (loadingEl) loadingEl.remove();
+          cardList.insertAdjacentHTML("beforeend", newCardsHTML);
+        }
+      }
+    }
+  }
+
+  // 3. Final Validation
   if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
     let nextCategoryIndex = findNextSeriesCategoryWithSeries(0, 1);
     if (nextCategoryIndex !== -1) {

@@ -1644,6 +1644,70 @@ function doesMoviesCardExist(categoryIndex, cardIndex) {
 }
 
 function validateAndAdjustRestoredMoviesState() {
+  let targetCategoryIndex = moviesNavigationState.currentCategoryIndex;
+  let targetCardIndex = moviesNavigationState.currentCardIndex;
+  let allCategories = window.allMoviesCategories || [];
+
+  // 1. Ensure Category is Loaded
+  if (!moviesCategoryHasMovies(targetCategoryIndex)) {
+    if (targetCategoryIndex < allCategories.length) {
+      // Load missing categories
+      let container = document.querySelector(".movies-page-container");
+      if (container) {
+        let currentLoaded = moviesChunkLoadingState.loadedCategories;
+        // Load up to targetIndex + 2 (buffer)
+        for (let i = currentLoaded; i <= targetCategoryIndex + 2; i++) {
+          if (i >= allCategories.length) break;
+          let category = allCategories[i];
+          if (
+            (category.movies && category.movies.length > 0) ||
+            category.id === "fav"
+          ) {
+            let categoryHTML = createMoviesCategorySection(category, i);
+            // Remove "No results found" if it exists
+            let noResults = container.querySelector(".no-more-categories");
+            if (noResults) noResults.remove();
+
+            container.insertAdjacentHTML("beforeend", categoryHTML);
+          }
+        }
+        moviesChunkLoadingState.loadedCategories = Math.max(
+          moviesChunkLoadingState.loadedCategories,
+          targetCategoryIndex + 3
+        );
+      }
+    }
+  }
+
+  // 2. Ensure Card is Loaded (Horizontal)
+  if (moviesCategoryHasMovies(targetCategoryIndex)) {
+    let currentCategory = allCategories[targetCategoryIndex];
+    let loadedCount = getMoviesLoadedChunkCount(targetCategoryIndex);
+
+    if (targetCardIndex >= loadedCount) {
+      // Load more chunks for this category
+      let cardList = document.querySelector(
+        '.movies-card-list[data-category="' + targetCategoryIndex + '"]'
+      );
+      if (cardList) {
+        while (
+          getMoviesLoadedChunkCount(targetCategoryIndex) <= targetCardIndex
+        ) {
+          let newCardsHTML = loadMoviesChunk(
+            currentCategory,
+            targetCategoryIndex
+          );
+          if (!newCardsHTML) break;
+
+          let loadingEl = cardList.querySelector(".movies-loading-indicator");
+          if (loadingEl) loadingEl.remove();
+          cardList.insertAdjacentHTML("beforeend", newCardsHTML);
+        }
+      }
+    }
+  }
+
+  // 3. Final Validation
   if (!moviesCategoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
     let nextCategoryIndex = findNextMoviesCategoryWithMovies(0, 1);
     if (nextCategoryIndex !== -1) {
