@@ -1,0 +1,13 @@
+.prelogin-page-container{
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+      animation: fadeInOut 1s ease-in-out;
+  background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+}
+
+.prelogin-page-container img{
+  zoom: 1.3;
+}
