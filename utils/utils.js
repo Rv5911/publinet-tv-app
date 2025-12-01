@@ -293,65 +293,165 @@ function removeAllFromHistory(typeKey, playlistUsername) {
 }
 
 function toggleFavoriteItem(item, typeKey, playlistUsername) {
-    const currentPlaylistData = getCurrentPlaylist();
-
-    const username = currentPlaylistData.playlistName ?
-        currentPlaylistData.playlistName :
-        "";
-    if (!username)
-        return {
-            success: false,
-            message: "no playlist username",
-            isFav: false,
-        };
-
-    const playlists = getPlaylistsData();
-    const uid = getItemUniqueId(item);
-    if (!uid)
-        return {
-            success: false,
-            message: "item has no unique id",
-            isFav: false,
-        };
-
-    const plIndex = playlists.findIndex((p) => p.playlistName === username);
-    if (plIndex === -1) {
-        // create minimal playlist entry with the right key
-        const newPl = {
-            playlistName: username,
-            playlistUrl: "",
-            playlistUsername: username,
-        };
-        newPl[typeKey] = [item];
-        playlists.push(newPl);
-        savePlaylistsData(playlists);
-        return {
-            success: true,
-            isFav: true,
-            playlists,
-        };
-    } else {
-        const pl = playlists[plIndex];
-        if (!pl[typeKey]) pl[typeKey] = [];
-        const favIndex = pl[typeKey].findIndex((m) => getItemUniqueId(m) === uid);
-
-        if (favIndex === -1) {
-            pl[typeKey].push(item);
-            savePlaylistsData(playlists);
+    // Prevent concurrent modifications with timeout-based lock
+    const lockTimeout = 3000; // 3 seconds max lock time
+    if (window._toggleFavoriteLock) {
+        const lockAge = Date.now() - window._toggleFavoriteLockTime;
+        if (lockAge < lockTimeout) {
+            console.warn("Toggle favorite operation already in progress");
             return {
+                success: false,
+                message: "operation in progress",
+                isFav: false,
+                wasFav: false,
+            };
+        } else {
+            // Lock is stale, release it
+            console.warn("Releasing stale lock");
+            window._toggleFavoriteLock = false;
+        }
+    }
+
+    try {
+        window._toggleFavoriteLock = true;
+        window._toggleFavoriteLockTime = Date.now();
+
+        const currentPlaylistData = getCurrentPlaylist();
+
+        const username =
+            playlistUsername ||
+            (currentPlaylistData && currentPlaylistData.playlistName ?
+                currentPlaylistData.playlistName :
+                "");
+
+        console.log("🔄 toggleFavoriteItem called:", {
+            typeKey,
+            providedUsername: playlistUsername,
+            resolvedUsername: username,
+            itemId: item && (item.stream_id || item.id),
+            itemName: item && item.name,
+        });
+
+        if (!username) {
+            console.error("❌ No playlist username found");
+            return {
+                success: false,
+                message: "no playlist username",
+                isFav: false,
+                wasFav: false,
+            };
+        }
+
+        // Get fresh data from localStorage
+        const playlists = getPlaylistsData();
+        console.log(
+            "📦 Current playlists data:",
+            playlists.map((p) => ({
+                name: p.playlistName,
+                favCount: (p[typeKey] && p[typeKey].length) || 0,
+            }))
+        );
+
+        const uid = getItemUniqueId(item);
+        if (!uid) {
+            console.error("❌ Item has no unique ID");
+            return {
+                success: false,
+                message: "item has no unique id",
+                isFav: false,
+                wasFav: false,
+            };
+        }
+
+        const plIndex = playlists.findIndex((p) => p.playlistName === username);
+        let result;
+
+        if (plIndex === -1) {
+            console.log("➕ Creating new playlist entry for:", username);
+            // create minimal playlist entry with the right key
+            const newPl = {
+                playlistName: username,
+                playlistUrl: "",
+                playlistUsername: username,
+            };
+            newPl[typeKey] = [item];
+            playlists.push(newPl);
+            savePlaylistsData(playlists);
+            console.log("✅ Saved new playlist with favorite");
+            result = {
                 success: true,
                 isFav: true,
+                wasFav: false, // Was not a favorite before
                 playlists,
             };
         } else {
-            pl[typeKey].splice(favIndex, 1);
-            savePlaylistsData(playlists);
-            return {
-                success: true,
-                isFav: false,
-                playlists,
-            };
+            const pl = playlists[plIndex];
+            if (!pl[typeKey]) pl[typeKey] = [];
+            const favIndex = pl[typeKey].findIndex((m) => getItemUniqueId(m) === uid);
+
+            if (favIndex === -1) {
+                // Add to favorites
+                console.log("➕ Adding to favorites:", uid);
+                pl[typeKey].push(item);
+                savePlaylistsData(playlists);
+                console.log("✅ Saved! New favorite count:", pl[typeKey].length);
+                result = {
+                    success: true,
+                    isFav: true,
+                    wasFav: false, // Was not a favorite before
+                    playlists,
+                };
+            } else {
+                // Remove from favorites
+                console.log("➖ Removing from favorites:", uid);
+                pl[typeKey].splice(favIndex, 1);
+                savePlaylistsData(playlists);
+                console.log("✅ Saved! New favorite count:", pl[typeKey].length);
+                result = {
+                    success: true,
+                    isFav: false,
+                    wasFav: true, // Was a favorite before
+                    playlists,
+                };
+            }
         }
+
+        // Update selectedPlaylist in localStorage to keep it in sync
+        // CRITICAL: Preserve ALL fields, only update the specific typeKey array
+        try {
+            const selectedPlaylist = JSON.parse(
+                localStorage.getItem("selectedPlaylist") || "{}"
+            );
+            console.log(
+                "🔄 Updating selectedPlaylist:",
+                selectedPlaylist.playlistName
+            );
+            if (selectedPlaylist.playlistName === username) {
+                const updatedPlaylist = playlists.find(
+                    (p) => p.playlistName === username
+                );
+                if (updatedPlaylist) {
+                    // Update only the specific typeKey field, preserve everything else
+                    selectedPlaylist[typeKey] = updatedPlaylist[typeKey] || [];
+                    localStorage.setItem(
+                        "selectedPlaylist",
+                        JSON.stringify(selectedPlaylist)
+                    );
+                    console.log(
+                        "✅ selectedPlaylist updated, favorite count:",
+                        selectedPlaylist[typeKey].length
+                    );
+                }
+            }
+        } catch (e) {
+            console.warn("Failed to update selectedPlaylist:", e);
+        }
+
+        return result;
+    } finally {
+        // Always release the lock
+        window._toggleFavoriteLock = false;
+        window._toggleFavoriteLockTime = null;
     }
 }
 

@@ -159,14 +159,6 @@ function buildDynamicSidebarOptions() {
                 (series) => series && series.itemId == selectedSeriesId
             );
 
-        console.log("Current page:", currentPage);
-        console.log(
-            "isContinueWatchingMovie:",
-            localStorage.getItem("isContinueWatchingMovie")
-        );
-        console.log("Selected Movie ID:", selectedMovieId);
-        console.log("Recently Watched Movies:", allRecentlyWatchedMovies);
-
         if (currentPage === "moviesPage") {
             if (allRecentlyWatchedMovies && allRecentlyWatchedMovies.length > 0) {
                 label = "Remove All Recently Watched Movies";
@@ -941,11 +933,24 @@ function initNavbar() {
 
     function handleLogOut() {
         localStorage.setItem("isLogin", false);
-        resetParentalControlState();
-        localStorage.removeItem("currentPlaylistData");
-        localStorage.removeItem("selectedPlaylist");
-        localStorage.setItem("currentPage", "login");
-        Router.showPage("login");
+
+        const playlistsData = localStorage.getItem("playlistsData") ?
+            JSON.parse(localStorage.getItem("playlistsData")) :
+            [];
+
+        if (playlistsData.length > 0) {
+            localStorage.removeItem("currentPlaylistData");
+            localStorage.removeItem("selectedPlaylist");
+            localStorage.setItem("navigationFocus", "");
+            localStorage.setItem("isLogin", false);
+            Router.showPage("listPage");
+        } else {
+            resetParentalControlState();
+            localStorage.removeItem("currentPlaylistData");
+            localStorage.removeItem("selectedPlaylist");
+            localStorage.setItem("currentPage", "login");
+            Router.showPage("login");
+        }
 
         closeSidebar();
     }

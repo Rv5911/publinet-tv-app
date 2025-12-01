@@ -13,6 +13,7 @@ function LivePage() {
     let epgIndex = -1; // -1 = Header (Favorite), 0+ = List Items
     let currentEpgData = [];
     let currentPlayingStream = null;
+    let lastToggleTime = 0;
 
     // Search State
     let categorySearchQuery = "";
@@ -46,7 +47,6 @@ function LivePage() {
     };
 
     // Parental Control State
-    const currentPlaylist = getCurrentPlaylist();
     const unlockedLiveAdultCatIds = new Set();
     const unlockedLiveAdultChannelsInAll = new Set();
     const unlockedLiveAdultChannelsInFavorites = new Set();
@@ -68,8 +68,28 @@ function LivePage() {
     }, 0);
 
     const init = () => {
+        // Explicitly reset state on init
+        focusedSection = "sidebar";
+        sidebarIndex = 0;
+        channelIndex = 0;
+        buttonFocusIndex = -1;
+        playerSubFocus = 0;
+        epgIndex = -1;
+        currentPlayingStream = null;
+        lastToggleTime = 0;
+        categorySearchQuery = "";
+        channelSearchQuery = "";
+        selectedCategoryId = "All";
+        categoryChunk = 1;
+        channelChunk = 1;
+
         container = document.querySelector(".lp-main-container");
         if (!container) return;
+
+        const searchInput = document.getElementById("search-input");
+        const searchIcon = document.querySelector(".nav-search-bar");
+        if (searchInput) searchInput.style.display = "none";
+        if (searchIcon) searchIcon.style.display = "none";
 
         render();
         document.addEventListener("keydown", handleKeydown);
@@ -89,6 +109,10 @@ function LivePage() {
     };
 
     const cleanup = () => {
+        const searchInput = document.getElementById("search-input");
+        const searchIcon = document.querySelector(".nav-search-bar");
+        if (searchInput) searchInput.style.display = "";
+        if (searchIcon) searchIcon.style.display = "";
         document.removeEventListener("keydown", handleKeydown);
         document.removeEventListener("sortChanged", handleSortChange);
 
@@ -218,9 +242,11 @@ function LivePage() {
         if (selectedCategoryId === "All") {
             streams = allStreams;
         } else if (selectedCategoryId === "favorites") {
+            // Always get fresh data from localStorage
             const currentPlaylist = getCurrentPlaylist();
             streams = currentPlaylist ? currentPlaylist.favoritesLiveTV || [] : [];
         } else if (selectedCategoryId === "channelHistory") {
+            // Always get fresh data from localStorage
             const currentPlaylist = getCurrentPlaylist();
             streams = currentPlaylist ? currentPlaylist.ChannelListLive || [] : [];
         } else {
@@ -344,6 +370,15 @@ function LivePage() {
       `
             )
             .join("");
+
+        // Update sidebarIndex to match the currently selected category
+        // This prevents the focus from shifting to a different category after re-render
+        const selectedIndex = cats.findIndex(
+            (cat) => cat.category_id === selectedCategoryId
+        );
+        if (selectedIndex !== -1 && focusedSection === "sidebar") {
+            sidebarIndex = selectedIndex;
+        }
     };
 
     const renderChannels = () => {
@@ -369,8 +404,16 @@ function LivePage() {
         const fragment = document.createDocumentFragment();
 
         channelsToRender.forEach((stream, idx) => {
+            const currentPlaylistObj = getCurrentPlaylist();
+            const playlistUsername = currentPlaylistObj ?
+                currentPlaylistObj.playlistName :
+                null;
             const isFav = window.isItemFavoriteForPlaylist ?
-                window.isItemFavoriteForPlaylist(stream, "favoritesLiveTV") :
+                window.isItemFavoriteForPlaylist(
+                    stream,
+                    "favoritesLiveTV",
+                    playlistUsername
+                ) :
                 false;
             const isHistory = selectedCategoryId === "channelHistory";
 
@@ -381,8 +424,10 @@ function LivePage() {
             const isAdultChannel = category ?
                 isLiveAdultCategory(category.category_name) :
                 false;
+            const currentPlaylistForParental = getCurrentPlaylist();
             const parentalEnabled =
-                currentPlaylist && !!currentPlaylist.parentalPassword;
+                currentPlaylistForParental &&
+                !!currentPlaylistForParental.parentalPassword;
 
             // Determine if channel is unlocked
             let isChannelUnlocked = true;
@@ -465,19 +510,70 @@ function LivePage() {
     };
 
     const toggleFavorite = (stream, showToast = true) => {
-        if (!window.toggleFavoriteItem) return;
-
-        const result = window.toggleFavoriteItem(stream, "favoritesLiveTV");
-
-        // Only show toaster if explicitly requested
-        if (showToast && window.Toaster && window.Toaster.showToast) {
-            window.Toaster.showToast(
-                result.isFav ? "success" : "error",
-                result.isFav ? "Added to favorites" : "Removed from favorites"
-            );
+        if (!window.toggleFavoriteItem) {
+            console.error("toggleFavoriteItem function not available");
+            return;
         }
 
-        if (selectedCategoryId === "favorites" && !result.isFav) {
+        const now = Date.now();
+        if (now - lastToggleTime < 500) {
+            console.warn("Toggle favorite called too quickly, ignoring");
+            return;
+        }
+        lastToggleTime = now;
+
+        // CRITICAL FIX: Get fresh playlist data and check CURRENT favorite state BEFORE toggling
+        const freshPlaylist = getCurrentPlaylist();
+        const playlistUsername = freshPlaylist ? freshPlaylist.playlistName : null;
+
+        if (!playlistUsername) {
+            console.error("No playlist username found");
+            if (showToast && window.Toaster && window.Toaster.showToast) {
+                window.Toaster.showToast("error", "Failed to update favorites");
+            }
+            return;
+        }
+
+        // Check if the item is CURRENTLY a favorite (before toggling)
+        const isCurrentlyFavorite = window.isItemFavoriteForPlaylist ?
+            window.isItemFavoriteForPlaylist(
+                stream,
+                "favoritesLiveTV",
+                playlistUsername
+            ) :
+            false;
+
+        // Now perform the toggle operation
+        const result = window.toggleFavoriteItem(stream, "favoritesLiveTV");
+
+        // Check if the operation was successful
+        if (!result || !result.success) {
+            console.error(
+                "Failed to toggle favorite:",
+                result ? result.message : "unknown error"
+            );
+            if (showToast && window.Toaster && window.Toaster.showToast) {
+                window.Toaster.showToast("error", "Failed to update favorites");
+            }
+            return;
+        }
+
+        // Show toast based on what we INTENDED to do (opposite of current state)
+        // If it was a favorite, we removed it. If it wasn't, we added it.
+        if (showToast && window.Toaster && window.Toaster.showToast) {
+            const actionMessage = isCurrentlyFavorite ?
+                "Removed from favorites" :
+                "Added to favorites";
+            const toastType = isCurrentlyFavorite ? "error" : "success";
+
+            window.Toaster.showToast(toastType, actionMessage);
+        }
+
+        // Force refresh of the current playlist data from localStorage after toggle
+        const updatedPlaylist = getCurrentPlaylist();
+
+        if (selectedCategoryId === "favorites" && isCurrentlyFavorite) {
+            // If we're in favorites view and removed an item, re-render everything
             channelChunk = 1;
             renderChannels();
             renderCategories();
@@ -487,17 +583,39 @@ function LivePage() {
             buttonFocusIndex = -1;
             updateFocus();
         } else {
+            // Update the specific card's heart icon based on fresh data
             const card = document.querySelector(
                 `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
             );
             if (card) {
                 const favBtn = card.querySelector(".lp-channel-fav-btn i");
                 if (favBtn) {
-                    favBtn.className = result.isFav ?
+                    // Check the actual favorite status from fresh playlist data after toggle
+                    const updatedPlaylistUsername = updatedPlaylist ?
+                        updatedPlaylist.playlistName :
+                        null;
+                    const actualIsFav = window.isItemFavoriteForPlaylist ?
+                        window.isItemFavoriteForPlaylist(
+                            stream,
+                            "favoritesLiveTV",
+                            updatedPlaylistUsername
+                        ) :
+                        result.isFav;
+
+                    favBtn.className = actualIsFav ?
                         "fa-solid fa-heart" :
                         "fa-regular fa-heart";
                 }
             }
+
+            // If this is the currently playing stream, update EPG heart icon too
+            if (
+                currentPlayingStream &&
+                String(currentPlayingStream.stream_id) === String(stream.stream_id)
+            ) {
+                updateEPG(stream);
+            }
+
             renderCategories();
         }
     };
@@ -822,8 +940,16 @@ function LivePage() {
         if (!epgList || !epgHeader) return;
 
         // Render Header immediately
+        const currentPlaylistObj = getCurrentPlaylist();
+        const playlistUsername = currentPlaylistObj ?
+            currentPlaylistObj.playlistName :
+            null;
         const isFav = window.isItemFavoriteForPlaylist ?
-            window.isItemFavoriteForPlaylist(stream, "favoritesLiveTV") :
+            window.isItemFavoriteForPlaylist(
+                stream,
+                "favoritesLiveTV",
+                playlistUsername
+            ) :
             false;
 
         // Only show heart if favorite, and NOT as a button/focusable
@@ -1121,6 +1247,10 @@ function LivePage() {
             )
         ) {
             e.preventDefault();
+            // CRITICAL: Stop propagation for Enter to prevent it from triggering click events
+            if (e.key === "Enter") {
+                e.stopImmediatePropagation();
+            }
         }
 
         switch (e.key) {
@@ -1429,8 +1559,10 @@ function LivePage() {
                 const isAdultChannel = category ?
                     isLiveAdultCategory(category.category_name) :
                     false;
+                const currentPlaylistForParental = getCurrentPlaylist();
                 const parentalEnabled =
-                    currentPlaylist && !!currentPlaylist.parentalPassword;
+                    currentPlaylistForParental &&
+                    !!currentPlaylistForParental.parentalPassword;
 
                 // Determine if channel is unlocked
                 let isChannelUnlocked = true;
@@ -1490,7 +1622,7 @@ function LivePage() {
                             // PIN incorrect - do nothing
                             console.log("Parental PIN incorrect");
                         },
-                        currentPlaylist,
+                        currentPlaylistForParental,
                         "liveTvPage"
                     );
                     return;
@@ -1548,8 +1680,10 @@ function LivePage() {
                         const stream = filteredStreams[channelIndex];
                         if (stream) {
                             if (favBtn) {
+                                e.stopPropagation();
                                 toggleFavorite(stream, true);
                             } else if (removeBtn) {
+                                e.stopPropagation();
                                 removeFromHistory(stream);
                             } else {
                                 // Check for adult content lock before playing
@@ -1559,8 +1693,10 @@ function LivePage() {
                                 const isAdultChannel = category ?
                                     isLiveAdultCategory(category.category_name) :
                                     false;
+                                const currentPlaylistForParental = getCurrentPlaylist();
                                 const parentalEnabled =
-                                    currentPlaylist && !!currentPlaylist.parentalPassword;
+                                    currentPlaylistForParental &&
+                                    !!currentPlaylistForParental.parentalPassword;
 
                                 // Determine if channel is unlocked
                                 let isChannelUnlocked = true;
@@ -1625,7 +1761,7 @@ function LivePage() {
                                             // PIN incorrect - do nothing
                                             console.log("Parental PIN incorrect");
                                         },
-                                        currentPlaylist,
+                                        currentPlaylistForParental,
                                         "liveTvPage"
                                     );
                                     return;
