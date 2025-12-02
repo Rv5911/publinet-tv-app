@@ -1014,7 +1014,9 @@ function createMyFavCategory() {
   pageContainer.insertAdjacentHTML("afterbegin", html);
 
   // Shift all chunk loading states by 1 index
-  const oldChunks = { ...moviesChunkLoadingState.loadedChunks };
+  const oldChunks = {
+    ...moviesChunkLoadingState.loadedChunks,
+  };
   moviesChunkLoadingState.loadedChunks = {};
   moviesChunkLoadingState.loadedChunks[0] = 0; // My Fav starts with 0 loaded
 
@@ -1087,7 +1089,9 @@ function removeMyFavCategory() {
   favContainer.remove();
 
   // Shift all chunk loading states back by 1 index
-  const oldChunks = { ...moviesChunkLoadingState.loadedChunks };
+  const oldChunks = {
+    ...moviesChunkLoadingState.loadedChunks,
+  };
   moviesChunkLoadingState.loadedChunks = {};
 
   Object.keys(oldChunks).forEach((key) => {
@@ -1622,6 +1626,30 @@ function restoreMoviesNavigationState() {
         state.lastFocusedCategory || 0;
       moviesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
 
+      // Show restoration loader
+      const loader = document.createElement("div");
+      loader.id = "movies-restore-loader";
+      // Replicate the movies-page-loading style but fixed to cover screen
+      loader.className = "movies-page-loading";
+      loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 999; /* Below navbar (1000) */
+       background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      `;
+      loader.innerHTML = `
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 20px; font-size: 24px; color: white;">Loading Movies...</p>
+      `;
+      document.body.appendChild(loader);
+
       setTimeout(() => {
         validateAndAdjustRestoredMoviesState();
       }, 100);
@@ -1742,6 +1770,11 @@ function validateAndAdjustRestoredMoviesState() {
 
   setTimeout(() => {
     updateMoviesFocus();
+    // Remove restoration loader
+    const loader = document.getElementById("movies-restore-loader");
+    if (loader) {
+      loader.remove();
+    }
   }, 50);
 }
 

@@ -58,6 +58,7 @@ function filterSeriesByQuery(streams) {
     normalizeTextSeries(s && s.name).includes(q)
   );
 }
+
 function formatSeriesData(seriesStream) {
   if (!seriesStream) return null;
 
@@ -994,7 +995,9 @@ function createMyFavSeriesCategory() {
   pageContainer.insertAdjacentHTML("afterbegin", html);
 
   // Shift all chunk loading states by 1 index
-  const oldChunks = { ...seriesChunkLoadingState.loadedChunks };
+  const oldChunks = {
+    ...seriesChunkLoadingState.loadedChunks,
+  };
   seriesChunkLoadingState.loadedChunks = {};
   seriesChunkLoadingState.loadedChunks[0] = 0; // My Fav starts with 0 loaded
 
@@ -1067,7 +1070,9 @@ function removeMyFavSeriesCategory() {
   favContainer.remove();
 
   // Shift all chunk loading states back by 1 index
-  const oldChunks = { ...seriesChunkLoadingState.loadedChunks };
+  const oldChunks = {
+    ...seriesChunkLoadingState.loadedChunks,
+  };
   seriesChunkLoadingState.loadedChunks = {};
 
   Object.keys(oldChunks).forEach((key) => {
@@ -1734,6 +1739,30 @@ function restoreSeriesNavigationState() {
         state.lastFocusedCategory || 0;
       seriesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
 
+      // Show restoration loader
+      const loader = document.createElement("div");
+      loader.id = "series-restore-loader";
+      // Replicate the series-page-loading style but fixed to cover screen
+      loader.className = "series-page-loading";
+      loader.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 999; /* Below navbar (1000) */
+     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      `;
+      loader.innerHTML = `
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 20px; font-size: 24px; color: white;">Loading Series...</p>
+      `;
+      document.body.appendChild(loader);
+
       setTimeout(() => {
         validateAndAdjustRestoredSeriesState();
       }, 100);
@@ -1854,6 +1883,11 @@ function validateAndAdjustRestoredSeriesState() {
 
   setTimeout(() => {
     updateSeriesFocus();
+    // Remove restoration loader
+    const loader = document.getElementById("series-restore-loader");
+    if (loader) {
+      loader.remove();
+    }
   }, 50);
 }
 
