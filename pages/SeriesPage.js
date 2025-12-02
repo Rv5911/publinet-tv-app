@@ -1981,9 +1981,10 @@ function SeriesPage() {
   }
 
   let loadingHTML =
-    '<div class="series-page-loading">' +
-    '<div class="loading-spinner"></div>' +
-    "<p>Loading Series...</p>" +
+    '<div id="series-page-loader" class="custom-page-loader">' +
+    '<div class="custom-loader-content">' +
+    '<div class="custom-loader-spinner"></div>' +
+    "</div>" +
     "</div>";
 
   localStorage.setItem(
@@ -2088,7 +2089,7 @@ function SeriesPage() {
           ? createSeriesNoSearchMessage()
           : createSeriesNoDataMessage("series")) +
         "</div>";
-      const loadingEl = document.querySelector(".series-page-loading");
+      const loadingEl = document.querySelector("#series-page-loader");
       if (loadingEl) {
         loadingEl.outerHTML = noDataHTML;
       } else {
@@ -2127,7 +2128,7 @@ function SeriesPage() {
 
     html += "</div>";
 
-    let container = document.querySelector(".series-page-loading");
+    let container = document.querySelector("#series-page-loader");
     if (container) {
       container.outerHTML = html;
     }

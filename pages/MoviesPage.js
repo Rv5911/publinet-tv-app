@@ -1869,9 +1869,10 @@ function MoviesPage() {
   }
 
   let loadingHTML =
-    '<div class="movies-page-loading">' +
-    '<div class="loading-spinner"></div>' +
-    "<p>Loading Movies...</p>" +
+    '<div id="movies-page-loader" class="custom-page-loader">' +
+    '<div class="custom-loader-content">' +
+    '<div class="custom-loader-spinner"></div>' +
+    "</div>" +
     "</div>";
 
   localStorage.setItem(
@@ -1977,7 +1978,7 @@ function MoviesPage() {
           ? createMoviesNoSearchMessage()
           : createMoviesNoDataMessage("movies")) +
         "</div>";
-      const loadingEl = document.querySelector(".movies-page-loading");
+      const loadingEl = document.querySelector("#movies-page-loader");
       if (loadingEl) {
         loadingEl.outerHTML = noDataHTML;
       } else {
@@ -2016,7 +2017,7 @@ function MoviesPage() {
 
     html += "</div>";
 
-    let container = document.querySelector(".movies-page-loading");
+    let container = document.querySelector("#movies-page-loader");
     if (container) {
       container.outerHTML = html;
     }

@@ -392,7 +392,7 @@ function LivePage() {
 
     if (filteredStreams.length === 0) {
       grid.innerHTML =
-        '<div style="padding:20px; color:#aaa;">No channels found</div>';
+        '<div style="padding:20px; color:#aaa; zoom:1.4; text-align:center;">No channels found</div>';
       return;
     }
 
@@ -829,7 +829,7 @@ function LivePage() {
       const epgList = document.getElementById("lp-epg-list");
       if (epgList) {
         epgList.innerHTML = `
-          <div style="padding:20px; text-align:center; color:#aaa; zoom:1.3">
+          <div style="padding:20px; text-align:center; color:#aaa; zoom:1.3;">
             Select a channel to view program information
           </div>
         `;
