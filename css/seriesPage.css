@@ -319,7 +319,7 @@
     overflow: hidden;
 }
 
-.series-card.focused .series-title-marquee {
+.series-card.focused .series-title-marquee.marquee-active {
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee 10s linear infinite !important;
@@ -328,6 +328,17 @@
     padding-left: 100% !important;
     width: auto !important;
     max-width: none !important;
+}
+
+.series-card.focused .series-title-marquee:not(.marquee-active) {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: none !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 /* Large Card Specific Styles */

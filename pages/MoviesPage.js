@@ -1546,6 +1546,15 @@ function updateMoviesFocus() {
         currentCard.classList.add("focused");
         scrollToMoviesElement(currentCard);
 
+        // Conditional Marquee
+        const title = currentCard.querySelector(".movie-title-marquee");
+        if (title) {
+          title.classList.remove("marquee-active");
+          if (title.scrollWidth > title.clientWidth) {
+            title.classList.add("marquee-active");
+          }
+        }
+
         moviesNavigationState.lastFocusedCategory =
           moviesNavigationState.currentCategoryIndex;
         moviesNavigationState.lastFocusedCard =

@@ -1659,12 +1659,19 @@ function updateSeriesFocus() {
         currentCard.classList.add("focused");
         scrollToSeriesElement(currentCard);
 
+        // Conditional Marquee
+        const title = currentCard.querySelector(".series-title-marquee");
+        if (title) {
+          title.classList.remove("marquee-active");
+          if (title.scrollWidth > title.clientWidth) {
+            title.classList.add("marquee-active");
+          }
+        }
+
         seriesNavigationState.lastFocusedCategory =
           seriesNavigationState.currentCategoryIndex;
         seriesNavigationState.lastFocusedCard =
           seriesNavigationState.currentCardIndex;
-
-        activateSeriesMarquee(currentCard);
       }
     }
   }

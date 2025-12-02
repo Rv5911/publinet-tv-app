@@ -274,7 +274,7 @@
     text-overflow: ellipsis;
 }
 
-.home-card.focused .home-title-marquee {
+.home-card.focused .home-title-marquee.marquee-active {
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee 10s linear infinite !important;
@@ -283,6 +283,17 @@
     padding-left: 100% !important;
     width: auto !important;
     max-width: none !important;
+}
+
+.home-card.focused .home-title-marquee:not(.marquee-active) {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    animation: none !important;
+    padding-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .home-card:not(.focused) .home-title-marquee {
