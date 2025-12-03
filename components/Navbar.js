@@ -882,25 +882,37 @@ function initNavbar() {
     }
   }
 
+  function updateSearchVisibility(page) {
+    // Pages where search input should be visible
+    const PAGES_WITH_SEARCH = ["moviesPage", "seriesPage"];
+
+    // Handle search input visibility
+    const searchContainer = document.querySelector(".search-bar-container");
+    const searchInput = document.getElementById("search-input");
+    const searchIcon = document.querySelector(".nav-search-bar");
+
+    if (searchContainer) {
+      if (PAGES_WITH_SEARCH.includes(page)) {
+        searchContainer.style.visibility = "visible";
+        // Reset display property that might have been set by other pages (e.g., LivePage)
+        if (searchInput) searchInput.style.display = "";
+        if (searchIcon) searchIcon.style.display = "";
+      } else {
+        searchContainer.style.visibility = "hidden";
+      }
+    }
+  }
+
   function updateNavbarActive(page) {
     const index = pageIndexMap[page] || 0;
     currentIndex = index + 1;
     highlightNavItem(currentIndex);
     localStorage.setItem("navigationFocus", "navbar");
 
-    // Pages where search input should be visible
-    const PAGES_WITH_SEARCH = ["moviesPage", "seriesPage"];
-
-    // Handle search input visibility
-    const searchContainer = document.querySelector(".search-bar-container");
-    if (searchContainer) {
-      if (PAGES_WITH_SEARCH.includes(page)) {
-        searchContainer.style.visibility = "visible";
-      } else {
-        searchContainer.style.visibility = "hidden";
-      }
-    }
+    updateSearchVisibility(page);
   }
+
+  window.updateSearchVisibility = updateSearchVisibility;
 
   function openSidebar() {
     buildDynamicSidebarOptions();

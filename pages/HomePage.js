@@ -222,9 +222,27 @@ async function HomePage() {
               currentIndex < availableCategories.length - 1
             ) {
               // Move to next available category
-              navState.currentCategory = availableCategories[currentIndex + 1];
-              navState.currentCard = 0;
-              console.log(`Moving to category ${navState.currentCategory}`);
+              const nextCategory = availableCategories[currentIndex + 1];
+
+              // Get the number of cards in the next category
+              const nextCategoryList = document.querySelector(
+                `.home-card-list[data-category="${nextCategory}"]`
+              );
+              const nextCategoryCards = nextCategoryList
+                ? nextCategoryList.querySelectorAll(".home-card").length
+                : 0;
+
+              // Maintain horizontal position, or use last card if next category has fewer items
+              const targetCardIndex = Math.min(
+                navState.currentCard,
+                nextCategoryCards - 1
+              );
+
+              navState.currentCategory = nextCategory;
+              navState.currentCard = Math.max(0, targetCardIndex);
+              console.log(
+                `Moving to category ${navState.currentCategory}, card ${navState.currentCard}`
+              );
               updateFocus();
             }
           }
@@ -301,8 +319,24 @@ async function HomePage() {
 
             if (currentIndex > 0) {
               // Move to previous available category
-              navState.currentCategory = availableCategories[currentIndex - 1];
-              navState.currentCard = 0;
+              const prevCategory = availableCategories[currentIndex - 1];
+
+              // Get the number of cards in the previous category
+              const prevCategoryList = document.querySelector(
+                `.home-card-list[data-category="${prevCategory}"]`
+              );
+              const prevCategoryCards = prevCategoryList
+                ? prevCategoryList.querySelectorAll(".home-card").length
+                : 0;
+
+              // Maintain horizontal position, or use last card if previous category has fewer items
+              const targetCardIndex = Math.min(
+                navState.currentCard,
+                prevCategoryCards - 1
+              );
+
+              navState.currentCategory = prevCategory;
+              navState.currentCard = Math.max(0, targetCardIndex);
               updateFocus();
             } else {
               // Already at first category, go to Watch Now
