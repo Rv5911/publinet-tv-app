@@ -13,11 +13,18 @@ function LivePage() {
   let selectedCategoryId = "All";
 
   // Navigation State
-  let focusedSection = "sidebar";
+  let focusedSection = "player"; // Start with player focused
   let sidebarIndex = 0;
   let channelIndex = 0;
   let buttonFocusIndex = -1; // -1 = no button focused, 0 = heart, 1 = remove
   let playerSubFocus = 0; // 0 = Video Border, 1 = Play/Pause, 2 = Aspect Ratio
+
+  // CLEVER APPROACH: playerVisualFocus maintains player's red border independently
+  // This allows the video to always display (when focusedSection="player") while
+  // still allowing navigation to other sections. The player keeps its visual focus
+  // (red border) even when focusedSection changes, ensuring video remains visible.
+  let playerVisualFocus = true; // Separate variable to track player visual focus (red border)
+
   let epgIndex = -1; // -1 = Header (Favorite), 0+ = List Items
   let currentEpgData = [];
   let currentPlayingStream = null;
@@ -78,6 +85,43 @@ function LivePage() {
     init();
   }, 0);
 
+  // Add this function after state variables, before cleanup function
+  const toggleFullscreen = () => {
+    const playerContainer = document.getElementById("lp-player-container");
+    if (!playerContainer) return;
+
+    // Cross-browser fullscreen detection
+    const isFullscreen =
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement;
+
+    if (!isFullscreen) {
+      // Enter fullscreen
+      if (playerContainer.requestFullscreen) {
+        playerContainer.requestFullscreen();
+      } else if (playerContainer.mozRequestFullScreen) {
+        playerContainer.mozRequestFullScreen();
+      } else if (playerContainer.webkitRequestFullscreen) {
+        playerContainer.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+      } else if (playerContainer.msRequestFullscreen) {
+        playerContainer.msRequestFullscreen();
+      }
+    } else {
+      // Exit fullscreen
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+    }
+  };
+
   const cleanup = () => {
     const searchInput = document.getElementById("search-input");
     const searchIcon = document.querySelector(".nav-search-bar");
@@ -111,11 +155,12 @@ function LivePage() {
 
   const init = () => {
     // Explicitly reset state on init
-    focusedSection = "sidebar";
+    focusedSection = "player"; // Start with player focused
     sidebarIndex = 0;
     channelIndex = 0;
     buttonFocusIndex = -1;
     playerSubFocus = 0;
+    playerVisualFocus = true; // Player should have visual focus initially
     epgIndex = -1;
     currentPlayingStream = null;
     lastToggleTime = 0;
@@ -655,15 +700,23 @@ function LivePage() {
 
   const updateFocus = () => {
     if (localStorage.getItem("navigationFocus") === "navbar") {
+      // Remove active focus classes but KEEP permanent player focus (red border)
       document
         .querySelectorAll(".lp-focused")
         .forEach((el) => el.classList.remove("lp-focused"));
       document
         .querySelectorAll(".lp-control-focused")
         .forEach((el) => el.classList.remove("lp-control-focused"));
+
+      // Re-apply permanent red border if playerVisualFocus is true
+      if (playerVisualFocus) {
+        const player = document.getElementById("lp-player-container");
+        if (player) {
+          player.classList.add("lp-player-permanent-focus");
+        }
+      }
       return;
     }
-
     document
       .querySelectorAll(".lp-focused")
       .forEach((el) => el.classList.remove("lp-focused"));
@@ -673,6 +726,11 @@ function LivePage() {
       .querySelectorAll(".lp-control-focused")
       .forEach((el) => el.classList.remove("lp-control-focused"));
 
+    // Globally remove permanent player focus (will be re-added if needed)
+    document
+      .querySelectorAll(".lp-player-permanent-focus")
+      .forEach((el) => el.classList.remove("lp-player-permanent-focus"));
+
     // Globally hide play/pause icon if not in player section
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
@@ -680,6 +738,17 @@ function LivePage() {
 
     if (playPauseIcon && focusedSection !== "player") {
       playPauseIcon.style.display = "none";
+    }
+
+    const videoWrapper = document.querySelector(".lp-video-wrapper");
+    if (videoWrapper) {
+      const video = videoWrapper.querySelector("video");
+      if (video && video.src && video.src !== "") {
+        // Video is loaded, keep it visible
+        video.style.display = "block";
+        video.style.visibility = "visible";
+        video.style.opacity = "1";
+      }
     }
 
     // Blur all inputs when not in search sections
@@ -760,7 +829,18 @@ function LivePage() {
         }
       }
       document.activeElement.blur();
-    } else if (focusedSection === "channelSearch") {
+    }
+
+    // INDEPENDENT PLAYER VISUAL FOCUS: Always show RED border if playerVisualFocus is true
+    // This ensures the player maintains its RED border even when focusedSection changes
+    if (playerVisualFocus) {
+      const player = document.getElementById("lp-player-container");
+      if (player) {
+        player.classList.add("lp-player-permanent-focus"); // Red border always visible
+      }
+    }
+
+    if (focusedSection === "channelSearch") {
       const box = document.getElementById("lp-chan-search-box");
       if (box) {
         box.classList.add("lp-focused");
@@ -1153,6 +1233,13 @@ function LivePage() {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
+    // Cross-browser fullscreen detection
+    const isFullscreen =
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement;
+
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
       document.getElementById("live-play-pause-btn");
@@ -1163,7 +1250,7 @@ function LivePage() {
       playPauseIcon._hideTimeout = null;
     }
 
-    if (document.fullscreenElement) {
+    if (isFullscreen) {
       // Entering fullscreen - hide border and play/pause icon initially
       playerContainer.classList.remove("lp-focused");
       playerContainer.classList.remove("lp-player-active");
@@ -1174,6 +1261,19 @@ function LivePage() {
       // Exiting fullscreen - show play/pause icon with focus
       playerContainer.classList.add("lp-focused");
       playerContainer.classList.add("lp-player-active");
+
+      // Ensure video is visible after exiting fullscreen
+      const videoWrapper = document.querySelector(".lp-video-wrapper");
+      if (videoWrapper) {
+        const video = videoWrapper.querySelector("video");
+        if (video) {
+          video.style.display = "block";
+          video.style.visibility = "visible";
+          video.style.opacity = "1";
+          video.style.width = "100%";
+          video.style.height = "100%";
+        }
+      }
 
       // Always show play/pause icon when exiting fullscreen
       if (playPauseIcon) {
@@ -1219,22 +1319,37 @@ function LivePage() {
       return; // Don't process keydown events until user navigates into the page
     }
 
+    // Cross-browser fullscreen detection
+    const isFullscreen =
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement;
+
     // Handle Fullscreen Exit
     if (
       ["Escape", "Back", "BrowserBack", "XF86Back", "SoftLeft"].includes(e.key)
     ) {
-      if (document.fullscreenElement) {
+      if (isFullscreen) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        document.exitFullscreen().catch((err) => {
-          console.error("Error attempting to exit fullscreen:", err);
-        });
+
+        // Cross-browser exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
         return;
       }
     }
 
     // If in fullscreen, allow Enter to toggle play/pause and show icon
-    if (document.fullscreenElement && e.key === "Enter") {
+    if (isFullscreen && e.key === "Enter") {
       e.preventDefault();
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
@@ -1247,6 +1362,17 @@ function LivePage() {
 
       // Then toggle play/pause (which will handle auto-hide)
       togglePlayPauseGlobal();
+      return;
+    }
+
+    // Block all navigation keys when in fullscreen mode
+    // Only allow Enter (play/pause) and Escape/Back (exit fullscreen) to work
+    if (
+      isFullscreen &&
+      ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
+    ) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
       return;
     }
 
@@ -1578,14 +1704,8 @@ function LivePage() {
       const playerContainer = document.getElementById("lp-player-container");
       if (playerContainer) {
         if (playerSubFocus === 0) {
-          // Video Border focused - Toggle Fullscreen
-          if (!document.fullscreenElement) {
-            playerContainer.requestFullscreen().catch((err) => {
-              console.error("Error attempting to enable fullscreen:", err);
-            });
-          } else {
-            document.exitFullscreen();
-          }
+          // Video Border focused - Toggle Fullscreen (cross-browser)
+          toggleFullscreen();
         } else if (playerSubFocus === 1) {
           // Play/Pause focused - Click it
           const btn =

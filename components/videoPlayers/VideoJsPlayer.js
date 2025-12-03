@@ -567,11 +567,8 @@ function VideoJsPlayer(poster = "") {
         : [];
       const selectedMovieId = localStorage.getItem("selectedMovieId");
 
-      if (localStorage.getItem("fromHome") == "true") {
-        localStorage.removeItem("fromHome");
-        Router.showPage("homePage");
-      } else {
-        const navbarEl = document.querySelector("#navbar-root");
+      
+ const navbarEl = document.querySelector("#navbar-root");
         if (navbarEl) {
           navbarEl.style.display = "block";
         }
@@ -777,7 +774,6 @@ function VideoJsPlayer(poster = "") {
             Router.showPage("seriesDetailPage");
           }
         }
-      }
     }
 
     // Helper function to remove completed episode from continue watching
