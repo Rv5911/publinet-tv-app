@@ -13,6 +13,15 @@ window.onload = function () {
     });
   }
 
+    document.addEventListener("keydown", (e) => {
+    if (localStorage.getItem("currentPage") !== "dashboard") {
+      if (e.key === "XF86Exit" && typeof tizen !== "undefined") {
+        const app = tizen.application.getCurrentApplication();
+        if (app) app.exit();
+      }
+    }
+  });
+
   document.addEventListener("keydown", function (e) {
     const sidebar = document.getElementById("sidebar");
     if (
@@ -46,6 +55,7 @@ window.onload = function () {
       e.preventDefault();
     }
   });
+
 
   const navbarRoot = document.getElementById("navbar-root");
   if (navbarRoot) {
