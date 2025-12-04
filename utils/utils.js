@@ -680,6 +680,9 @@ function clearMoviesAndSeriesLocalStorage() {
     localStorage.removeItem("seriesSelectedCategoryId");
     localStorage.removeItem("seriesNavState");
     localStorage.removeItem("moviesNavState");
+    localStorage.removeItem("sortvalue");
+
+    
 }
 
 window.updatePlaylistData = updatePlaylistData;

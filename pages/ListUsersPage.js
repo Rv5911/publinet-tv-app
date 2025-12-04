@@ -322,7 +322,7 @@ function ListUsersPage() {
     Router.showPage("login");
   } else {
     ListUsersPage.cleanup();
-    Router.showPage("listUsersPage"); 
+    Router.showPage("listPage"); 
   }
 }
 
