@@ -220,6 +220,7 @@
 
 .lp-video-wrapper {
   width: 100%;
+    position: relative;
   height: 100%;
   display: flex;
   background: #000; /* Black background when no video */
@@ -996,4 +997,33 @@
   100% {
     opacity: 1;
   }
+}
+
+#flowplayer-live {
+  position: relative;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
+
+.flowplayer .fp-header .fp-icon {
+  display: none !important;
+}
+
+#flowplayer-live {
+  position: static !important;
+}
+
+.live-video-player-div .flowplayer {
+  position: static !important;
+}
+
+.flowplayer video {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+
+.live-video-player-div {
+  position: relative !important;
 }

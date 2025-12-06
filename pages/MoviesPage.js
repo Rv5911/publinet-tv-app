@@ -1635,29 +1635,19 @@ function restoreMoviesNavigationState() {
         state.lastFocusedCategory || 0;
       moviesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
 
-      // Show restoration loader
-      const loader = document.createElement("div");
-      loader.id = "movies-restore-loader";
-      // Replicate the movies-page-loading style but fixed to cover screen
-      loader.className = "movies-page-loading";
-      loader.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100vh;
-        z-index: 999; /* Below navbar (1000) */
-       background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      `;
-      loader.innerHTML = `
-        <div class="loading-spinner"></div>
-        <p style="margin-top: 20px; font-size: 24px; color: white;">Loading Movies...</p>
-      `;
-      document.body.appendChild(loader);
+      // Show the same loader that was used initially
+      const pageEl = document.getElementById("movies-page");
+      if (pageEl) {
+        const loader = document.createElement("div");
+        loader.id = "movies-page-loader";
+        loader.className = "custom-page-loader";
+        loader.innerHTML = `
+          <div class="custom-loader-content">
+            <div class="custom-loader-spinner"></div>
+          </div>
+        `;
+        pageEl.appendChild(loader);
+      }
 
       setTimeout(() => {
         validateAndAdjustRestoredMoviesState();
@@ -1688,11 +1678,9 @@ function validateAndAdjustRestoredMoviesState() {
   // 1. Ensure Category is Loaded
   if (!moviesCategoryHasMovies(targetCategoryIndex)) {
     if (targetCategoryIndex < allCategories.length) {
-      // Load missing categories
       let container = document.querySelector(".movies-page-container");
       if (container) {
         let currentLoaded = moviesChunkLoadingState.loadedCategories;
-        // Load up to targetIndex + 2 (buffer)
         for (let i = currentLoaded; i <= targetCategoryIndex + 2; i++) {
           if (i >= allCategories.length) break;
           let category = allCategories[i];
@@ -1701,7 +1689,6 @@ function validateAndAdjustRestoredMoviesState() {
             category.id === "fav"
           ) {
             let categoryHTML = createMoviesCategorySection(category, i);
-            // Remove "No results found" if it exists
             let noResults = container.querySelector(".no-more-categories");
             if (noResults) noResults.remove();
 
@@ -1722,7 +1709,6 @@ function validateAndAdjustRestoredMoviesState() {
     let loadedCount = getMoviesLoadedChunkCount(targetCategoryIndex);
 
     if (targetCardIndex >= loadedCount) {
-      // Load more chunks for this category
       let cardList = document.querySelector(
         '.movies-card-list[data-category="' + targetCategoryIndex + '"]'
       );
@@ -1779,8 +1765,7 @@ function validateAndAdjustRestoredMoviesState() {
 
   setTimeout(() => {
     updateMoviesFocus();
-    // Remove restoration loader
-    const loader = document.getElementById("movies-restore-loader");
+    const loader = document.getElementById("movies-page-loader");
     if (loader) {
       loader.remove();
     }

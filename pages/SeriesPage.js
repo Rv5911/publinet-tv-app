@@ -1746,29 +1746,19 @@ function restoreSeriesNavigationState() {
         state.lastFocusedCategory || 0;
       seriesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
 
-      // Show restoration loader
-      const loader = document.createElement("div");
-      loader.id = "series-restore-loader";
-      // Replicate the series-page-loading style but fixed to cover screen
-      loader.className = "series-page-loading";
-      loader.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100vh;
-        z-index: 999; /* Below navbar (1000) */
-     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      `;
-      loader.innerHTML = `
-        <div class="loading-spinner"></div>
-        <p style="margin-top: 20px; font-size: 24px; color: white;">Loading Series...</p>
-      `;
-      document.body.appendChild(loader);
+      // Show the same loader that was used initially
+      const pageEl = document.getElementById("series-page");
+      if (pageEl) {
+        const loader = document.createElement("div");
+        loader.id = "series-page-loader";
+        loader.className = "custom-page-loader";
+        loader.innerHTML = `
+          <div class="custom-loader-content">
+            <div class="custom-loader-spinner"></div>
+          </div>
+        `;
+        pageEl.appendChild(loader);
+      }
 
       setTimeout(() => {
         validateAndAdjustRestoredSeriesState();
@@ -1799,11 +1789,9 @@ function validateAndAdjustRestoredSeriesState() {
   // 1. Ensure Category is Loaded
   if (!seriesCategoryHasSeries(targetCategoryIndex)) {
     if (targetCategoryIndex < allCategories.length) {
-      // Load missing categories
       let container = document.querySelector(".series-page-container");
       if (container) {
         let currentLoaded = seriesChunkLoadingState.loadedCategories;
-        // Load up to targetIndex + 2 (buffer)
         for (let i = currentLoaded; i <= targetCategoryIndex + 2; i++) {
           if (i >= allCategories.length) break;
           let category = allCategories[i];
@@ -1812,7 +1800,6 @@ function validateAndAdjustRestoredSeriesState() {
             category.id === "fav"
           ) {
             let categoryHTML = createSeriesCategorySection(category, i);
-            // Remove "No results found" if it exists
             let noResults = container.querySelector(".no-more-categories");
             if (noResults) noResults.remove();
 
@@ -1833,7 +1820,6 @@ function validateAndAdjustRestoredSeriesState() {
     let loadedCount = getSeriesLoadedChunkCount(targetCategoryIndex);
 
     if (targetCardIndex >= loadedCount) {
-      // Load more chunks for this category
       let cardList = document.querySelector(
         '.series-card-list[data-category="' + targetCategoryIndex + '"]'
       );
@@ -1890,8 +1876,7 @@ function validateAndAdjustRestoredSeriesState() {
 
   setTimeout(() => {
     updateSeriesFocus();
-    // Remove restoration loader
-    const loader = document.getElementById("series-restore-loader");
+    const loader = document.getElementById("series-page-loader");
     if (loader) {
       loader.remove();
     }
