@@ -354,7 +354,7 @@ function LivePage() {
           <div class="lp-epg-container" id="lp-epg-container">
             <div class="lp-epg-header"><span>Program Guide</span></div>
             <div class="lp-epg-list" id="lp-epg-list">
-              <div style="padding:20px; color:#aaa; text-align:center;">
+              <div style="padding:20px; color:#aaa; text-align:center; zoom:1.4;">
                 Select a channel to view program information
               </div>
             </div>
@@ -806,29 +806,67 @@ function LivePage() {
         player.classList.add("lp-player-active"); // Keep controls visible
         player.classList.add("lp-focused"); // Always show border when player section is active
 
-        if (playPauseIcon) {
-          // Only show if we are in the player section
+        // Check for loader
+        const loader = document.querySelector(".live-video-loader");
+        const isLoaderVisible = loader && !loader.classList.contains("hidden");
+
+        const playPauseIcon =
+          document.querySelector(".play-pause-icon") ||
+          document.getElementById("live-play-pause-btn");
+        const aspectRatioBtn =
+          document.getElementById("videojs-aspect-ratio") ||
+          document.getElementById("flow-aspect-ratio");
+
+        if (isLoaderVisible) {
+          // Force hide controls if loader is visible
+          if (playPauseIcon) playPauseIcon.style.display = "none";
+          if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
+        } else {
           // Logic: If playerSubFocus is 0 (wrapper) or 1 (button), show it.
-          if (playerSubFocus === 0 || playerSubFocus === 1) {
-            // In fullscreen, don't force it to flex here, let the toggle logic handle it
-            if (!document.fullscreenElement) {
+          if (playPauseIcon) {
+            if (playerSubFocus === 0 || playerSubFocus === 1) {
+              // In fullscreen, don't force it to flex here, let the toggle logic handle it
+              // BUT user asked for auto-hide after 3 seconds.
+              // We rely on resetControlsTimer to handle display, but we need to ensure they are visible when navigating
+              if (!document.fullscreenElement) {
+                playPauseIcon.style.display = "flex";
+              }
+            } else {
+              // If navigating away from it (e.g. to aspect ratio), we might still want it visible?
+              // User said "showul focus on aspect ration buttona after any action it should automaically reomve after 3 seocnd play and puase icon and aspeec ratio"
+              // So they should be visible.
               playPauseIcon.style.display = "flex";
             }
-          } else {
-            playPauseIcon.style.display = "none";
           }
-        }
 
-        if (playerSubFocus === 1) {
-          if (playPauseIcon) playPauseIcon.classList.add("lp-control-focused");
-        } else if (playerSubFocus === 2) {
-          const btn =
-            document.querySelector(".videojs-aspect-ratio-div") ||
-            document.querySelector(".flow-aspect-ratio-div");
-          if (btn) btn.classList.add("lp-control-focused");
+          if (playerSubFocus === 1) {
+            if (playPauseIcon)
+              playPauseIcon.classList.add("lp-control-focused");
+          } else if (playerSubFocus === 2) {
+            if (aspectRatioBtn) {
+              aspectRatioBtn.style.display = "block";
+              aspectRatioBtn.classList.add("lp-control-focused");
+            }
+          }
+
+          // Ensure Aspect Ratio button is visible when player is focused
+          if (playerSubFocus === 1 || playerSubFocus === 2) {
+            if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+          }
         }
       }
       document.activeElement.blur();
+    } else {
+      // STRICT HIDING: If not in player section, hide controls
+      const playPauseIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      const aspectRatioBtn =
+        document.getElementById("videojs-aspect-ratio") ||
+        document.getElementById("flow-aspect-ratio");
+
+      if (playPauseIcon) playPauseIcon.style.display = "none";
+      if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
     }
 
     // INDEPENDENT PLAYER VISUAL FOCUS: Always show RED border if playerVisualFocus is true
@@ -1108,6 +1146,28 @@ function LivePage() {
     }
   };
 
+  const resetControlsTimer = () => {
+    // Show controls
+    const playPauseIcon =
+      document.querySelector(".play-pause-icon") ||
+      document.getElementById("live-play-pause-btn");
+    const aspectRatioBtn =
+      document.getElementById("videojs-aspect-ratio") ||
+      document.getElementById("flow-aspect-ratio");
+
+    if (playPauseIcon) playPauseIcon.style.display = "flex";
+    if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+
+    // Clear existing timeout
+    if (window._controlsTimer) clearTimeout(window._controlsTimer);
+
+    // Set new timeout to hide after 3 seconds
+    window._controlsTimer = setTimeout(() => {
+      if (playPauseIcon) playPauseIcon.style.display = "none";
+      if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
+    }, 3000);
+  };
+
   const togglePlayPauseGlobal = () => {
     if (!window.livePlayer) return;
 
@@ -1123,24 +1183,7 @@ function LivePage() {
       }
     }
 
-    // Handle Icon Visibility
-    const icon =
-      document.querySelector(".play-pause-icon") ||
-      document.getElementById("live-play-pause-btn");
-
-    if (icon) {
-      icon.style.display = "flex";
-
-      // Clear existing timeout if any
-      if (icon._hideTimeout) clearTimeout(icon._hideTimeout);
-
-      // Set new timeout to hide after 3 seconds
-      icon._hideTimeout = setTimeout(() => {
-        if (document.fullscreenElement) {
-          icon.style.display = "none";
-        }
-      }, 3000);
-    }
+    resetControlsTimer();
   };
 
   const formatTime = (dateStr, format) => {
@@ -1351,6 +1394,18 @@ function LivePage() {
     // If in fullscreen, allow Enter to toggle play/pause and show icon
     if (isFullscreen && e.key === "Enter") {
       e.preventDefault();
+
+      // If focused on Aspect Ratio, click it
+      if (playerSubFocus === 2) {
+        const btn =
+          document.getElementById("videojs-aspect-ratio") ||
+          document.getElementById("flow-aspect-ratio");
+        if (btn) btn.click();
+        resetControlsTimer();
+        return;
+      }
+
+      // Otherwise (Play/Pause focus or general player focus), toggle play/pause
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1365,15 +1420,13 @@ function LivePage() {
       return;
     }
 
-    // Block all navigation keys when in fullscreen mode
-    // Only allow Enter (play/pause) and Escape/Back (exit fullscreen) to work
-    if (
-      isFullscreen &&
-      ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)
-    ) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      return;
+    // In fullscreen, allow arrow keys for internal player navigation
+    if (isFullscreen) {
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        // If controls are hidden, show them and reset timer
+        resetControlsTimer();
+        // Allow navigation but restrict it to player in navigate functions
+      }
     }
 
     // Handle Enter key to focus search inputs
@@ -1413,13 +1466,7 @@ function LivePage() {
         navigateUp();
         break;
       case "ArrowDown":
-        if (focusedSection === "player" && playerSubFocus === 1) {
-          // From Play/Pause directly to Channel Search (skip aspect ratio)
-          focusedSection = "channelSearch";
-          playerSubFocus = 0;
-        } else {
-          navigateDown();
-        }
+        navigateDown();
         break;
       case "ArrowLeft":
         if (focusedSection === "player" && playerSubFocus === 1) {
@@ -1445,6 +1492,11 @@ function LivePage() {
         handleEnter();
         break;
     }
+
+    if (focusedSection === "player") {
+      resetControlsTimer();
+    }
+
     updateFocus();
   };
 
@@ -1466,21 +1518,26 @@ function LivePage() {
       const catInput = document.getElementById("lp-cat-search-input");
       if (catInput) catInput.blur();
     } else if (focusedSection === "player") {
-      if (playerSubFocus === 1) {
+      if (playerSubFocus === 2) {
+        // From Aspect Ratio to Play/Pause
+        playerSubFocus = 1;
+      } else if (playerSubFocus === 1) {
         // From Play/Pause to Video Border
         playerSubFocus = 0;
       } else if (playerSubFocus === 0) {
-        // From Video Border to Navbar
-        localStorage.setItem("navigationFocus", "navbar");
-        const navItem = document.querySelector(
-          '.nav-item[data-page="liveTvPage"]'
-        );
-        if (navItem) navItem.focus();
+        // From Video Border to Navbar - ONLY IF NOT FULLSCREEN
+        if (!document.fullscreenElement) {
+          localStorage.setItem("navigationFocus", "navbar");
+          const navItem = document.querySelector(
+            '.nav-item[data-page="liveTvPage"]'
+          );
+          if (navItem) navItem.focus();
+        }
       }
     } else if (focusedSection === "channelSearch") {
-      // From Channel Search to Video Player Border
+      // From Channel Search to Aspect Ratio
       focusedSection = "player";
-      playerSubFocus = 0;
+      playerSubFocus = 2;
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex >= 0) {
         buttonFocusIndex = -1;
@@ -1534,14 +1591,21 @@ function LivePage() {
           // Video is playing - go to Play/Pause button
           playerSubFocus = 1;
         } else {
-          // No video - go to Channel Search
+          // No video - go to Channel Search - ONLY IF NOT FULLSCREEN
+          if (!document.fullscreenElement) {
+            focusedSection = "channelSearch";
+            playerSubFocus = 0;
+          }
+        }
+      } else if (playerSubFocus === 1) {
+        // From Play/Pause to Aspect Ratio
+        playerSubFocus = 2;
+      } else if (playerSubFocus === 2) {
+        // From Aspect Ratio to Channel Search - ONLY IF NOT FULLSCREEN
+        if (!document.fullscreenElement) {
           focusedSection = "channelSearch";
           playerSubFocus = 0;
         }
-      } else if (playerSubFocus === 1) {
-        // From Play/Pause to Channel Search
-        focusedSection = "channelSearch";
-        playerSubFocus = 0;
       }
     } else if (focusedSection === "epg") {
       if (currentEpgData && epgIndex < currentEpgData.length - 1) {
@@ -1591,9 +1655,14 @@ function LivePage() {
       playerSubFocus = 0;
       epgIndex = -1;
     } else if (focusedSection === "player") {
-      // From Video Player to Category List
-      focusedSection = "sidebar";
-      if (sidebarIndex === -1) sidebarIndex = 0;
+      // From Video Player to Category List - ONLY IF NOT FULLSCREEN
+      if (!document.fullscreenElement) {
+        focusedSection = "sidebar";
+        if (sidebarIndex === -1) sidebarIndex = 0;
+      } else {
+        // In fullscreen, maybe just go back to border focus
+        playerSubFocus = 0;
+      }
     } else if (focusedSection === "channelSearch") {
       focusedSection = "sidebar";
     } else if (focusedSection === "channels") {
@@ -1632,10 +1701,15 @@ function LivePage() {
         // If no channels available, stay on sidebar
       }
     } else if (focusedSection === "player") {
-      // From Video Player to EPG
-      if (currentEpgData && currentEpgData.length > 0) {
-        focusedSection = "epg";
-        epgIndex = 0; // Focus first item directly
+      // From Video Player to EPG - ONLY IF NOT FULLSCREEN
+      if (!document.fullscreenElement) {
+        if (currentEpgData && currentEpgData.length > 0) {
+          focusedSection = "epg";
+          epgIndex = 0; // Focus first item directly
+        }
+      } else {
+        // In fullscreen, maybe just go back to border focus
+        playerSubFocus = 0;
       }
     } else if (focusedSection === "channels") {
       const currentCard =
@@ -1715,8 +1789,8 @@ function LivePage() {
         } else if (playerSubFocus === 2) {
           // Aspect Ratio focused - Click it
           const btn =
-            document.querySelector(".videojs-aspect-ratio-div") ||
-            document.querySelector(".flow-aspect-ratio-div");
+            document.getElementById("videojs-aspect-ratio") ||
+            document.getElementById("flow-aspect-ratio");
           if (btn) btn.click();
         }
       }

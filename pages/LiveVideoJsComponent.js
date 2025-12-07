@@ -219,8 +219,6 @@ function LiveVideoJsComponent(
         (errorEl && !errorEl.classList.contains("hidden"))
       ) {
         aspectRatioBtn.style.display = "none";
-      } else {
-        aspectRatioBtn.style.display = "block";
       }
     }
   }
@@ -680,8 +678,8 @@ function LiveVideoJsComponent(
   return `
   <div class="livetvPlayer-main-container">
     <div class="live-video-player live-video-player-div" style="width:100%; height:100%;">
-               <div class="videojs-aspect-ratio-div">
-<button id="videojs-aspect-ratio" style="display:none;" class="videojs-aspect-ratio-btn" ><i class="fa-solid fa-compress" style="color:'white'"></i>Aspect Ratio </button>
+      <div class="videojs-aspect-ratio-div">
+        <button id="videojs-aspect-ratio" style="display:none;" class="videojs-aspect-ratio-btn"><i class="fa-solid fa-compress" style="color:white"></i>Aspect Ratio </button>
       </div>
       <div class="play-pause-icon" >
         <i class="fa-solid fa-play"></i>
