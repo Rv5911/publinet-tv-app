@@ -735,7 +735,7 @@ async function HomePage() {
               <h2 class="home-title-marquee">${name}</h2>
             </div>
             <div class="home-card-bottom-right">
-              <h3>${
+              <h3 style="opacity: 0">${
                 isMovie ? "2h 0m" : item.seasons ? item.seasons + " S" : ""
               }</h3>
               <span class="home-card-rating">

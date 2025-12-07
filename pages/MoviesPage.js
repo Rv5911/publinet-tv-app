@@ -346,7 +346,9 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
   }</h2>
                     </div>
                     <div class="movie-card-bottom-right">
-                        <h3>${movieData.duration || "2h 0m"}</h3>
+                        <h3 style="opacity: 0">${
+                          movieData.duration || "2h 0m"
+                        }</h3>
                         <span class="movie-card-rating"> <img src="./assets/rating-star.png" class="movie-card-star-icon" />${
                           movieData.rating ? movieData.rating : "0"
                         }</span>

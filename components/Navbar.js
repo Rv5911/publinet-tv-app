@@ -367,6 +367,83 @@ function removeFavoriteSeriesById(seriesId) {
 function initNavbar() {
   const navItems = Array.from(document.querySelectorAll(".nav-item"));
   const sidebar = document.getElementById("sidebar");
+
+  // Navbar scroll logic
+  // Navbar scroll logic refactored
+  let currentScrollContainer = null;
+  const navbarContainer = document.querySelector(".navbar-container");
+
+  function handleNavbarScroll() {
+    if (!navbarContainer) return;
+
+    let scrollTop = 0;
+    // Lower threshold to 20% of viewport
+    const threshold = window.innerHeight * 0.2;
+
+    if (currentScrollContainer === window) {
+      scrollTop = window.scrollY;
+    } else if (currentScrollContainer) {
+      scrollTop = currentScrollContainer.scrollTop;
+    }
+
+    if (scrollTop > threshold) {
+      navbarContainer.classList.add("navbar-hidden");
+    } else {
+      navbarContainer.classList.remove("navbar-hidden");
+    }
+  }
+
+  function setupNavbarScrollListener() {
+    const currentPage = localStorage.getItem("currentPage");
+    let newContainer = window; // Default to window
+
+    // Determine the scroll container based on the current page
+    if (currentPage === "movieDetailPage") {
+      const el = document.querySelector(".movie-detail-page-container");
+      if (el) newContainer = el;
+    } else if (currentPage === "seriesDetailPage") {
+      const el = document.querySelector(
+        ".series-detail-page-content-container"
+      );
+      if (el) newContainer = el;
+    }
+    // MoviesPage and SeriesPage typically scroll via window, so default applies
+
+    // Only update if the container has changed or we need to re-attach
+    // (Equality check for window works, DOM elements work by ref)
+    if (currentScrollContainer !== newContainer || !currentScrollContainer) {
+      // Clean up old listener
+      if (currentScrollContainer) {
+        currentScrollContainer.removeEventListener(
+          "scroll",
+          handleNavbarScroll
+        );
+      }
+
+      currentScrollContainer = newContainer;
+
+      // Attach new listener
+      if (currentScrollContainer) {
+        currentScrollContainer.addEventListener("scroll", handleNavbarScroll);
+        // Reset visibility state when switching pages
+        if (navbarContainer) navbarContainer.classList.remove("navbar-hidden");
+      }
+    }
+  }
+
+  // Initial setup
+  setupNavbarScrollListener();
+
+  // Watch for page changes (DOM updates) to re-attach listeners
+  const appContainer = document.getElementById("main-app-container");
+  if (appContainer) {
+    const observer = new MutationObserver(() => {
+      // Re-run setup when DOM changes (navigation)
+      setupNavbarScrollListener();
+    });
+    // Observer options: check for child list changes (new pages loading)
+    observer.observe(appContainer, { childList: true, subtree: false });
+  }
   const profileIcon = document.getElementById("profileIcon");
   const searchInput = document.getElementById("search-input");
   const sortItem = sidebar.querySelector(".sidebar-sort");
