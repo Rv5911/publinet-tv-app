@@ -23,6 +23,14 @@ function LoginPage() {
       document.querySelector(".login-form-div").classList.remove("shift-up");
     });
 
+    usernameInput.addEventListener("focus", () => {
+      document.querySelector(".login-form-div").classList.add("shift-up");
+    });
+
+    usernameInput.addEventListener("blur", () => {
+      document.querySelector(".login-form-div").classList.remove("shift-up");
+    });
+
     // Exit early if passwordInput not found
     if (!passwordInput) return;
 
