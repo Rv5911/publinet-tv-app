@@ -790,6 +790,7 @@ async function HomePage() {
         <h1>My Fav</h1>
         <div class="home-card-list" data-category="0">
           ${allFavorites
+            .slice(0, 20) // Limit to 20 for performance
             .map((item, index) => createHomeCard(item, 0, index))
             .join("")}
         </div>

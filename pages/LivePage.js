@@ -12,6 +12,8 @@ function LivePage() {
   let filteredStreams = [];
   let selectedCategoryId = "All";
 
+  let liveWorkerInitialized = false;
+
   // Navigation State
   let focusedSection = "player"; // Start with player focused
   let sidebarIndex = 0;
@@ -271,25 +273,56 @@ function LivePage() {
     return cats;
   };
 
-  const getFilteredChannels = () => {
+  const getFilteredChannels = async () => {
     let streams = [];
 
-    if (selectedCategoryId === "All") {
-      streams = window.allLiveStreams || [];
-    } else if (selectedCategoryId === "favorites") {
-      // Always get fresh data from localStorage
+    // Use local logic for favorites and history as they depend on up-to-date localStorage strategies
+    if (selectedCategoryId === "favorites") {
       const currentPlaylist = getCurrentPlaylist();
       streams = currentPlaylist ? currentPlaylist.favoritesLiveTV || [] : [];
     } else if (selectedCategoryId === "channelHistory") {
-      // Always get fresh data from localStorage
       const currentPlaylist = getCurrentPlaylist();
       streams = currentPlaylist ? currentPlaylist.ChannelListLive || [] : [];
     } else {
-      streams = (window.allLiveStreams || []).filter(
-        (s) => String(s.category_id) === String(selectedCategoryId)
-      );
+      // WORKER IMPLEMENTATION for All/Category
+      if (window.appWorkerManager) {
+        if (!liveWorkerInitialized) {
+          await window.appWorkerManager.setConfig({
+            adultsCategories: window.adultsCategories || [],
+          });
+          await window.appWorkerManager.setLiveData(
+            window.liveCategories || [],
+            window.allLiveStreams || []
+          );
+          liveWorkerInitialized = true;
+        }
+
+        try {
+          const result = await window.appWorkerManager.processLive(
+            null, // categoryQuery handled by getFilteredCategories separately
+            channelSearchQuery, // channelQuery
+            selectedCategoryId, // categoryId
+            currentSortOption // sort
+          );
+          streams = result.streams;
+          return streams; // Return immediately from worker result
+        } catch (e) {
+          console.error("Worker live processing failed:", e);
+          // Fallback to main thread logic below
+        }
+      }
+
+      // Fallback / Main Thread Logic
+      if (selectedCategoryId === "All") {
+        streams = window.allLiveStreams || [];
+      } else {
+        streams = (window.allLiveStreams || []).filter(
+          (s) => String(s.category_id) === String(selectedCategoryId)
+        );
+      }
     }
 
+    // Apply filtering/sorting for local logic (favorites/history/fallback)
     if (channelSearchQuery) {
       streams = streams.filter((s) =>
         (s.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
@@ -426,11 +459,11 @@ function LivePage() {
       .join("");
   };
 
-  const renderChannels = () => {
+  const renderChannels = async () => {
     const grid = document.getElementById("lp-channels-grid");
     if (!grid) return;
 
-    filteredStreams = getFilteredChannels();
+    filteredStreams = await getFilteredChannels();
     console.log(
       `Rendering channels. Category: ${selectedCategoryId}, Count: ${filteredStreams.length}`
     );

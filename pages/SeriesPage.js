@@ -5,6 +5,8 @@ let seriesNavigationState = {
   lastFocusedCard: 0,
 };
 
+let seriesWorkerInitialized = false;
+
 let allSeriesStreamsData = window.allSeriesStreams || [];
 let favoriteSeriesIds = [];
 const unlockedSeriesAdultIds = new Set();
@@ -24,9 +26,9 @@ let isSeriesNavigationInitialized = false;
 
 let seriesChunkLoadingState = {
   loadedCategories: 0,
-  categoryChunkSize: 4,
+  categoryChunkSize: 2,
   loadedChunks: {},
-  horizontalChunkSize: 12,
+  horizontalChunkSize: Math.ceil(window.innerWidth / 200) + 4, // Dynamic based on screen width
   isLoading: false,
 };
 
@@ -446,29 +448,21 @@ function findNextSeriesCategoryWithSeries(startIndex, direction) {
   return -1;
 }
 
-function loadMoreSeriesCategories() {
+// function loadMoreSeriesCategories() {
+//   // Refactored
+// }
+
+function loadMoreSeriesCategories(targetIndex = null) {
   if (seriesChunkLoadingState.isLoading) return;
 
   let allCategories = window.allSeriesCategories || [];
   let currentLoaded = seriesChunkLoadingState.loadedCategories;
 
-  // If searching and no remaining categories have items, remove any indicator and stop
-  const remainingHasItems = allCategories
-    .slice(currentLoaded)
-    .some(function (cat) {
-      return cat && cat.series && cat.series.length > 0;
-    });
-  if (!remainingHasItems) {
-    let container = document.querySelector(".series-page-container");
-    if (container) {
-      let categoriesLoading = container.querySelector(
-        ".categories-loading-indicator"
-      );
-      if (categoriesLoading) categoriesLoading.remove();
-    }
-    seriesChunkLoadingState.isLoading = false;
-    return;
+  let nextChunk = currentLoaded + seriesChunkLoadingState.categoryChunkSize;
+  if (targetIndex !== null && targetIndex >= currentLoaded) {
+    nextChunk = Math.max(nextChunk, targetIndex + 2);
   }
+  nextChunk = Math.min(nextChunk, allCategories.length);
 
   if (currentLoaded >= allCategories.length) {
     let container = document.querySelector(".series-page-container");
@@ -485,103 +479,77 @@ function loadMoreSeriesCategories() {
 
   seriesChunkLoadingState.isLoading = true;
 
-  let nextChunk = Math.min(
-    currentLoaded + seriesChunkLoadingState.categoryChunkSize,
-    allCategories.length
-  );
-
-  let safetyTimeout = setTimeout(function () {
-    if (seriesChunkLoadingState.isLoading) {
-      console.warn(
-        "loadMoreSeriesCategories: Safety timeout triggered, resetting loading state"
-      );
+  try {
+    let container = document.querySelector(".series-page-container");
+    if (!container) {
       seriesChunkLoadingState.isLoading = false;
-      let container = document.querySelector(".series-page-container");
-      if (container) {
-        let categoriesLoading = container.querySelector(
-          ".categories-loading-indicator"
-        );
-        if (categoriesLoading) {
-          categoriesLoading.remove();
+      return;
+    }
+
+    let categoriesLoading = container.querySelector(
+      ".categories-loading-indicator"
+    );
+    if (categoriesLoading) {
+      categoriesLoading.remove();
+    }
+
+    let categoriesAdded = 0;
+    for (let i = currentLoaded; i < nextChunk; i++) {
+      let category = allCategories[i];
+      if (!category) continue;
+
+      if (
+        (category.series && category.series.length > 0) ||
+        category.id === "fav"
+      ) {
+        try {
+          let categoryHTML = createSeriesCategorySection(category, i);
+          container.insertAdjacentHTML("beforeend", categoryHTML);
+          categoriesAdded++;
+        } catch (e) {
+          console.error("Error creating series category section:", e);
         }
       }
     }
-  }, 5000);
 
-  setTimeout(function () {
-    try {
-      let container = document.querySelector(".series-page-container");
-      if (!container) {
-        clearTimeout(safetyTimeout);
-        seriesChunkLoadingState.isLoading = false;
-        return;
+    let hasMoreCategories = false;
+    for (let i = nextChunk; i < allCategories.length; i++) {
+      let category = allCategories[i];
+      if (category && category.series && category.series.length > 0) {
+        hasMoreCategories = true;
+        break;
       }
+    }
 
-      let categoriesLoading = container.querySelector(
-        ".categories-loading-indicator"
-      );
-      if (categoriesLoading) {
-        categoriesLoading.remove();
-      }
-
-      let categoriesAdded = 0;
-      for (let i = currentLoaded; i < nextChunk; i++) {
-        let category = allCategories[i];
-        if (!category) continue;
-
-        if (category.series && category.series.length > 0) {
-          try {
-            let categoryHTML = createSeriesCategorySection(category, i);
-            container.insertAdjacentHTML("beforeend", categoryHTML);
-            categoriesAdded++;
-          } catch (e) {
-            console.error("Error creating series category section:", e);
-          }
-        }
-      }
-
-      let hasMoreCategories = false;
-      for (let i = nextChunk; i < allCategories.length; i++) {
-        let category = allCategories[i];
-        if (category && category.series && category.series.length > 0) {
-          hasMoreCategories = true;
-          break;
-        }
-      }
-
-      // Show "No results found" if no more categories are available
-      if (!hasMoreCategories && categoriesAdded === 0) {
+    // Show "No results found" if no more categories are available
+    if (!hasMoreCategories && categoriesAdded === 0) {
+      const noRes = container.querySelector(".no-more-categories");
+      if (!noRes) {
         container.insertAdjacentHTML(
           "beforeend",
           '<div class="no-more-categories"><p>No results found</p></div>'
         );
       }
-
-      // Removed loading indicator - categories load quickly without needing it
-
-      seriesChunkLoadingState.loadedCategories = nextChunk;
-      clearTimeout(safetyTimeout);
-      seriesChunkLoadingState.isLoading = false;
-
-      if (categoriesAdded > 0) {
-        updateSeriesFocus();
-      }
-    } catch (e) {
-      console.error("Error in loadMoreSeriesCategories:", e);
-      clearTimeout(safetyTimeout);
-      seriesChunkLoadingState.isLoading = false;
-
-      let container = document.querySelector(".series-page-container");
-      if (container) {
-        let categoriesLoading = container.querySelector(
-          ".categories-loading-indicator"
-        );
-        if (categoriesLoading) {
-          categoriesLoading.remove();
-        }
-      }
     }
-  }, 50);
+
+    seriesChunkLoadingState.loadedCategories = nextChunk;
+    seriesChunkLoadingState.isLoading = false;
+
+    // Ensure focus updates in case we need it
+    if (categoriesAdded > 0 && targetIndex === null) {
+      // updateSeriesFocus();
+    }
+  } catch (e) {
+    console.error("Error in loadMoreSeriesCategories:", e);
+    seriesChunkLoadingState.isLoading = false;
+    let container = document.querySelector(".series-page-container");
+    if (container) {
+      let categoriesLoading = container.querySelector(
+        ".categories-loading-indicator"
+      );
+      if (categoriesLoading) categoriesLoading.remove();
+    }
+  }
 }
 
 function createSeriesCategorySection(category, categoryIndex) {
@@ -1440,6 +1408,10 @@ function moveSeriesDown() {
   }
 
   if (nextCategoryIndex !== -1) {
+    if (nextCategoryIndex >= seriesChunkLoadingState.loadedCategories) {
+      loadMoreSeriesCategories(nextCategoryIndex);
+    }
+
     seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
 
     let newCategory = getCurrentSeriesCategory();
@@ -2013,7 +1985,7 @@ function SeriesPage() {
 
   favoriteSeriesIds = [];
 
-  setTimeout(function () {
+  setTimeout(async function () {
     const currentPlaylist = getCurrentPlaylist();
     const currentPlaylistFavIds = currentPlaylist
       ? currentPlaylist.favouriteSeries
@@ -2052,7 +2024,37 @@ function SeriesPage() {
         : [];
 
     // Pass current sort option to getAPISeriesCategories
-    let apiCategories = getAPISeriesCategories(currentSort);
+    // let apiCategories = getAPISeriesCategories(currentSort);
+
+    // WORKER IMPLEMENTATION
+    if (!seriesWorkerInitialized) {
+      if (window.appWorkerManager) {
+        await window.appWorkerManager.setConfig({
+          adultsCategories: window.adultsCategories || [],
+        });
+        // Note: window.allseriesCategories (lowercase 's') seems to be the var name used
+        await window.appWorkerManager.setSeriesData(
+          window.allseriesCategories || [],
+          window.allSeriesStreams || []
+        );
+        seriesWorkerInitialized = true;
+      }
+    }
+
+    let apiCategories = [];
+    if (window.appWorkerManager) {
+      try {
+        apiCategories = await window.appWorkerManager.processSeries(
+          getSeriesSearchQuery(),
+          currentSort
+        );
+      } catch (err) {
+        console.error("Worker processing failed:", err);
+        apiCategories = getAPISeriesCategories(currentSort); // Fallback
+      }
+    } else {
+      apiCategories = getAPISeriesCategories(currentSort);
+    }
 
     // ALWAYS show these three categories at the top, in this specific order
     let fixedTopCategories = [
