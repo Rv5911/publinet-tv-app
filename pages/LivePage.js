@@ -822,35 +822,40 @@ function LivePage() {
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
         } else {
-          // Logic: If playerSubFocus is 0 (wrapper) or 1 (button), show it.
-          if (playPauseIcon) {
-            if (playerSubFocus === 0 || playerSubFocus === 1) {
-              // In fullscreen, don't force it to flex here, let the toggle logic handle it
-              // BUT user asked for auto-hide after 3 seconds.
-              // We rely on resetControlsTimer to handle display, but we need to ensure they are visible when navigating
-              if (!document.fullscreenElement) {
+          // Check if we're in fullscreen
+          const isFullscreen =
+            document.fullscreenElement ||
+            document.webkitFullscreenElement ||
+            document.mozFullScreenElement ||
+            document.msFullscreenElement;
+
+          // In fullscreen, always show both controls when player is focused
+          if (isFullscreen) {
+            if (playPauseIcon) playPauseIcon.style.display = "flex";
+            if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+          } else {
+            // Non-fullscreen logic
+            if (playPauseIcon) {
+              if (playerSubFocus === 0 || playerSubFocus === 1) {
+                playPauseIcon.style.display = "flex";
+              } else {
                 playPauseIcon.style.display = "flex";
               }
-            } else {
-              // If navigating away from it (e.g. to aspect ratio), we might still want it visible?
-              // User said "showul focus on aspect ration buttona after any action it should automaically reomve after 3 seocnd play and puase icon and aspeec ratio"
-              // So they should be visible.
-              playPauseIcon.style.display = "flex";
             }
           }
 
+          // Apply focus styling
           if (playerSubFocus === 1) {
             if (playPauseIcon)
               playPauseIcon.classList.add("lp-control-focused");
           } else if (playerSubFocus === 2) {
             if (aspectRatioBtn) {
-              aspectRatioBtn.style.display = "block";
               aspectRatioBtn.classList.add("lp-control-focused");
             }
           }
 
-          // Ensure Aspect Ratio button is visible when player is focused
-          if (playerSubFocus === 1 || playerSubFocus === 2) {
+          // Ensure Aspect Ratio button is visible when player is focused (non-fullscreen)
+          if (!isFullscreen && (playerSubFocus === 1 || playerSubFocus === 2)) {
             if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
           }
         }
@@ -1417,10 +1422,16 @@ function LivePage() {
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
+      const aspectRatioBtn =
+        document.getElementById("videojs-aspect-ratio") ||
+        document.getElementById("flow-aspect-ratio");
 
-      // Show the icon first
+      // Show both icons in fullscreen
       if (playPauseIcon) {
         playPauseIcon.style.display = "flex";
+      }
+      if (aspectRatioBtn) {
+        aspectRatioBtn.style.display = "block";
       }
 
       // Then toggle play/pause (which will handle auto-hide)
@@ -1663,6 +1674,7 @@ function LivePage() {
         if (document.fullscreenElement) {
           // To Aspect Ratio if Fullscreen
           playerSubFocus = 2;
+          resetControlsTimer();
         } else {
           // To Channel Search if Non-Fullscreen (Skip Aspect Ratio)
           focusedSection = "channelSearch";
@@ -1676,12 +1688,9 @@ function LivePage() {
           focusedSection = "channelSearch";
           playerSubFocus = 0;
         } else {
-          // In fullscreen, down from Aspect Ratio goes to... where?
-          // Usually down from controls might just stay there or do nothing in fullscreen
-          // tailored for "adjust arrow up and arrow down focused navigation in non-fullscreen"
-          // If in fullscreen, maybe we want to allow going to channel list or something?
-          // But user specifically asked about non-fullscreen.
-          // Let's assume down from Aspect Ratio in Fullscreen stays in player (no channel search in fullscreen probably)
+          // In fullscreen, stay on aspect ratio and keep controls visible
+          playerSubFocus = 2;
+          resetControlsTimer();
         }
       }
     } else if (focusedSection === "epg") {
@@ -1768,14 +1777,9 @@ function LivePage() {
         focusedSection = "player";
         playerSubFocus = 0;
       } else {
-        // No video - check if channels are available
-        if (filteredStreams && filteredStreams.length > 0) {
-          // Go to first channel
-          focusedSection = "channels";
-          channelIndex = 0;
-          buttonFocusIndex = -1;
-        }
-        // If no channels available, stay on sidebar
+        // No video - Always go to Channel Search Input as per user request
+        focusedSection = "channelSearch";
+        updateFocus();
       }
     } else if (focusedSection === "player") {
       // From Video Player to EPG - ONLY IF NOT FULLSCREEN
@@ -1832,8 +1836,12 @@ function LivePage() {
         // Only update if we're actually changing categories
         if (String(selectedCategoryId) !== String(newCategoryId)) {
           selectedCategoryId = newCategoryId;
-          channelChunk = 1; // Reset pagination
-          channelIndex = 0; // Reset channel focus
+
+          // Clear channel search
+          channelSearchQuery = "";
+          const chanInput = document.getElementById("lp-chan-search-input");
+          if (chanInput) chanInput.value = "";
+
           channelChunk = 1; // Reset pagination
           channelIndex = 0; // Reset channel focus
           buttonFocusIndex = -1;

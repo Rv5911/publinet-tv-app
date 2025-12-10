@@ -52,14 +52,14 @@ async function HomePage() {
       try {
         document.body.scrollTop = 30;
         element.scrollIntoView({
-          block: "nearest",
-          inline: "nearest",
+          block: "center",
+          inline: "center",
         });
       } catch (e) {
         try {
           element.scrollIntoView({
-            block: "nearest",
-            inline: "nearest",
+            block: "center",
+            inline: "center",
           });
         } catch (finalError) {
           try {
