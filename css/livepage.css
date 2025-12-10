@@ -124,7 +124,7 @@
 }
 
 .lp-category-name {
-  font-size: 14px;
+  font-size: 20px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,7 +154,7 @@
 }
 
 .lp-category-count {
-  font-size: 12px;
+  font-size: 20px;
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -380,7 +380,11 @@
 .lp-channels-grid {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: grid;
   /* max-height removed to allow flex to handle height */
   grid-template-columns: repeat(4, 1fr);
@@ -393,8 +397,8 @@
 .lp-channel-card {
   background: #1e1e3f;
   border-radius: 8px;
-  width: auto;
   max-width: 100%;
+  min-width: 0;
   height: auto;
   overflow: visible;
   cursor: pointer;
@@ -484,13 +488,13 @@
 }
 
 .lp-channel-name-wrapper {
-  width: 100%;
+  width: 70%;
   overflow: hidden;
   margin-bottom: 6px;
 }
 
 .lp-channel-name {
-  font-size: 13px;
+  font-size: 20px;
   font-weight: 500;
   margin: 0;
   color: #fff;
@@ -518,7 +522,7 @@
   text-overflow: ellipsis;
   animation: none !important;
   padding-left: 0 !important;
-  width: 100% !important;
+  width: 70% !important;
   max-width: 100% !important;
 }
 

@@ -80,7 +80,7 @@ window.onload = function () {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
     }
-  }, 0);
+  }, 5000);
 
   if (typeof Toaster === "function") Toaster();
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();

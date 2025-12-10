@@ -1102,7 +1102,7 @@ function LivePage() {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
                 <img src="${stream.stream_icon || "assets/main-logo.png"}" 
-                     style="border-radius: 4px; object-fit: cover;" 
+                     style="border-radius: 4px; object-fit: contain;" 
                      onerror="this.src='assets/main-logo.png'">
             </div>
             <div>
@@ -1477,20 +1477,49 @@ function LivePage() {
         navigateDown();
         break;
       case "ArrowLeft":
-        if (focusedSection === "player" && playerSubFocus === 1) {
-          // From Play/Pause back to Video Border
-          focusedSection = "player";
-          playerSubFocus = 0; // Back to video border
+        if (focusedSection === "player") {
+          // In fullscreen, allow navigation between controls
+          if (document.fullscreenElement) {
+            if (playerSubFocus === 2) {
+              // From Aspect Ratio back to Play/Pause
+              playerSubFocus = 1;
+            } else if (playerSubFocus === 1) {
+              // From Play/Pause back to Video Border
+              playerSubFocus = 0;
+            }
+            // If at Video Border (0), stay there in fullscreen
+          } else {
+            // Not in fullscreen - original behavior
+            if (playerSubFocus === 1) {
+              // From Play/Pause back to Video Border
+              focusedSection = "player";
+              playerSubFocus = 0; // Back to video border
+            } else {
+              navigateLeft();
+            }
+          }
         } else {
           navigateLeft();
         }
         break;
       case "ArrowRight":
         if (focusedSection === "player") {
-          // Only go to EPG if there is data
-          if (currentEpgData && currentEpgData.length > 0) {
-            focusedSection = "epg";
-            epgIndex = 0; // Focus first item directly
+          // In fullscreen, allow navigation between controls
+          if (document.fullscreenElement) {
+            if (playerSubFocus === 0) {
+              // From Video Border to Play/Pause
+              playerSubFocus = 1;
+            } else if (playerSubFocus === 1) {
+              // From Play/Pause to Aspect Ratio
+              playerSubFocus = 2;
+            }
+            // If at Aspect Ratio (2), stay there in fullscreen
+          } else {
+            // Not in fullscreen - go to EPG if available
+            if (currentEpgData && currentEpgData.length > 0) {
+              focusedSection = "epg";
+              epgIndex = 0; // Focus first item directly
+            }
           }
         } else {
           navigateRight();
