@@ -952,6 +952,9 @@ function initNavbar() {
     if (index === 0) {
       // Don't focus the search input when navigating with arrows
       // Only add the active class - actual focus happens on Enter key
+      if (document.activeElement) {
+        document.activeElement.blur(); // Blur whatever was previously focused (e.g. Home link)
+      }
       searchInput.blur(); // Ensure it's not focused
     } else if (index === totalItems - 1) {
       profileIcon.focus();
