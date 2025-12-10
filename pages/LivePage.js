@@ -804,7 +804,18 @@ function LivePage() {
       const player = document.getElementById("lp-player-container");
       if (player) {
         player.classList.add("lp-player-active"); // Keep controls visible
-        player.classList.add("lp-focused"); // Always show border when player section is active
+
+        const isFullscreen =
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement;
+
+        if (!isFullscreen) {
+          player.classList.add("lp-focused");
+        } else {
+          player.classList.remove("lp-focused");
+        }
 
         // Check for loader
         const loader = document.querySelector(".live-video-loader");
@@ -822,12 +833,7 @@ function LivePage() {
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
         } else {
-          // Check if we're in fullscreen
-          const isFullscreen =
-            document.fullscreenElement ||
-            document.webkitFullscreenElement ||
-            document.mozFullScreenElement ||
-            document.msFullscreenElement;
+          // In fullscreen, always show both controls when player is focused
 
           // In fullscreen, always show both controls when player is focused
           if (isFullscreen) {
@@ -878,7 +884,14 @@ function LivePage() {
     // This ensures the player maintains its RED border even when focusedSection changes
     if (playerVisualFocus) {
       const player = document.getElementById("lp-player-container");
-      if (player) {
+      // CRITICAL: Do NOT show border in fullscreen mode
+      const isFullscreen =
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
+
+      if (player && !isFullscreen) {
         player.classList.add("lp-player-permanent-focus"); // Red border always visible
       }
     }
@@ -887,7 +900,6 @@ function LivePage() {
       const box = document.getElementById("lp-chan-search-box");
       if (box) {
         box.classList.add("lp-focused");
-        // Don't auto-focus the input, only add the border class
       }
     } else if (focusedSection === "channels") {
       const items = document.querySelectorAll(".lp-channel-card");
@@ -1407,6 +1419,7 @@ function LivePage() {
     // If in fullscreen, allow Enter to toggle play/pause and show icon
     if (isFullscreen && e.key === "Enter") {
       e.preventDefault();
+      e.stopImmediatePropagation(); // Ensure it doesn't propagate
 
       // If focused on Aspect Ratio, click it
       if (playerSubFocus === 2) {
@@ -1418,7 +1431,8 @@ function LivePage() {
         return;
       }
 
-      // Otherwise (Play/Pause focus or general player focus), toggle play/pause
+      // Otherwise (Play/Pause focus or general player focus)
+      // Toggle play/pause AND Show Controls AND Focus Play/Pause
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1427,26 +1441,25 @@ function LivePage() {
         document.getElementById("flow-aspect-ratio");
 
       // Show both icons in fullscreen
-      if (playPauseIcon) {
-        playPauseIcon.style.display = "flex";
-      }
-      if (aspectRatioBtn) {
-        aspectRatioBtn.style.display = "block";
+      if (playPauseIcon) playPauseIcon.style.display = "flex";
+      if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+
+      // Toggle Play/Pause
+      togglePlayPauseGlobal();
+
+      // Ensure Play/Pause is focused
+      if (playerSubFocus !== 1) {
+        playerSubFocus = 1;
+        updateFocus();
       }
 
-      // Then toggle play/pause (which will handle auto-hide)
-      togglePlayPauseGlobal();
+      resetControlsTimer();
       return;
     }
 
-    // In fullscreen, allow arrow keys for internal player navigation
-    if (isFullscreen) {
-      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        // If controls are hidden, show them and reset timer
-        resetControlsTimer();
-        // Allow navigation but restrict it to player in navigate functions
-      }
-    }
+    // In fullscreen, we let navigate functions handle arrows.
+    // IMPORTANT: We do NOT call resetControlsTimer() here for arrows,
+    // to prevent waking up the UI on random arrow presses.
 
     // Handle Enter key to focus search inputs
     if (focusedSection === "sidebarSearch" && e.key === "Enter") {
@@ -1541,7 +1554,7 @@ function LivePage() {
         break;
     }
 
-    if (focusedSection === "player") {
+    if (focusedSection === "player" && !document.fullscreenElement) {
       resetControlsTimer();
     }
 
@@ -1549,6 +1562,20 @@ function LivePage() {
   };
 
   const navigateUp = () => {
+    // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
+    if (
+      focusedSection === "player" &&
+      (document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement)
+    ) {
+      const playIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      if (playIcon && playIcon.style.display === "none") return;
+      resetControlsTimer(); // If visible and moving, keep them visible
+    }
     if (focusedSection === "sidebar") {
       if (sidebarIndex > 0) {
         sidebarIndex--;
@@ -1636,6 +1663,20 @@ function LivePage() {
   };
 
   const navigateDown = () => {
+    // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
+    if (
+      focusedSection === "player" &&
+      (document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement)
+    ) {
+      const playIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      if (playIcon && playIcon.style.display === "none") return;
+      resetControlsTimer(); // If visible and moving, keep them visible
+    }
     if (focusedSection === "sidebarSearch") {
       focusedSection = "sidebar";
       sidebarIndex = 0;
@@ -1735,6 +1776,20 @@ function LivePage() {
   };
 
   const navigateLeft = () => {
+    // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
+    if (
+      focusedSection === "player" &&
+      (document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement)
+    ) {
+      const playIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      if (playIcon && playIcon.style.display === "none") return;
+      resetControlsTimer(); // If visible and moving, keep them visible
+    }
     if (focusedSection === "epg") {
       // From EPG to Video Player
       focusedSection = "player";
@@ -1766,6 +1821,20 @@ function LivePage() {
   };
 
   const navigateRight = () => {
+    // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
+    if (
+      focusedSection === "player" &&
+      (document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement)
+    ) {
+      const playIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      if (playIcon && playIcon.style.display === "none") return;
+      resetControlsTimer(); // If visible and moving, keep them visible
+    }
     if (focusedSection === "sidebar" || focusedSection === "sidebarSearch") {
       // From Category to Video Player or Channel List
       const videoWrapper = document.querySelector(".lp-video-wrapper");

@@ -476,7 +476,7 @@
 
 .lp-channel-logo {
   max-width: 100%;
-  background: white;
+  /* background: white; */
   max-height: 100%;
   padding: 10px 50px;
   object-fit: contain;

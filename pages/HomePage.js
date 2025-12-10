@@ -53,13 +53,13 @@ async function HomePage() {
         document.body.scrollTop = 30;
         element.scrollIntoView({
           block: "center",
-          inline: "center",
+          inline: "nearest",
         });
       } catch (e) {
         try {
           element.scrollIntoView({
             block: "center",
-            inline: "center",
+            inline: "nearest",
           });
         } catch (finalError) {
           try {

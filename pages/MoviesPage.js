@@ -1618,13 +1618,13 @@ function scrollToMoviesElement(element) {
   try {
     document.body.scrollTop = 30;
     element.scrollIntoView({
-      block: "nearest",
+      block: "center",
       inline: "nearest",
     });
   } catch (e) {
     try {
       element.scrollIntoView({
-        block: "nearest",
+        block: "center",
         inline: "nearest",
       });
     } catch (finalError) {
