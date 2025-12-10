@@ -55,18 +55,17 @@
   padding: 15px;
   color: white;
   background: #525252;
-  width: 100%;
+  width: 96%;
   display: flex;
   align-items: center;
   border: 2px solid transparent;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  margin: 10px auto;
   border-radius: 5px;
 }
 
 .lp-search-box.lp-focused {
   border-color: #fdbd0f;
-  width: 100%;
+  transform: scale(1.02);
 }
 
 .lp-search-input {
