@@ -559,6 +559,10 @@ function initNavbar() {
 
   navItems.forEach((item, index) => {
     item.addEventListener("click", () => {
+      // Clear search query
+      window.searchQuery = "";
+      if (searchInput) searchInput.value = "";
+
       const page = item.getAttribute("data-page");
       disposeLiveTvPlayer();
       resetParentalControlState();
@@ -904,13 +908,11 @@ function initNavbar() {
           if (currentPage === "seriesDetailPage") {
             localStorage.removeItem("selectedSeriesId");
             localStorage.removeItem("lastPlayedEpisodeId");
-            localStorage.setItem("currentPage", "seriesPage");
             Router.showPage("seriesPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
           } else if (currentPage === "movieDetailPage") {
             localStorage.removeItem("selectedMovieId");
-            localStorage.setItem("currentPage", "moviesPage");
             Router.showPage("moviesPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
@@ -1170,13 +1172,11 @@ function initNavbar() {
           const action = activeItem.dataset.action;
           if (action === "remove-all-movies") {
             removeAllFromHistory("continueWatchingMovies");
-            localStorage.setItem("currentPage", "moviesPage");
             Router.showPage("moviesPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
           } else if (action === "remove-all-series") {
             removeAllFromHistory("continueWatchingSeries");
-            localStorage.setItem("currentPage", "seriesPage");
             Router.showPage("seriesPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
@@ -1186,7 +1186,6 @@ function initNavbar() {
               "continueWatchingMovies"
             );
             localStorage.setItem("isContinueWatchingMovie", "false");
-            localStorage.setItem("currentPage", "movieDetailPage");
             Router.showPage("movieDetailPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
@@ -1196,14 +1195,13 @@ function initNavbar() {
               localStorage.getItem("selectedSeriesId"),
               "continueWatchingSeries"
             );
-            localStorage.setItem("currentPage", "seriesDetailPage");
+
             Router.showPage("seriesDetailPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
           } else if (action === "clear-channel-history") {
             removeAllChannelHistory();
             disposeLiveTvPlayer();
-            localStorage.setItem("currentPage", "liveTvPage");
             Router.showPage("liveTvPage");
           }
           closeSidebar();
@@ -1217,8 +1215,6 @@ function initNavbar() {
         } else if (text === "Settings") {
           disposeLiveTvPlayer();
           resetParentalControlState();
-          localStorage.setItem("currentPage", "settingsPage");
-
           Router.showPage("settingsPage");
           closeSidebar();
         } else if (text === "List User") {
@@ -1234,7 +1230,6 @@ function initNavbar() {
         } else if (text === "My Account") {
           disposeLiveTvPlayer();
           resetParentalControlState();
-          localStorage.setItem("currentPage", "accountPage");
           Router.showPage("accountPage");
           closeSidebar();
         }

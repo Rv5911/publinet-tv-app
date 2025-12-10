@@ -23,6 +23,12 @@ function StreamFormat() {
           break;
         }
       }
+    } else {
+      // Pre-check the default option (m3u8) if no saved value
+      if (radios.length > 0) {
+        radios[0].checked = true;
+        currentFocus = 0;
+      }
     }
 
     // Focus the first radio button

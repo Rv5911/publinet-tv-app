@@ -13,7 +13,7 @@ window.onload = function () {
     });
   }
 
-    document.addEventListener("keydown", (e) => {
+  document.addEventListener("keydown", (e) => {
     if (localStorage.getItem("currentPage") !== "dashboard") {
       if (e.key === "XF86Exit" && typeof tizen !== "undefined") {
         const app = tizen.application.getCurrentApplication();
@@ -56,7 +56,6 @@ window.onload = function () {
     }
   });
 
-
   const navbarRoot = document.getElementById("navbar-root");
   if (navbarRoot) {
     navbarRoot.innerHTML = Navbar();
@@ -81,7 +80,7 @@ window.onload = function () {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
     }
-  }, 5000);
+  }, 0);
 
   if (typeof Toaster === "function") Toaster();
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
@@ -110,6 +109,19 @@ function renderNavbarVisibility() {
 (function () {
   const originalShowPage = Router.showPage;
   Router.showPage = function (name) {
+    // Check previous page before showing new one
+    const previousPage = localStorage.getItem("currentPage");
+
+    // Clear search if changing pages
+    // We check if name !== previousPage to avoid clearing on re-renders of the same page
+    if (previousPage && previousPage !== name) {
+      window.searchQuery = "";
+      const searchInput = document.getElementById("search-input");
+      if (searchInput) {
+        searchInput.value = "";
+      }
+    }
+
     originalShowPage(name);
     renderNavbarVisibility();
     if (typeof window.updateSearchVisibility === "function") {

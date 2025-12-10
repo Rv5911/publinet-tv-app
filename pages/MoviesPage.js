@@ -1210,6 +1210,24 @@ function handleMoviesKeyNavigation(e) {
     case "ArrowUp":
       moveMoviesUp();
       break;
+    case "Escape":
+    case "Back":
+    case "BrowserBack":
+    case "XF86Back":
+    case "SoftLeft":
+      moviesNavigationState.currentCategoryIndex = 0;
+      moviesNavigationState.currentCardIndex = 0;
+
+      const moviesContainer = document.querySelector(".movies-page-container");
+      if (moviesContainer) {
+        moviesContainer.scrollTop = 0;
+      }
+
+      const navbarEl = document.querySelector("#navbar-root");
+      if (navbarEl) {
+        navbarEl.style.display = "block";
+      }
+      break;
   }
 
   updateMoviesFocus();
@@ -1547,6 +1565,16 @@ function updateMoviesFocus() {
       if (currentCard) {
         currentCard.classList.add("focused");
         scrollToMoviesElement(currentCard);
+
+        // Show navbar when focused on first category (any card in category 0)
+        const navbarEl = document.querySelector("#navbar-root");
+        if (navbarEl) {
+          if (moviesNavigationState.currentCategoryIndex === 0) {
+            navbarEl.style.display = "block";
+          } else {
+            navbarEl.style.display = "none";
+          }
+        }
 
         // Conditional Marquee
         const title = currentCard.querySelector(".movie-title-marquee");

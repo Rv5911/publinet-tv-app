@@ -23,6 +23,12 @@ function TimeFormat() {
           break;
         }
       }
+    } else {
+      // Pre-check the 12 hours option by default if no saved value
+      if (radios.length > 0) {
+        radios[0].checked = true;
+        currentFocus = 0;
+      }
     }
 
     // Focus the first radio button

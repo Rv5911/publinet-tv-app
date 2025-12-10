@@ -686,7 +686,7 @@ function LivePage() {
 
       localStorage.setItem("playlistsData", JSON.stringify(playlistsData));
     }
-
+    window.Toaster.showToast("error", "Removed from Channel History");
     channelChunk = 1;
     renderChannels();
     renderCategories();
@@ -1295,15 +1295,23 @@ function LivePage() {
 
     if (isFullscreen) {
       // Entering fullscreen - hide border and play/pause icon initially
+      playerContainer.classList.add("fullscreen-mode"); // Add fullscreen class
       playerContainer.classList.remove("lp-focused");
       playerContainer.classList.remove("lp-player-active");
       if (playPauseIcon) {
         playPauseIcon.style.display = "none";
       }
     } else {
-      // Exiting fullscreen - show play/pause icon with focus
-      playerContainer.classList.add("lp-focused");
-      playerContainer.classList.add("lp-player-active");
+      // Exiting fullscreen - show border and ensure controls are hidden
+      playerContainer.classList.remove("fullscreen-mode"); // Remove fullscreen class
+      playerContainer.classList.remove("lp-focused"); // Remove yellow border
+      playerContainer.classList.remove("lp-player-active");
+
+      // Ensure aspect ratio buttons are hidden immediately
+      const arBtns = document.querySelectorAll(
+        ".videojs-aspect-ratio-div, .flow-aspect-ratio-div"
+      );
+      arBtns.forEach((btn) => (btn.style.display = "none"));
 
       // Ensure video is visible after exiting fullscreen
       const videoWrapper = document.querySelector(".lp-video-wrapper");
@@ -1522,7 +1530,8 @@ function LivePage() {
         // From Aspect Ratio to Play/Pause
         playerSubFocus = 1;
       } else if (playerSubFocus === 1) {
-        // From Play/Pause to Video Border
+        // From Play/Pause
+        // Always go to Video Border (0) next, regardless of fullscreen
         playerSubFocus = 0;
       } else if (playerSubFocus === 0) {
         // From Video Border to Navbar - ONLY IF NOT FULLSCREEN
@@ -1535,9 +1544,32 @@ function LivePage() {
         }
       }
     } else if (focusedSection === "channelSearch") {
-      // From Channel Search to Aspect Ratio
-      focusedSection = "player";
-      playerSubFocus = 2;
+      // From Channel Search
+      const videoWrapper = document.querySelector(".lp-video-wrapper");
+      const hasVideo =
+        videoWrapper &&
+        !videoWrapper.innerText.includes("Select a channel to play");
+
+      if (!hasVideo) {
+        // No video playing - go directly to Navbar
+        localStorage.setItem("navigationFocus", "navbar");
+        const navItem = document.querySelector(
+          '.nav-item[data-page="liveTvPage"]'
+        );
+        if (navItem) navItem.focus();
+        const chanInput = document.getElementById("lp-chan-search-input");
+        if (chanInput) chanInput.blur();
+      } else {
+        // Video is playing
+        focusedSection = "player";
+        // If Fullscreen, go to Aspect Ratio, else go to Play/Pause
+        // (Skipping Aspect Ratio in non-fullscreen)
+        if (document.fullscreenElement) {
+          playerSubFocus = 2;
+        } else {
+          playerSubFocus = 1;
+        }
+      }
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex >= 0) {
         buttonFocusIndex = -1;
@@ -1598,13 +1630,29 @@ function LivePage() {
           }
         }
       } else if (playerSubFocus === 1) {
-        // From Play/Pause to Aspect Ratio
-        playerSubFocus = 2;
-      } else if (playerSubFocus === 2) {
-        // From Aspect Ratio to Channel Search - ONLY IF NOT FULLSCREEN
-        if (!document.fullscreenElement) {
+        // From Play/Pause...
+        if (document.fullscreenElement) {
+          // To Aspect Ratio if Fullscreen
+          playerSubFocus = 2;
+        } else {
+          // To Channel Search if Non-Fullscreen (Skip Aspect Ratio)
           focusedSection = "channelSearch";
           playerSubFocus = 0;
+        }
+      } else if (playerSubFocus === 2) {
+        // From Aspect Ratio to Channel Search - Only happens in Fullscreen logic effectively
+        // But keep safety check
+        if (!document.fullscreenElement) {
+          // Should not happen theoretically if we skip it, but good fallback
+          focusedSection = "channelSearch";
+          playerSubFocus = 0;
+        } else {
+          // In fullscreen, down from Aspect Ratio goes to... where?
+          // Usually down from controls might just stay there or do nothing in fullscreen
+          // tailored for "adjust arrow up and arrow down focused navigation in non-fullscreen"
+          // If in fullscreen, maybe we want to allow going to channel list or something?
+          // But user specifically asked about non-fullscreen.
+          // Let's assume down from Aspect Ratio in Fullscreen stays in player (no channel search in fullscreen probably)
         }
       }
     } else if (focusedSection === "epg") {

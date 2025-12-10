@@ -205,6 +205,14 @@
   display: block !important;
 }
 
+/* Hide Aspect Ratio buttons when NOT in fullscreen (using class added by JS) */
+.lp-player-container:not(.fullscreen-mode) .videojs-aspect-ratio-div,
+.lp-player-container:not(.fullscreen-mode) .flow-aspect-ratio-div,
+.lp-player-container:not(.fullscreen-mode) #videojs-aspect-ratio,
+.lp-player-container:not(.fullscreen-mode) #flow-aspect-ratio {
+  display: none !important;
+}
+
 /* Control Focus Styles */
 .lp-control-focused {
   transform: scale(1.1);
@@ -220,7 +228,7 @@
 
 .lp-video-wrapper {
   width: 100%;
-    position: relative;
+  position: relative;
   height: 100%;
   display: flex;
   background: #000; /* Black background when no video */
@@ -1022,7 +1030,6 @@
   max-width: 100% !important;
   max-height: 100% !important;
 }
-
 
 .live-video-player-div {
   position: relative !important;

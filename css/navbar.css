@@ -14,7 +14,8 @@
 }
 
 .navbar-container.navbar-hidden {
-  transform: translateY(-250%);
+  opacity: 0;
+  /* transform: translateY(-250%); */
 }
 
 .navbar-left {

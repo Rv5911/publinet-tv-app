@@ -1321,6 +1321,24 @@ function handleSeriesKeyNavigation(e) {
     case "ArrowUp":
       moveSeriesUp();
       break;
+    case "Escape":
+    case "Back":
+    case "BrowserBack":
+    case "XF86Back":
+    case "SoftLeft":
+      seriesNavigationState.currentCategoryIndex = 0;
+      seriesNavigationState.currentCardIndex = 0;
+
+      const seriesContainer = document.querySelector(".series-page-container");
+      if (seriesContainer) {
+        seriesContainer.scrollTop = 0;
+      }
+
+      const navbarElS = document.querySelector("#navbar-root");
+      if (navbarElS) {
+        navbarElS.style.display = "block";
+      }
+      break;
   }
 
   updateSeriesFocus();
@@ -1658,6 +1676,16 @@ function updateSeriesFocus() {
       if (currentCard) {
         currentCard.classList.add("focused");
         scrollToSeriesElement(currentCard);
+
+        // Show navbar when focused on first category (any card in category 0)
+        const navbarEl = document.querySelector("#navbar-root");
+        if (navbarEl) {
+          if (seriesNavigationState.currentCategoryIndex === 0) {
+            navbarEl.style.display = "block";
+          } else {
+            navbarEl.style.display = "none";
+          }
+        }
 
         // Conditional Marquee
         const title = currentCard.querySelector(".series-title-marquee");

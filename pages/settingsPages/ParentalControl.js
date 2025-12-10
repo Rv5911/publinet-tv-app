@@ -82,12 +82,24 @@ function ParentalControl() {
     function parentalControlKeydownEvents(e) {
       switch (e.key) {
         case "ArrowDown":
+          if (
+            document.activeElement &&
+            document.activeElement.tagName === "INPUT"
+          ) {
+            document.activeElement.blur();
+          }
           currentFocus = (currentFocus + 1) % totalElements;
           updateFocusStyles();
           e.preventDefault();
           break;
 
         case "ArrowUp":
+          if (
+            document.activeElement &&
+            document.activeElement.tagName === "INPUT"
+          ) {
+            document.activeElement.blur();
+          }
           currentFocus = (currentFocus - 1 + totalElements) % totalElements;
           updateFocusStyles();
           e.preventDefault();
@@ -126,6 +138,12 @@ function ParentalControl() {
           break;
 
         case "ArrowRight":
+          if (
+            document.activeElement &&
+            document.activeElement.tagName === "INPUT"
+          ) {
+            document.activeElement.blur();
+          }
           // Move to next element (input or button)
           if (currentFocus < inputs.length) {
             currentFocus = (currentFocus + 1) % inputs.length;
