@@ -85,19 +85,22 @@ function LivePage() {
     init();
   }, 0);
 
+  // Cross-browser fullscreen detection helper
+  const checkIsFullscreen = () => {
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  };
+
   // Add this function after state variables, before cleanup function
   const toggleFullscreen = () => {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
-    // Cross-browser fullscreen detection
-    const isFullscreen =
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement;
-
-    if (!isFullscreen) {
+    if (!checkIsFullscreen()) {
       // Enter fullscreen
       if (playerContainer.requestFullscreen) {
         playerContainer.requestFullscreen();
@@ -805,11 +808,7 @@ function LivePage() {
       if (player) {
         player.classList.add("lp-player-active"); // Keep controls visible
 
-        const isFullscreen =
-          document.fullscreenElement ||
-          document.webkitFullscreenElement ||
-          document.mozFullScreenElement ||
-          document.msFullscreenElement;
+        const isFullscreen = checkIsFullscreen();
 
         if (!isFullscreen) {
           player.classList.add("lp-focused");
@@ -885,11 +884,7 @@ function LivePage() {
     if (playerVisualFocus) {
       const player = document.getElementById("lp-player-container");
       // CRITICAL: Do NOT show border in fullscreen mode
-      const isFullscreen =
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement;
+      const isFullscreen = checkIsFullscreen();
 
       if (player && !isFullscreen) {
         player.classList.add("lp-player-permanent-focus"); // Red border always visible
@@ -1294,11 +1289,7 @@ function LivePage() {
     if (!playerContainer) return;
 
     // Cross-browser fullscreen detection
-    const isFullscreen =
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement;
+    const isFullscreen = checkIsFullscreen();
 
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
@@ -1388,11 +1379,7 @@ function LivePage() {
     }
 
     // Cross-browser fullscreen detection
-    const isFullscreen =
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement;
+    const isFullscreen = checkIsFullscreen();
 
     // Handle Fullscreen Exit
     if (
@@ -1503,7 +1490,7 @@ function LivePage() {
       case "ArrowLeft":
         if (focusedSection === "player") {
           // In fullscreen, allow navigation between controls
-          if (document.fullscreenElement) {
+          if (checkIsFullscreen()) {
             if (playerSubFocus === 2) {
               // From Aspect Ratio back to Play/Pause
               playerSubFocus = 1;
@@ -1529,7 +1516,7 @@ function LivePage() {
       case "ArrowRight":
         if (focusedSection === "player") {
           // In fullscreen, allow navigation between controls
-          if (document.fullscreenElement) {
+          if (checkIsFullscreen()) {
             if (playerSubFocus === 0) {
               // From Video Border to Play/Pause
               playerSubFocus = 1;
@@ -1554,7 +1541,7 @@ function LivePage() {
         break;
     }
 
-    if (focusedSection === "player" && !document.fullscreenElement) {
+    if (focusedSection === "player" && !checkIsFullscreen()) {
       resetControlsTimer();
     }
 
@@ -1563,13 +1550,7 @@ function LivePage() {
 
   const navigateUp = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (
-      focusedSection === "player" &&
-      (document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement)
-    ) {
+    if (focusedSection === "player" && checkIsFullscreen()) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1602,7 +1583,7 @@ function LivePage() {
         playerSubFocus = 0;
       } else if (playerSubFocus === 0) {
         // From Video Border to Navbar - ONLY IF NOT FULLSCREEN
-        if (!document.fullscreenElement) {
+        if (!checkIsFullscreen()) {
           localStorage.setItem("navigationFocus", "navbar");
           const navItem = document.querySelector(
             '.nav-item[data-page="liveTvPage"]'
@@ -1631,7 +1612,7 @@ function LivePage() {
         focusedSection = "player";
         // If Fullscreen, go to Aspect Ratio, else go to Play/Pause
         // (Skipping Aspect Ratio in non-fullscreen)
-        if (document.fullscreenElement) {
+        if (checkIsFullscreen()) {
           playerSubFocus = 2;
         } else {
           playerSubFocus = 1;
@@ -1664,13 +1645,7 @@ function LivePage() {
 
   const navigateDown = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (
-      focusedSection === "player" &&
-      (document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement)
-    ) {
+    if (focusedSection === "player" && checkIsFullscreen()) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1705,14 +1680,14 @@ function LivePage() {
           playerSubFocus = 1;
         } else {
           // No video - go to Channel Search - ONLY IF NOT FULLSCREEN
-          if (!document.fullscreenElement) {
+          if (!checkIsFullscreen()) {
             focusedSection = "channelSearch";
             playerSubFocus = 0;
           }
         }
       } else if (playerSubFocus === 1) {
         // From Play/Pause...
-        if (document.fullscreenElement) {
+        if (checkIsFullscreen()) {
           // To Aspect Ratio if Fullscreen
           playerSubFocus = 2;
           resetControlsTimer();
@@ -1724,7 +1699,7 @@ function LivePage() {
       } else if (playerSubFocus === 2) {
         // From Aspect Ratio to Channel Search - Only happens in Fullscreen logic effectively
         // But keep safety check
-        if (!document.fullscreenElement) {
+        if (!checkIsFullscreen()) {
           // Should not happen theoretically if we skip it, but good fallback
           focusedSection = "channelSearch";
           playerSubFocus = 0;
@@ -1777,13 +1752,7 @@ function LivePage() {
 
   const navigateLeft = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (
-      focusedSection === "player" &&
-      (document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement)
-    ) {
+    if (focusedSection === "player" && checkIsFullscreen()) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1797,7 +1766,7 @@ function LivePage() {
       epgIndex = -1;
     } else if (focusedSection === "player") {
       // From Video Player to Category List - ONLY IF NOT FULLSCREEN
-      if (!document.fullscreenElement) {
+      if (!checkIsFullscreen()) {
         focusedSection = "sidebar";
         if (sidebarIndex === -1) sidebarIndex = 0;
       } else {
@@ -1822,13 +1791,7 @@ function LivePage() {
 
   const navigateRight = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (
-      focusedSection === "player" &&
-      (document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement)
-    ) {
+    if (focusedSection === "player" && checkIsFullscreen()) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1852,7 +1815,7 @@ function LivePage() {
       }
     } else if (focusedSection === "player") {
       // From Video Player to EPG - ONLY IF NOT FULLSCREEN
-      if (!document.fullscreenElement) {
+      if (!checkIsFullscreen()) {
         if (currentEpgData && currentEpgData.length > 0) {
           focusedSection = "epg";
           epgIndex = 0; // Focus first item directly
