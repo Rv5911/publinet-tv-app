@@ -827,7 +827,10 @@ async function SeriesDetailPage() {
           showSeasons();
           updatePlayButton();
           return;
-        } else if (e.key === "Escape") {
+        } else if (
+          ["Escape", "Back", "BrowserBack", "XF86Back"].includes(e.key) ||
+          e.keyCode === 10009
+        ) {
           hideDropdown();
           return;
         }
@@ -837,10 +840,55 @@ async function SeriesDetailPage() {
       if (e.key === "ArrowUp") {
         e.preventDefault();
 
-        // If in Top Buttons -> Go to Navbar
+        // If in Top Buttons -> Smart Navigation or Go to Navbar
         if (topButtons.includes(focused) || focused === menuBtn) {
-          localStorage.setItem("navigationFocus", "navbar");
+          const currentRect = focused.getBoundingClientRect();
 
+          // Filter out hidden buttons for calculation
+          const visibleTopButtons = topButtons.filter(
+            (b) => b.offsetWidth > 0 && b.offsetHeight > 0
+          );
+
+          // Use getBoundingClientRect for robust visual position checking
+          // Filter buttons strictly above
+          const buttonsAbove = visibleTopButtons.filter(
+            (btn) => btn.getBoundingClientRect().top < currentRect.top - 10
+          );
+
+          if (buttonsAbove.length > 0) {
+            // Of the buttons above, find the one closest horizontally
+            // 1. Find the "lowest" of the buttons above (closest to current line)
+            const maxTop = Math.max(
+              ...buttonsAbove.map((b) => b.getBoundingClientRect().top)
+            );
+            const immediateRowAbove = buttonsAbove.filter(
+              (b) => Math.abs(b.getBoundingClientRect().top - maxTop) < 10
+            );
+
+            // 2. Find closest by horizontal center
+            const currentCenter = currentRect.left + currentRect.width / 2;
+            let closestBtn = immediateRowAbove[0];
+            let minDist = Infinity;
+
+            immediateRowAbove.forEach((btn) => {
+              const btnRect = btn.getBoundingClientRect();
+              const btnCenter = btnRect.left + btnRect.width / 2;
+              const dist = Math.abs(btnCenter - currentCenter);
+              if (dist < minDist) {
+                minDist = dist;
+                closestBtn = btn;
+              }
+            });
+
+            if (closestBtn) {
+              setFocus(closestBtn);
+              closestBtn.focus();
+              return;
+            }
+          }
+
+          // If NO buttons above, go to Navbar
+          localStorage.setItem("navigationFocus", "navbar");
           // Remove focus styling from current
           if (focused) focused.classList.remove("series-detail-button-focused");
 
@@ -871,8 +919,64 @@ async function SeriesDetailPage() {
       if (e.key === "ArrowDown") {
         e.preventDefault();
 
-        // If in Top Buttons -> Go to first Episode/Cast
+        // Smart Navigation for Top Buttons
         if (topButtons.includes(focused) || focused === menuBtn) {
+          // SPECIAL CASE: Season Button always goes to Episodes/Cast
+          if (focused === seasonsBtn) {
+            if (episodeItems.length > 0) {
+              setFocus(episodeItems[0]);
+              episodeItems[0].focus();
+            } else if (castItems.length > 0) {
+              setFocus(castItems[0]);
+              castItems[0].focus();
+            }
+            return;
+          }
+
+          const currentRect = focused.getBoundingClientRect();
+
+          // Filter out hidden buttons
+          const visibleTopButtons = topButtons.filter(
+            (b) => b.offsetWidth > 0 && b.offsetHeight > 0
+          );
+
+          // Find all buttons strictly below the current one
+          const buttonsBelow = visibleTopButtons.filter(
+            (btn) => btn.getBoundingClientRect().top > currentRect.top + 10
+          );
+
+          if (buttonsBelow.length > 0) {
+            // 1. Find the "highest" of the buttons below (immediate next line)
+            const minTop = Math.min(
+              ...buttonsBelow.map((b) => b.getBoundingClientRect().top)
+            );
+            const immediateRowBelow = buttonsBelow.filter(
+              (b) => Math.abs(b.getBoundingClientRect().top - minTop) < 10
+            );
+
+            // 2. Find closest by horizontal center
+            const currentCenter = currentRect.left + currentRect.width / 2;
+            let closestBtn = immediateRowBelow[0];
+            let minDist = Infinity;
+
+            immediateRowBelow.forEach((btn) => {
+              const btnRect = btn.getBoundingClientRect();
+              const btnCenter = btnRect.left + btnRect.width / 2;
+              const dist = Math.abs(btnCenter - currentCenter);
+              if (dist < minDist) {
+                minDist = dist;
+                closestBtn = btn;
+              }
+            });
+
+            if (closestBtn) {
+              setFocus(closestBtn);
+              closestBtn.focus();
+              return;
+            }
+          }
+
+          // If no button is visually below (we are on the last line), go to Episodes/Cast
           if (episodeItems.length > 0) {
             setFocus(episodeItems[0]);
             episodeItems[0].focus();
@@ -883,15 +987,7 @@ async function SeriesDetailPage() {
           return;
         }
 
-        // If in Episodes -> Navigate down (if grid) or just next?
-        // Assuming simple list flow for now, or let ArrowRight handle flow.
-        // If user wants grid navigation, we'd need column calculation.
-        // For now, let's map ArrowDown to "Next Row" if possible, or just Next Item.
-        // Given the layout is likely a flex wrap, ArrowDown usually means index + columns.
-        // Let's try a simple heuristic: index + 1 for now, or just let ArrowRight handle it.
-        // But user specifically asked for "arrow down from detail button ficus move to epsiodes".
-        // That is handled above.
-        // For within episodes, standard behavior.
+        // Standard Navigation (Episodes/Cast linear flow)
         const nextIndex = currentFocusIndex + 1;
         if (nextIndex < focusableEls.length) {
           setFocus(focusableEls[nextIndex]);
@@ -1307,20 +1403,6 @@ async function SeriesDetailPage() {
       selectedSeriesItem.series_id,
       "favouriteSeries"
     );
-    buttonsHtml += `
-        <button class="series-detail-fav-button" tabindex="0">
-            <span class="heart-icon">
-                ${
-                  isFavorite
-                    ? `<i class="fa-solid fa-heart"></i>`
-                    : `<i class="fa-regular fa-heart"></i>`
-                }
-            </span>
-            <span class="fav-text">
-                ${isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-            </span>
-        </button>
-    `;
 
     return `
         <div class="series-detail-page-container">
@@ -1370,6 +1452,22 @@ async function SeriesDetailPage() {
 
                             <div class="series-detail-buttons">
                                 ${buttonsHtml}
+                                <button class="series-detail-fav-button" tabindex="0">
+                                    <span class="heart-icon">
+                                        ${
+                                          isFavorite
+                                            ? `<i class="fa-solid fa-heart"></i>`
+                                            : `<i class="fa-regular fa-heart"></i>`
+                                        }
+                                    </span>
+                                    <span class="fav-text">
+                                        ${
+                                          isFavorite
+                                            ? "Remove from Favorites"
+                                            : "Add to Favorites"
+                                        }
+                                    </span>
+                                </button>
                                 
                                 <div class="seasons-button-container">
                                     <button class="seasons-button" id="seasons-button" tabindex="0">Season 01</button>
