@@ -763,6 +763,21 @@ async function HomePage() {
     }, 300);
   }
 
+  if (
+    (!carouselHtml ||
+      carouselHtml.length === 0 ||
+      carouselHtml.includes("No content available")) &&
+    mergedRecentlyWatched.length === 0 &&
+    allFavorites.length === 0 &&
+    allRecentlyAdded.length === 0
+  ) {
+    return `
+      <div class="home-page-no-data">
+        <p>No Data found</p>
+      </div>
+    `;
+  }
+
   return `
     <div class="home-page-container">
       <div class="home-poster">
