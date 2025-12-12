@@ -39,35 +39,9 @@ let seriesEnterKeyState = {
 
 let seriesNavigationDebounce = {
   lastKeyPress: 0,
-  debounceTime: 200,
+  debounceTime: 300,
   isDebouncing: false,
 };
-
-// DOM element cache for performance
-let seriesDOMCache = {
-  navbar: null,
-  container: null,
-  lastFocusedCard: null,
-};
-
-// localStorage cache to reduce reads
-let seriesLocalStorageCache = {
-  currentPage: null,
-  navigationFocus: null,
-};
-
-// Update cache when values change
-function updateSeriesLocalStorageCache() {
-  seriesLocalStorageCache.currentPage = localStorage.getItem("currentPage");
-  seriesLocalStorageCache.navigationFocus =
-    localStorage.getItem("navigationFocus");
-}
-
-// Initialize DOM cache
-function initSeriesDOMCache() {
-  seriesDOMCache.navbar = document.querySelector("#navbar-root");
-  seriesDOMCache.container = document.querySelector(".series-page-container");
-}
 
 function normalizeTextSeries(s) {
   return (s || "").toLowerCase();
@@ -1302,11 +1276,10 @@ function refreshSeriesFavoritesList() {
 }
 
 function handleSeriesKeyNavigation(e) {
-  // Use cached values instead of reading localStorage every time
-  if (
-    seriesLocalStorageCache.currentPage !== "seriesPage" ||
-    seriesLocalStorageCache.navigationFocus !== "seriesPage"
-  ) {
+  let currentPage = localStorage.getItem("currentPage");
+  let navigationFocus = localStorage.getItem("navigationFocus");
+
+  if (currentPage !== "seriesPage" || navigationFocus !== "seriesPage") {
     return;
   }
   if (
@@ -1552,7 +1525,6 @@ function moveSeriesUp() {
     removeAllSeriesFocus();
     saveSeriesNavigationState();
     localStorage.setItem("navigationFocus", "navbar");
-    updateSeriesLocalStorageCache(); // Update cache immediately to prevent stale state
 
     setTimeout(() => {
       const seriesNavItem = document.querySelector(
@@ -1676,72 +1648,61 @@ function loadMoreSeriesForCategory(categoryIndex) {
 }
 
 function removeAllSeriesFocus() {
-  // Optimized: Only remove focus from the previously focused card instead of querying all cards
-  if (seriesDOMCache.lastFocusedCard) {
-    seriesDOMCache.lastFocusedCard.classList.remove("focused");
+  let allCards = document.querySelectorAll(".series-card");
+  for (let i = 0; i < allCards.length; i++) {
+    allCards[i].classList.remove("focused");
 
-    let titleElement = seriesDOMCache.lastFocusedCard.querySelector(
-      ".series-title-marquee"
-    );
+    let titleElement = allCards[i].querySelector(".series-title-marquee");
     if (titleElement) {
       titleElement.classList.remove("marquee-active");
     }
-
-    seriesDOMCache.lastFocusedCard = null;
   }
 }
 
 function updateSeriesFocus() {
-  // Use requestAnimationFrame for smooth 60fps updates
-  requestAnimationFrame(() => {
-    updateSeriesLocalStorageCache(); // ensure we have the latest focus state from external changes
-    removeAllSeriesFocus();
+  removeAllSeriesFocus();
 
-    if (seriesLocalStorageCache.navigationFocus === "seriesPage") {
-      if (seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
-        let currentCard = document.querySelector(
-          '.series-card[data-category="' +
-            seriesNavigationState.currentCategoryIndex +
-            '"][data-index="' +
-            seriesNavigationState.currentCardIndex +
-            '"]'
-        );
+  let navigationFocus = localStorage.getItem("navigationFocus");
+  if (navigationFocus === "seriesPage") {
+    if (seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
+      let currentCard = document.querySelector(
+        '.series-card[data-category="' +
+          seriesNavigationState.currentCategoryIndex +
+          '"][data-index="' +
+          seriesNavigationState.currentCardIndex +
+          '"]'
+      );
 
-        if (currentCard) {
-          currentCard.classList.add("focused");
-          seriesDOMCache.lastFocusedCard = currentCard; // Cache for next removal
-          scrollToSeriesElement(currentCard);
+      if (currentCard) {
+        currentCard.classList.add("focused");
+        scrollToSeriesElement(currentCard);
 
-          // Show navbar when focused on first category (any card in category 0)
-          // Use cached navbar element
-          if (!seriesDOMCache.navbar) {
-            seriesDOMCache.navbar = document.querySelector("#navbar-root");
+        // Show navbar when focused on first category (any card in category 0)
+        const navbarEl = document.querySelector("#navbar-root");
+        if (navbarEl) {
+          if (seriesNavigationState.currentCategoryIndex === 0) {
+            navbarEl.style.display = "block";
+          } else {
+            navbarEl.style.display = "none";
           }
-          if (seriesDOMCache.navbar) {
-            if (seriesNavigationState.currentCategoryIndex === 0) {
-              seriesDOMCache.navbar.style.display = "block";
-            } else {
-              seriesDOMCache.navbar.style.display = "none";
-            }
-          }
-
-          // Conditional Marquee
-          const title = currentCard.querySelector(".series-title-marquee");
-          if (title) {
-            title.classList.remove("marquee-active");
-            if (title.scrollWidth > title.clientWidth) {
-              title.classList.add("marquee-active");
-            }
-          }
-
-          seriesNavigationState.lastFocusedCategory =
-            seriesNavigationState.currentCategoryIndex;
-          seriesNavigationState.lastFocusedCard =
-            seriesNavigationState.currentCardIndex;
         }
+
+        // Conditional Marquee
+        const title = currentCard.querySelector(".series-title-marquee");
+        if (title) {
+          title.classList.remove("marquee-active");
+          if (title.scrollWidth > title.clientWidth) {
+            title.classList.add("marquee-active");
+          }
+        }
+
+        seriesNavigationState.lastFocusedCategory =
+          seriesNavigationState.currentCategoryIndex;
+        seriesNavigationState.lastFocusedCard =
+          seriesNavigationState.currentCardIndex;
       }
     }
-  });
+  }
 }
 
 function activateSeriesMarquee(card) {
@@ -1763,20 +1724,24 @@ function activateSeriesMarquee(card) {
 function scrollToSeriesElement(element) {
   if (!element) return;
 
-  // Simplified scrollIntoView for better performance on low-end devices
-  // Using 'auto' behavior instead of 'smooth' to reduce jank on 512MB devices
   try {
+    document.body.scrollTop = 30;
     element.scrollIntoView({
       block: "center",
       inline: "nearest",
-      behavior: "auto",
     });
   } catch (e) {
-    // Fallback for older browsers
     try {
-      element.scrollIntoView();
-    } catch (error) {
-      console.log("Series scroll failed");
+      element.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
+    } catch (finalError) {
+      try {
+        element.scrollIntoView();
+      } catch (error) {
+        console.log("Series scroll failed");
+      }
     }
   }
 }
@@ -1994,10 +1959,6 @@ function validateSeriesData() {
 function SeriesPage() {
   validateSeriesData();
 
-  // Initialize caches for performance
-  initSeriesDOMCache();
-  updateSeriesLocalStorageCache();
-
   const currentSort = localStorage.getItem("sortvalue") || "default";
 
   // Check if there's no initial data and return early
@@ -2023,12 +1984,10 @@ function SeriesPage() {
       localStorage.getItem("currentPage") || ""
     );
     localStorage.setItem("currentPage", "seriesPage");
-    updateSeriesLocalStorageCache(); // Update cache after setting values
     const activeEl = document.activeElement;
     const isSearchFocused = activeEl && activeEl.id === "search-input";
     if (!isSearchFocused) {
       localStorage.setItem("navigationFocus", "seriesPage");
-      updateSeriesLocalStorageCache(); // Update cache after setting values
     }
 
     return loadingHTML;
@@ -2046,12 +2005,10 @@ function SeriesPage() {
     localStorage.getItem("currentPage") || ""
   );
   localStorage.setItem("currentPage", "seriesPage");
-  updateSeriesLocalStorageCache(); // Update cache after setting values
   const activeEl = document.activeElement;
   const isSearchFocused = activeEl && activeEl.id === "search-input";
   if (!isSearchFocused) {
     localStorage.setItem("navigationFocus", "seriesPage");
-    updateSeriesLocalStorageCache(); // Update cache after setting values
   }
 
   favoriteSeriesIds = [];
