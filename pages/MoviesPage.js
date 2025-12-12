@@ -40,9 +40,35 @@ let moviesEnterKeyState = {
 
 let moviesNavigationDebounce = {
   lastKeyPress: 0,
-  debounceTime: 300,
+  debounceTime: 200,
   isDebouncing: false,
 };
+
+// DOM element cache for performance
+let moviesDOMCache = {
+  navbar: null,
+  container: null,
+  lastFocusedCard: null,
+};
+
+// localStorage cache to reduce reads
+let moviesLocalStorageCache = {
+  currentPage: null,
+  navigationFocus: null,
+};
+
+// Update cache when values change
+function updateMoviesLocalStorageCache() {
+  moviesLocalStorageCache.currentPage = localStorage.getItem("currentPage");
+  moviesLocalStorageCache.navigationFocus =
+    localStorage.getItem("navigationFocus");
+}
+
+// Initialize DOM cache
+function initMoviesDOMCache() {
+  moviesDOMCache.navbar = document.querySelector("#navbar-root");
+  moviesDOMCache.container = document.querySelector(".movies-page-container");
+}
 
 function normalizeText(s) {
   return (s || "").toLowerCase();
@@ -1165,10 +1191,11 @@ function refreshMoviesFavoritesList() {
 }
 
 function handleMoviesKeyNavigation(e) {
-  let currentPage = localStorage.getItem("currentPage");
-  let navigationFocus = localStorage.getItem("navigationFocus");
-
-  if (currentPage !== "moviesPage" || navigationFocus !== "moviesPage") {
+  // Use cached values instead of reading localStorage every time
+  if (
+    moviesLocalStorageCache.currentPage !== "moviesPage" ||
+    moviesLocalStorageCache.navigationFocus !== "moviesPage"
+  ) {
     return;
   }
   if (
@@ -1414,6 +1441,7 @@ function moveMoviesUp() {
     removeAllMoviesFocus();
     saveMoviesNavigationState();
     localStorage.setItem("navigationFocus", "navbar");
+    updateMoviesLocalStorageCache(); // Update cache immediately to prevent stale state
 
     setTimeout(() => {
       const moviesNavItem = document.querySelector(
@@ -1537,63 +1565,74 @@ function loadMoreMoviesForCategory(categoryIndex) {
 }
 
 function removeAllMoviesFocus() {
-  let allCards = document.querySelectorAll(".movie-card");
-  for (let i = 0; i < allCards.length; i++) {
-    allCards[i].classList.remove("focused");
+  // Optimized: Only remove focus from the previously focused card instead of querying all cards
+  if (moviesDOMCache.lastFocusedCard) {
+    moviesDOMCache.lastFocusedCard.classList.remove("focused");
 
-    let titleElement = allCards[i].querySelector(".movie-title-marquee");
+    let titleElement = moviesDOMCache.lastFocusedCard.querySelector(
+      ".movie-title-marquee"
+    );
     if (titleElement) {
       titleElement.classList.remove("marquee-active");
     }
+
+    moviesDOMCache.lastFocusedCard = null;
   }
 }
 
 function updateMoviesFocus() {
-  removeAllMoviesFocus();
+  // Use requestAnimationFrame for smooth 60fps updates
+  requestAnimationFrame(() => {
+    updateMoviesLocalStorageCache(); // ensure we have the latest focus state from external changes (e.g. Navbar)
+    removeAllMoviesFocus();
 
-  let navigationFocus = localStorage.getItem("navigationFocus");
-  if (navigationFocus === "moviesPage") {
-    if (moviesCategoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
-      let currentCard = document.querySelector(
-        '.movie-card[data-category="' +
-          moviesNavigationState.currentCategoryIndex +
-          '"][data-index="' +
-          moviesNavigationState.currentCardIndex +
-          '"]'
-      );
+    if (moviesLocalStorageCache.navigationFocus === "moviesPage") {
+      if (moviesCategoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
+        let currentCard = document.querySelector(
+          '.movie-card[data-category="' +
+            moviesNavigationState.currentCategoryIndex +
+            '"][data-index="' +
+            moviesNavigationState.currentCardIndex +
+            '"]'
+        );
 
-      if (currentCard) {
-        currentCard.classList.add("focused");
-        scrollToMoviesElement(currentCard);
+        if (currentCard) {
+          currentCard.classList.add("focused");
+          moviesDOMCache.lastFocusedCard = currentCard; // Cache for next removal
+          scrollToMoviesElement(currentCard);
 
-        // Show navbar when focused on first category (any card in category 0)
-        const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) {
-          if (moviesNavigationState.currentCategoryIndex === 0) {
-            navbarEl.style.display = "block";
-          } else {
-            navbarEl.style.display = "none";
+          // Show navbar when focused on first category (any card in category 0)
+          // Use cached navbar element
+          if (!moviesDOMCache.navbar) {
+            moviesDOMCache.navbar = document.querySelector("#navbar-root");
           }
-        }
-
-        // Conditional Marquee
-        const title = currentCard.querySelector(".movie-title-marquee");
-        if (title) {
-          title.classList.remove("marquee-active");
-          if (title.scrollWidth > title.clientWidth) {
-            title.classList.add("marquee-active");
+          if (moviesDOMCache.navbar) {
+            if (moviesNavigationState.currentCategoryIndex === 0) {
+              moviesDOMCache.navbar.style.display = "block";
+            } else {
+              moviesDOMCache.navbar.style.display = "none";
+            }
           }
+
+          // Conditional Marquee
+          const title = currentCard.querySelector(".movie-title-marquee");
+          if (title) {
+            title.classList.remove("marquee-active");
+            if (title.scrollWidth > title.clientWidth) {
+              title.classList.add("marquee-active");
+            }
+          }
+
+          moviesNavigationState.lastFocusedCategory =
+            moviesNavigationState.currentCategoryIndex;
+          moviesNavigationState.lastFocusedCard =
+            moviesNavigationState.currentCardIndex;
+
+          activateMoviesMarquee(currentCard);
         }
-
-        moviesNavigationState.lastFocusedCategory =
-          moviesNavigationState.currentCategoryIndex;
-        moviesNavigationState.lastFocusedCard =
-          moviesNavigationState.currentCardIndex;
-
-        activateMoviesMarquee(currentCard);
       }
     }
-  }
+  });
 }
 
 function activateMoviesMarquee(card) {
@@ -1615,24 +1654,20 @@ function activateMoviesMarquee(card) {
 function scrollToMoviesElement(element) {
   if (!element) return;
 
+  // Simplified scrollIntoView for better performance on low-end devices
+  // Using 'auto' behavior instead of 'smooth' to reduce jank on 512MB devices
   try {
-    document.body.scrollTop = 30;
     element.scrollIntoView({
       block: "center",
       inline: "nearest",
+      behavior: "auto",
     });
   } catch (e) {
+    // Fallback for older browsers
     try {
-      element.scrollIntoView({
-        block: "center",
-        inline: "nearest",
-      });
-    } catch (finalError) {
-      try {
-        element.scrollIntoView();
-      } catch (error) {
-        console.log("Movies scroll failed");
-      }
+      element.scrollIntoView();
+    } catch (error) {
+      console.log("Movies scroll failed");
     }
   }
 }
@@ -1850,6 +1885,10 @@ function validateMoviesData() {
 function MoviesPage() {
   validateMoviesData();
 
+  // Initialize caches for performance
+  initMoviesDOMCache();
+  updateMoviesLocalStorageCache();
+
   // Get current sort option
   const currentSort = localStorage.getItem("sortvalue") || "default";
 
@@ -1874,10 +1913,12 @@ function MoviesPage() {
       localStorage.getItem("currentPage") || ""
     );
     localStorage.setItem("currentPage", "moviesPage");
+    updateMoviesLocalStorageCache(); // Update cache after setting values
     const activeEl = document.activeElement;
     const isSearchFocused = activeEl && activeEl.id === "search-input";
     if (!isSearchFocused) {
       localStorage.setItem("navigationFocus", "moviesPage");
+      updateMoviesLocalStorageCache(); // Update cache after setting values
     }
 
     return loadingHTML;
@@ -1895,10 +1936,12 @@ function MoviesPage() {
     localStorage.getItem("currentPage") || ""
   );
   localStorage.setItem("currentPage", "moviesPage");
+  updateMoviesLocalStorageCache(); // Update cache after setting values
   const activeEl = document.activeElement;
   const isSearchFocused = activeEl && activeEl.id === "search-input";
   if (!isSearchFocused) {
     localStorage.setItem("navigationFocus", "moviesPage");
+    updateMoviesLocalStorageCache(); // Update cache after setting values
   }
 
   favoriteMoviesIds = [];
