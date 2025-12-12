@@ -1452,7 +1452,7 @@ function LivePage() {
     if (focusedSection === "sidebarSearch" && e.key === "Enter") {
       const catInput = document.getElementById("lp-cat-search-input");
       if (catInput) {
-        catInput.focus();
+        catInput.focus({ preventScroll: true });
         e.preventDefault();
         return;
       }
@@ -1461,7 +1461,7 @@ function LivePage() {
     if (focusedSection === "channelSearch" && e.key === "Enter") {
       const chanInput = document.getElementById("lp-chan-search-input");
       if (chanInput) {
-        chanInput.focus();
+        chanInput.focus({ preventScroll: true });
         e.preventDefault();
         return;
       }
