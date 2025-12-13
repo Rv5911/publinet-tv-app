@@ -65,6 +65,9 @@ function VideoJsPlayer(poster = "") {
   let lastSeekTime = 0;
   let pendingResumeTimeout = null;
 
+  // 🔴 Track if video has started playing for the first time
+  let hasStartedPlayingOnce = false;
+
   // Format time function
   function formatTime(seconds) {
     if (!seconds || isNaN(seconds)) return "0:00:00";
@@ -110,6 +113,13 @@ function VideoJsPlayer(poster = "") {
 
     // 🔴 IMMEDIATELY update seek bar for smooth visual feedback
     const seekBar = document.getElementById("customSeek");
+
+    // Show loading indicator immediately when seeking starts
+    const loadingEl = document.querySelector(".video-buffer-loader");
+    if (loadingEl && !errorActive) {
+      loadingEl.classList.remove("hidden");
+    }
+
     if (seekBar && player && player.currentTime) {
       try {
         const currentTime = player.currentTime();
@@ -523,6 +533,11 @@ function VideoJsPlayer(poster = "") {
 
           isSeekBarDragging = true;
 
+          // Show loading indicator when seeking
+          if (loadingEl) {
+            loadingEl.classList.remove("hidden");
+          }
+
           // Store play state before seeking
           wasPlayingBeforeSeek = !player.paused();
 
@@ -630,6 +645,7 @@ function VideoJsPlayer(poster = "") {
 
     player.on("playing", () => {
       if (!errorActive) {
+        hasStartedPlayingOnce = true; // Mark that video has started playing
         loadingEl.classList.add("hidden");
         controlsBar.classList.add("hidden");
         titleBar.style.display = "none";
@@ -1151,6 +1167,7 @@ function VideoJsPlayer(poster = "") {
               if (
                 !isLive &&
                 player &&
+                hasStartedPlayingOnce &&
                 typeof player.currentTime === "function"
               ) {
                 try {
@@ -1168,6 +1185,7 @@ function VideoJsPlayer(poster = "") {
               if (
                 !isLive &&
                 player &&
+                hasStartedPlayingOnce &&
                 typeof player.currentTime === "function"
               ) {
                 try {
@@ -1237,7 +1255,12 @@ function VideoJsPlayer(poster = "") {
             break;
 
           case "ArrowRight":
-            if (!isLive && player && typeof player.currentTime === "function") {
+            if (
+              !isLive &&
+              player &&
+              hasStartedPlayingOnce &&
+              typeof player.currentTime === "function"
+            ) {
               try {
                 // Use debounced seek to prevent buffer overload
                 debouncedSeek(10);
@@ -1249,7 +1272,12 @@ function VideoJsPlayer(poster = "") {
             break;
 
           case "ArrowLeft":
-            if (!isLive && player && typeof player.currentTime === "function") {
+            if (
+              !isLive &&
+              player &&
+              hasStartedPlayingOnce &&
+              typeof player.currentTime === "function"
+            ) {
               try {
                 // Use debounced seek to prevent buffer overload
                 debouncedSeek(-10);
@@ -1284,7 +1312,12 @@ function VideoJsPlayer(poster = "") {
           break;
 
         case "ArrowRight":
-          if (!isLive && player && typeof player.currentTime === "function") {
+          if (
+            !isLive &&
+            player &&
+            hasStartedPlayingOnce &&
+            typeof player.currentTime === "function"
+          ) {
             try {
               // Use debounced seek to prevent buffer overload
               debouncedSeek(10);
@@ -1296,7 +1329,12 @@ function VideoJsPlayer(poster = "") {
           break;
 
         case "ArrowLeft":
-          if (!isLive && player && typeof player.currentTime === "function") {
+          if (
+            !isLive &&
+            player &&
+            hasStartedPlayingOnce &&
+            typeof player.currentTime === "function"
+          ) {
             try {
               // Use debounced seek to prevent buffer overload
               debouncedSeek(-10);
@@ -1346,6 +1384,7 @@ function VideoJsPlayer(poster = "") {
       userManuallyPaused = false;
       accumulatedSeekOffset = 0;
       lastSeekTime = 0;
+      hasStartedPlayingOnce = false;
 
       // Store player reference to avoid race conditions
       const currentPlayer = player;
