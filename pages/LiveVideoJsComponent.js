@@ -506,7 +506,7 @@ function LiveVideoJsComponent(
           });
         }
 
-        const fullscreenBtn = document.getElementById("live-fullscreen-btn");
+        const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
         if (fullscreenBtn) {
           fullscreenBtn.addEventListener("click", () => {
             const playerContainer = document.querySelector(
@@ -696,9 +696,9 @@ function LiveVideoJsComponent(
         <!-- <button class="retry-btn">Retry</button> -->
       </div>
       <div class="live-video-controls">
-        <button id="live-fullscreen-btn" class="live-control-btn" tabindex="-1">
-         <i class="fa-solid fa-expand live-fullscreen-btn-icon"></i>
-        </button>
+        <div id="lp-fullscreen-btn" class="lp-fullscreen-btn">
+          <i class="fa-sharp fa-solid fa-expand lp-fullscreen-icon"></i>
+        </div>
       </div>
       ${
         isTsStream

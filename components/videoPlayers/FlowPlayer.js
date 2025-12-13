@@ -309,7 +309,7 @@ function FlowLivePlayerComponent(
       };
 
       const fsBtnFocus = function () {
-        const fsBtn = document.getElementById("live-fullscreen-btn");
+        const fsBtn = document.getElementById("lp-fullscreen-btn");
         if (fsBtn) fsBtn.classList.add("live-control-btn-focused");
       };
 
@@ -393,7 +393,7 @@ function FlowLivePlayerComponent(
         playPauseBtn.addEventListener("click", togglePlayPause);
       }
 
-      const fullscreenBtn = document.getElementById("live-fullscreen-btn");
+      const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
       if (fullscreenBtn) {
         fullscreenBtn.addEventListener("click", function () {
           if (window.livePlayer.isFullscreen())
@@ -504,9 +504,9 @@ function FlowLivePlayerComponent(
       </div>
       <div class="live-video-controls">
 
-        <button id="live-fullscreen-btn" class="live-control-btn" tabindex="-1">
-          <i class="fa-solid fa-expand live-fullscreen-btn-icon"></i>
-        </button>
+        <div id="lp-fullscreen-btn" class="lp-fullscreen-btn">
+          <i class="fa-sharp fa-solid fa-expand lp-fullscreen-icon"></i>
+        </div>
       </div>
       <div id="${id}" class="flowplayer" style="height:100%; width:100%;">
         <video class="flowplayer-video-player">

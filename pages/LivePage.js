@@ -810,7 +810,12 @@ function LivePage() {
 
         const isFullscreen = checkIsFullscreen();
 
-        if (!isFullscreen) {
+        if (
+          !isFullscreen &&
+          playerSubFocus !== 0 &&
+          playerSubFocus !== 1 &&
+          playerSubFocus !== 2
+        ) {
           player.classList.add("lp-focused");
         } else {
           player.classList.remove("lp-focused");
@@ -826,22 +831,31 @@ function LivePage() {
         const aspectRatioBtn =
           document.getElementById("videojs-aspect-ratio") ||
           document.getElementById("flow-aspect-ratio");
+        const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
 
-        if (isLoaderVisible) {
-          // Force hide controls if loader is visible
+        // Check if video is actually playing
+        const videoWrapper = document.querySelector(".lp-video-wrapper");
+        const hasVideo =
+          videoWrapper &&
+          !videoWrapper.innerText.includes("Select a channel to play");
+
+        if (isLoaderVisible || !hasVideo) {
+          // Force hide controls if loader is visible or NO video
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
+          if (fullscreenBtn) fullscreenBtn.style.display = "none";
         } else {
-          // In fullscreen, always show both controls when player is focused
-
           // In fullscreen, always show both controls when player is focused
           if (isFullscreen) {
             if (playPauseIcon) playPauseIcon.style.display = "flex";
             if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+            // Fullscreen button is handled via CSS (hidden in fullscreen)
           } else {
             // Non-fullscreen logic
+            if (fullscreenBtn) fullscreenBtn.style.display = "flex"; // Show only if video playing & no loader
+
             if (playPauseIcon) {
-              if (playerSubFocus === 0 || playerSubFocus === 1) {
+              if (playerSubFocus === 1) {
                 playPauseIcon.style.display = "flex";
               } else {
                 playPauseIcon.style.display = "flex";
@@ -856,6 +870,11 @@ function LivePage() {
           } else if (playerSubFocus === 2) {
             if (aspectRatioBtn) {
               aspectRatioBtn.classList.add("lp-control-focused");
+            }
+          } else if (playerSubFocus === 0) {
+            if (fullscreenBtn) {
+              const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+              if (icon) icon.classList.add("lp-control-focused");
             }
           }
 
@@ -874,9 +893,11 @@ function LivePage() {
       const aspectRatioBtn =
         document.getElementById("videojs-aspect-ratio") ||
         document.getElementById("flow-aspect-ratio");
+      const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
 
       if (playPauseIcon) playPauseIcon.style.display = "none";
       if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
+      if (fullscreenBtn) fullscreenBtn.style.display = "none";
     }
 
     // INDEPENDENT PLAYER VISUAL FOCUS: Always show RED border if playerVisualFocus is true
@@ -1337,7 +1358,7 @@ function LivePage() {
       // Always show play/pause icon when exiting fullscreen
       if (playPauseIcon) {
         playPauseIcon.style.display = "flex";
-        playPauseIcon.classList.add("lp-control-focused");
+        // playPauseIcon.classList.add("lp-control-focused"); // Don't force focus here, let logic handle it
       }
 
       // Set focus to play/pause button
@@ -1502,9 +1523,9 @@ function LivePage() {
           } else {
             // Not in fullscreen - original behavior
             if (playerSubFocus === 1) {
-              // From Play/Pause back to Video Border
+              // From Play/Pause back to Fullscreen (0)
               focusedSection = "player";
-              playerSubFocus = 0; // Back to video border
+              playerSubFocus = 0;
             } else {
               navigateLeft();
             }
@@ -1518,7 +1539,8 @@ function LivePage() {
           // In fullscreen, allow navigation between controls
           if (checkIsFullscreen()) {
             if (playerSubFocus === 0) {
-              // From Video Border to Play/Pause
+              // From Fullscreen (0) to Play/Pause (1) - Wait, logically UP/DOWN is better for this layout
+              // But keeping LEFT/RIGHT as fallback or secondary nav
               playerSubFocus = 1;
             } else if (playerSubFocus === 1) {
               // From Play/Pause to Aspect Ratio
@@ -1577,12 +1599,12 @@ function LivePage() {
       if (playerSubFocus === 2) {
         // From Aspect Ratio to Play/Pause
         playerSubFocus = 1;
-      } else if (playerSubFocus === 1) {
-        // From Play/Pause
-        // Always go to Video Border (0) next, regardless of fullscreen
-        playerSubFocus = 0;
       } else if (playerSubFocus === 0) {
-        // From Video Border to Navbar - ONLY IF NOT FULLSCREEN
+        // From Fullscreen (0) to Play/Pause (1)
+        playerSubFocus = 1;
+      } else if (playerSubFocus === 1) {
+        // From Play/Pause (1) to Video Border/Navbar?
+        // If we treat 1 as top-most control effectively before navbar:
         if (!checkIsFullscreen()) {
           localStorage.setItem("navigationFocus", "navbar");
           const navItem = document.querySelector(
@@ -1597,6 +1619,13 @@ function LivePage() {
       const hasVideo =
         videoWrapper &&
         !videoWrapper.innerText.includes("Select a channel to play");
+
+      if (hasVideo && !checkIsFullscreen()) {
+        // Go to Fullscreen Button (0)
+        focusedSection = "player";
+        playerSubFocus = 0;
+        return;
+      }
 
       if (!hasVideo) {
         // No video playing - go directly to Navbar
@@ -1668,33 +1697,21 @@ function LivePage() {
         sidebarIndex++;
       }
     } else if (focusedSection === "player") {
-      if (playerSubFocus === 0) {
-        // Check if video is playing
-        const videoWrapper = document.querySelector(".lp-video-wrapper");
-        const hasVideo =
-          videoWrapper &&
-          !videoWrapper.innerText.includes("Select a channel to play");
-
-        if (hasVideo) {
-          // Video is playing - go to Play/Pause button
-          playerSubFocus = 1;
-        } else {
-          // No video - go to Channel Search - ONLY IF NOT FULLSCREEN
-          if (!checkIsFullscreen()) {
-            focusedSection = "channelSearch";
-            playerSubFocus = 0;
-          }
-        }
-      } else if (playerSubFocus === 1) {
-        // From Play/Pause...
+      if (playerSubFocus === 1) {
+        // From Play/Pause (1)
         if (checkIsFullscreen()) {
-          // To Aspect Ratio if Fullscreen
+          // To Aspect Ratio (2)
           playerSubFocus = 2;
           resetControlsTimer();
         } else {
-          // To Channel Search if Non-Fullscreen (Skip Aspect Ratio)
-          focusedSection = "channelSearch";
+          // To Fullscreen Button (0)
           playerSubFocus = 0;
+        }
+      } else if (playerSubFocus === 0) {
+        // From Fullscreen Button (0) to Channel Search
+        if (!checkIsFullscreen()) {
+          focusedSection = "channelSearch";
+          playerSubFocus = 0; // Reset subfocus for next time we enter player
         }
       } else if (playerSubFocus === 2) {
         // From Aspect Ratio to Channel Search - Only happens in Fullscreen logic effectively
@@ -1807,7 +1824,10 @@ function LivePage() {
 
       if (hasVideo) {
         focusedSection = "player";
-        playerSubFocus = 0;
+        playerSubFocus = 0; // Go to Fullscreen button first? Or play/pause?
+        // User requested 0 = Fullscreen. Let's default to Fullscreen (0) as it's bottom right, close to list?
+        // Actually usually Play/Pause (1) is central. Let's go to Play/Pause (1) from side.
+        playerSubFocus = 1;
       } else {
         // No video - Always go to Channel Search Input as per user request
         focusedSection = "channelSearch";
@@ -1895,7 +1915,7 @@ function LivePage() {
       const playerContainer = document.getElementById("lp-player-container");
       if (playerContainer) {
         if (playerSubFocus === 0) {
-          // Video Border focused - Toggle Fullscreen (cross-browser)
+          // Fullscreen Button - Turn on fullscreen
           toggleFullscreen();
         } else if (playerSubFocus === 1) {
           // Play/Pause focused - Click it
