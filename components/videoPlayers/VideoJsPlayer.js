@@ -59,6 +59,12 @@ function VideoJsPlayer(poster = "") {
   // 🔴 Track if user manually paused
   let userManuallyPaused = false;
 
+  // 🔴 Debouncing variables for seek operations
+  let pendingSeekTimeout = null;
+  let accumulatedSeekOffset = 0;
+  let lastSeekTime = 0;
+  let pendingResumeTimeout = null;
+
   // Format time function
   function formatTime(seconds) {
     if (!seconds || isNaN(seconds)) return "0:00:00";
@@ -74,6 +80,117 @@ function VideoJsPlayer(poster = "") {
     } else {
       return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     }
+  }
+
+  // 🔴 Debounced seek function to prevent buffer overload on low-RAM devices
+  function debouncedSeek(offset) {
+    // Clear any pending seek operation
+    if (pendingSeekTimeout) {
+      clearTimeout(pendingSeekTimeout);
+      pendingSeekTimeout = null;
+    }
+
+    // Clear any pending resume timeout
+    if (pendingResumeTimeout) {
+      clearTimeout(pendingResumeTimeout);
+      pendingResumeTimeout = null;
+    }
+
+    // Accumulate the seek offset
+    accumulatedSeekOffset += offset;
+
+    // Store play state before seeking (only once per seek session)
+    const isFirstSeek = pendingSeekTimeout === null;
+    if (isFirstSeek) {
+      wasPlayingBeforeSeek = !player.paused();
+      if (wasPlayingBeforeSeek && !userManuallyPaused) {
+        player.pause();
+      }
+    }
+
+    // 🔴 IMMEDIATELY update seek bar for smooth visual feedback
+    const seekBar = document.getElementById("customSeek");
+    if (seekBar && player && player.currentTime) {
+      try {
+        const currentTime = player.currentTime();
+        const duration = player.duration();
+        const newTime = Math.max(
+          0,
+          Math.min(duration, currentTime + accumulatedSeekOffset)
+        );
+        seekBar.value = newTime;
+
+        // Update time display immediately too
+        if (currentTimeEl) {
+          currentTimeEl.textContent = formatTime(newTime);
+        }
+
+        // Update seek bar background gradient
+        const percent = (newTime / duration) * 100;
+        let bufferedPercent = 0;
+        if (player.buffered().length > 0) {
+          bufferedPercent =
+            (player.buffered().end(player.buffered().length - 1) / duration) *
+            100;
+        }
+        seekBar.style.background = `linear-gradient(to right,
+          var(--gold) 0%, var(--gold) ${percent}%,
+          #aaa ${percent}%, #aaa ${bufferedPercent}%,
+          #888 ${bufferedPercent}%, #888 100%)`;
+      } catch (err) {
+        // Ignore errors during immediate update
+      }
+    }
+
+    // Set a new timeout to execute the seek after 300ms of no input
+    pendingSeekTimeout = setTimeout(() => {
+      if (!player || !player.currentTime || errorActive) {
+        accumulatedSeekOffset = 0;
+        return;
+      }
+
+      try {
+        const currentTime = player.currentTime();
+        const duration = player.duration();
+        const newTime = Math.max(
+          0,
+          Math.min(duration, currentTime + accumulatedSeekOffset)
+        );
+
+        // Execute the accumulated seek
+        player.currentTime(newTime);
+
+        // Update seek bar
+        const seekBar = document.getElementById("customSeek");
+        if (seekBar) {
+          seekBar.value = newTime;
+        }
+
+        // Show appropriate overlay
+        if (accumulatedSeekOffset > 0) {
+          showOverlay("forward");
+        } else if (accumulatedSeekOffset < 0) {
+          showOverlay("backward");
+        }
+
+        // Reset accumulated offset
+        accumulatedSeekOffset = 0;
+
+        // Resume playback if it was playing before
+        if (wasPlayingBeforeSeek && !userManuallyPaused) {
+          pendingResumeTimeout = setTimeout(() => {
+            player.play().catch((err) => {
+              console.log("Resume after debounced seek failed:", err);
+            });
+          }, 200);
+        }
+      } catch (err) {
+        console.warn("Debounced seek error:", err);
+        accumulatedSeekOffset = 0;
+      }
+
+      pendingSeekTimeout = null;
+    }, 300); // Wait 300ms after last input before executing seek
   }
 
   function updateVolume(direction) {
@@ -396,6 +513,14 @@ function VideoJsPlayer(poster = "") {
           player &&
           typeof player.currentTime === "function"
         ) {
+          // Throttle seek bar updates to prevent buffer overload
+          const now = Date.now();
+          if (now - lastSeekTime < 100) {
+            // Ignore updates faster than 100ms
+            return;
+          }
+          lastSeekTime = now;
+
           isSeekBarDragging = true;
 
           // Store play state before seeking
@@ -567,213 +692,205 @@ function VideoJsPlayer(poster = "") {
         : [];
       const selectedMovieId = localStorage.getItem("selectedMovieId");
 
-      
- const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) {
-          navbarEl.style.display = "block";
-        }
-        if (fromValue === "series") {
-          const episodeId = localStorage.getItem("selectedEpisodeId");
-          localStorage.setItem("lastPlayedEpisodeId", episodeId);
-        }
+      const navbarEl = document.querySelector("#navbar-root");
+      if (navbarEl) {
+        navbarEl.style.display = "block";
+      }
+      if (fromValue === "series") {
+        const episodeId = localStorage.getItem("selectedEpisodeId");
+        localStorage.setItem("lastPlayedEpisodeId", episodeId);
+      }
 
-        const currentPlayer = player;
+      const currentPlayer = player;
 
-        if (!isYouTube) {
-          if (currentPlayer) {
-            let resumeTime = 0;
-            let duration = 0;
+      if (!isYouTube) {
+        if (currentPlayer) {
+          let resumeTime = 0;
+          let duration = 0;
 
-            try {
-              if (!isLive && typeof currentPlayer.currentTime === "function") {
-                resumeTime = currentPlayer.currentTime();
-              }
-              if (typeof currentPlayer.duration === "function") {
-                duration = currentPlayer.duration();
-              }
-            } catch (e) {
-              resumeTime = 0;
-              duration = 0;
+          try {
+            if (!isLive && typeof currentPlayer.currentTime === "function") {
+              resumeTime = currentPlayer.currentTime();
             }
+            if (typeof currentPlayer.duration === "function") {
+              duration = currentPlayer.duration();
+            }
+          } catch (e) {
+            resumeTime = 0;
+            duration = 0;
+          }
 
-            const isVideoCompleted =
-              duration > 0 && Math.abs(resumeTime - duration) < 5; // 5 second buffer
+          const isVideoCompleted =
+            duration > 0 && Math.abs(resumeTime - duration) < 5; // 5 second buffer
 
-            // If video is completed, focus on next episode (for series)
-            if (isVideoCompleted) {
-              if (fromValue === "series") {
-                const currentEpisodeId =
-                  localStorage.getItem("selectedEpisodeId");
-                const seriesEpisodes =
-                  JSON.parse(localStorage.getItem("seriesEpisodesData")) || {};
-                const currentSeason =
-                  localStorage.getItem("selectedSeason") || "1";
+          // If video is completed, focus on next episode (for series)
+          if (isVideoCompleted) {
+            if (fromValue === "series") {
+              const currentEpisodeId =
+                localStorage.getItem("selectedEpisodeId");
+              const seriesEpisodes =
+                JSON.parse(localStorage.getItem("seriesEpisodesData")) || {};
+              const currentSeason =
+                localStorage.getItem("selectedSeason") || "1";
 
-                // Find current episode and get next one
-                const seasonEpisodes = seriesEpisodes[currentSeason] || [];
-                const currentEpisodeIndex = seasonEpisodes.findIndex(
-                  (ep) => ep.id.toString() === currentEpisodeId
-                );
+              // Find current episode and get next one
+              const seasonEpisodes = seriesEpisodes[currentSeason] || [];
+              const currentEpisodeIndex = seasonEpisodes.findIndex(
+                (ep) => ep.id.toString() === currentEpisodeId
+              );
 
-                if (
-                  currentEpisodeIndex !== -1 &&
-                  currentEpisodeIndex < seasonEpisodes.length - 1
-                ) {
-                  // Focus on next episode
-                  const nextEpisodeId =
-                    seasonEpisodes[currentEpisodeIndex + 1].id;
-                  localStorage.setItem(
-                    "lastPlayedEpisodeId",
-                    nextEpisodeId.toString()
-                  );
-                } else {
-                  // No next episode, remove the focus marker
-                  localStorage.removeItem("lastPlayedEpisodeId");
-                }
-
-                // Remove the completed episode from continue watching
-                removeEpisodeFromContinueWatching(currentEpisodeId);
-
-                // Only remove from continue watching if ALL episodes in the series are completed
-                const allEpisodesCompleted = checkIfAllEpisodesCompleted(
-                  currentEpisodeId,
-                  seriesEpisodes
-                );
-                if (allEpisodesCompleted) {
-                  removeItemFromHistoryById(
-                    localStorage.getItem("selectedSeriesId"),
-                    "continueWatchingSeries"
-                  );
-                }
-              } else if (fromValue === "movie") {
-                // MOVIES: Remove from continue watching when completed
-                removeItemFromHistoryById(
-                  localStorage.getItem("selectedMovieId"),
-                  "continueWatchingMovies"
-                );
-              }
-              // If there are still incomplete episodes, keep the series in continue watching
-            } else if (resumeTime > 5 && !isVideoCompleted) {
-              const continueWatchingItem = {
-                itemId: playingItemData.season
-                  ? localStorage.getItem("selectedSeriesId")
-                  : localStorage.getItem("selectedMovieId"),
-                episodeId: playingItemData.season
-                  ? localStorage.getItem("selectedEpisodeId")
-                  : null,
-                resumeTime,
-                duration,
-                type: playingItemData.season ? "series" : "movie",
-              };
-
-              // Load playlists
-              let playlists =
-                JSON.parse(localStorage.getItem("playlistsData")) || [];
-
-              playlists = playlists.map((pl) => {
-                if (pl.playlistName !== currentPlaylistName) return pl;
-
-                if (continueWatchingItem.type === "series") {
-                  // Remove old entry for same series+episode
-                  let updatedSeries = (pl.continueWatchingSeries || []).filter(
-                    (item) =>
-                      !(
-                        item.itemId === continueWatchingItem.itemId &&
-                        item.episodeId === continueWatchingItem.episodeId
-                      )
-                  );
-                  pl = { ...pl, continueWatchingSeries: updatedSeries };
-                } else {
-                  // Remove old entry for same movie
-                  let updatedMovies = (pl.continueWatchingMovies || []).filter(
-                    (item) => item.itemId !== continueWatchingItem.itemId
-                  );
-                  pl = { ...pl, continueWatchingMovies: updatedMovies };
-                }
-
-                return pl;
-              });
-
-              // Save cleaned playlists back to localStorage
-              localStorage.setItem("playlistsData", JSON.stringify(playlists));
-
-              // Finally, add updated item via your function
-              if (continueWatchingItem.type === "series") {
-                addItemToHistory(
-                  continueWatchingItem,
-                  "continueWatchingSeries"
+              if (
+                currentEpisodeIndex !== -1 &&
+                currentEpisodeIndex < seasonEpisodes.length - 1
+              ) {
+                // Focus on next episode
+                const nextEpisodeId =
+                  seasonEpisodes[currentEpisodeIndex + 1].id;
+                localStorage.setItem(
+                  "lastPlayedEpisodeId",
+                  nextEpisodeId.toString()
                 );
               } else {
-                addItemToHistory(
-                  continueWatchingItem,
-                  "continueWatchingMovies"
+                // No next episode, remove the focus marker
+                localStorage.removeItem("lastPlayedEpisodeId");
+              }
+
+              // Remove the completed episode from continue watching
+              removeEpisodeFromContinueWatching(currentEpisodeId);
+
+              // Only remove from continue watching if ALL episodes in the series are completed
+              const allEpisodesCompleted = checkIfAllEpisodesCompleted(
+                currentEpisodeId,
+                seriesEpisodes
+              );
+              if (allEpisodesCompleted) {
+                removeItemFromHistoryById(
+                  localStorage.getItem("selectedSeriesId"),
+                  "continueWatchingSeries"
                 );
               }
+            } else if (fromValue === "movie") {
+              // MOVIES: Remove from continue watching when completed
+              removeItemFromHistoryById(
+                localStorage.getItem("selectedMovieId"),
+                "continueWatchingMovies"
+              );
             }
+            // If there are still incomplete episodes, keep the series in continue watching
+          } else if (resumeTime > 5 && !isVideoCompleted) {
+            const continueWatchingItem = {
+              itemId: playingItemData.season
+                ? localStorage.getItem("selectedSeriesId")
+                : localStorage.getItem("selectedMovieId"),
+              episodeId: playingItemData.season
+                ? localStorage.getItem("selectedEpisodeId")
+                : null,
+              resumeTime,
+              duration,
+              type: playingItemData.season ? "series" : "movie",
+            };
 
-            // Set player to null first to prevent further access
-            player = null;
+            // Load playlists
+            let playlists =
+              JSON.parse(localStorage.getItem("playlistsData")) || [];
 
-            // Then safely dispose
-            try {
-              if (typeof currentPlayer.pause === "function") {
-                currentPlayer.pause();
+            playlists = playlists.map((pl) => {
+              if (pl.playlistName !== currentPlaylistName) return pl;
+
+              if (continueWatchingItem.type === "series") {
+                // Remove old entry for same series+episode
+                let updatedSeries = (pl.continueWatchingSeries || []).filter(
+                  (item) =>
+                    !(
+                      item.itemId === continueWatchingItem.itemId &&
+                      item.episodeId === continueWatchingItem.episodeId
+                    )
+                );
+                pl = { ...pl, continueWatchingSeries: updatedSeries };
+              } else {
+                // Remove old entry for same movie
+                let updatedMovies = (pl.continueWatchingMovies || []).filter(
+                  (item) => item.itemId !== continueWatchingItem.itemId
+                );
+                pl = { ...pl, continueWatchingMovies: updatedMovies };
               }
-            } catch (err) {
-              console.warn("Player pause error:", err);
+
+              return pl;
+            });
+
+            // Save cleaned playlists back to localStorage
+            localStorage.setItem("playlistsData", JSON.stringify(playlists));
+
+            // Finally, add updated item via your function
+            if (continueWatchingItem.type === "series") {
+              addItemToHistory(continueWatchingItem, "continueWatchingSeries");
+            } else {
+              addItemToHistory(continueWatchingItem, "continueWatchingMovies");
             }
+          }
 
-            try {
-              if (typeof currentPlayer.dispose === "function") {
-                currentPlayer.dispose();
-              }
-            } catch (err) {
-              console.warn("Player dispose error:", err);
+          // Set player to null first to prevent further access
+          player = null;
+
+          // Then safely dispose
+          try {
+            if (typeof currentPlayer.pause === "function") {
+              currentPlayer.pause();
             }
+          } catch (err) {
+            console.warn("Player pause error:", err);
           }
 
-          if (fromValue == "movie") {
-            const isContinueWatchingMovie = allRecentlyWatchedMovies.some(
-              (movie) =>
-                movie &&
-                movie.itemId === localStorage.getItem("selectedMovieId")
-            );
-
-            localStorage.setItem(
-              "isContinueWatchingMovie",
-              isContinueWatchingMovie == false ? "true" : "false"
-            );
-
-            buildDynamicSidebarOptions();
-            localStorage.setItem("currentPage", "movieDetailPage");
-            Router.showPage("movieDetailPage");
-          } else {
-            const isContinueWatchingSeries = allRecentlyWatchedSeries.some(
-              (series) =>
-                series &&
-                series.itemId === localStorage.getItem("selectedSeriesId")
-            );
-
-            localStorage.setItem(
-              "isContinueWatchingSeries",
-              isContinueWatchingSeries === false ? "true" : "false"
-            );
-            buildDynamicSidebarOptions();
-            localStorage.setItem("currentPage", "seriesDetailPage");
-            Router.showPage("seriesDetailPage");
-          }
-        } else {
-          if (typeof currentPlayer.dispose === "function") {
-            currentPlayer.dispose();
-          }
-          if (fromValue == "movie") {
-            localStorage.setItem("currentPage", "movieDetailPage");
-            Router.showPage("movieDetailPage");
-          } else {
-            localStorage.setItem("currentPage", "seriesDetailPage");
-            Router.showPage("seriesDetailPage");
+          try {
+            if (typeof currentPlayer.dispose === "function") {
+              currentPlayer.dispose();
+            }
+          } catch (err) {
+            console.warn("Player dispose error:", err);
           }
         }
+
+        if (fromValue == "movie") {
+          const isContinueWatchingMovie = allRecentlyWatchedMovies.some(
+            (movie) =>
+              movie && movie.itemId === localStorage.getItem("selectedMovieId")
+          );
+
+          localStorage.setItem(
+            "isContinueWatchingMovie",
+            isContinueWatchingMovie == false ? "true" : "false"
+          );
+
+          buildDynamicSidebarOptions();
+          localStorage.setItem("currentPage", "movieDetailPage");
+          Router.showPage("movieDetailPage");
+        } else {
+          const isContinueWatchingSeries = allRecentlyWatchedSeries.some(
+            (series) =>
+              series &&
+              series.itemId === localStorage.getItem("selectedSeriesId")
+          );
+
+          localStorage.setItem(
+            "isContinueWatchingSeries",
+            isContinueWatchingSeries === false ? "true" : "false"
+          );
+          buildDynamicSidebarOptions();
+          localStorage.setItem("currentPage", "seriesDetailPage");
+          Router.showPage("seriesDetailPage");
+        }
+      } else {
+        if (typeof currentPlayer.dispose === "function") {
+          currentPlayer.dispose();
+        }
+        if (fromValue == "movie") {
+          localStorage.setItem("currentPage", "movieDetailPage");
+          Router.showPage("movieDetailPage");
+        } else {
+          localStorage.setItem("currentPage", "seriesDetailPage");
+          Router.showPage("seriesDetailPage");
+        }
+      }
     }
 
     // Helper function to remove completed episode from continue watching
@@ -1037,27 +1154,9 @@ function VideoJsPlayer(poster = "") {
                 typeof player.currentTime === "function"
               ) {
                 try {
-                  // Store play state and pause during seek
-                  wasPlayingBeforeSeek = !player.paused();
-                  if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                    player.pause();
-                  }
-
-                  const newTime = Math.max(0, player.currentTime() - 10);
-                  player.currentTime(newTime);
+                  // Use debounced seek to prevent buffer overload
+                  debouncedSeek(-10);
                   showOverlay("backward");
-                  seekBar.value = newTime;
-
-                  // Only resume if it was playing AND not manually paused
-                  if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                    setTimeout(() => {
-                      player
-                        .play()
-                        .catch((err) =>
-                          console.log("Resume after seek failed:", err)
-                        );
-                    }, 200);
-                  }
                 } catch (err) {
                   console.warn("Player seek error:", err);
                 }
@@ -1072,30 +1171,9 @@ function VideoJsPlayer(poster = "") {
                 typeof player.currentTime === "function"
               ) {
                 try {
-                  // Store play state and pause during seek
-                  wasPlayingBeforeSeek = !player.paused();
-                  if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                    player.pause();
-                  }
-
-                  const newTime = Math.min(
-                    player.duration(),
-                    player.currentTime() + 10
-                  );
-                  player.currentTime(newTime);
+                  // Use debounced seek to prevent buffer overload
+                  debouncedSeek(10);
                   showOverlay("forward");
-                  seekBar.value = newTime;
-
-                  // Only resume if it was playing AND not manually paused
-                  if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                    setTimeout(() => {
-                      player
-                        .play()
-                        .catch((err) =>
-                          console.log("Resume after seek failed:", err)
-                        );
-                    }, 200);
-                  }
                 } catch (err) {
                   console.warn("Player seek error:", err);
                 }
@@ -1161,25 +1239,9 @@ function VideoJsPlayer(poster = "") {
           case "ArrowRight":
             if (!isLive && player && typeof player.currentTime === "function") {
               try {
-                // Store play state and pause during seek
-                wasPlayingBeforeSeek = !player.paused();
-                if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                  player.pause();
-                }
-
-                player.currentTime(player.currentTime() + 10);
+                // Use debounced seek to prevent buffer overload
+                debouncedSeek(10);
                 showOverlay("forward");
-
-                // Only resume if it was playing AND not manually paused
-                if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                  setTimeout(() => {
-                    player
-                      .play()
-                      .catch((err) =>
-                        console.log("Resume after seek failed:", err)
-                      );
-                  }, 200);
-                }
               } catch (err) {
                 console.warn("Player seek error:", err);
               }
@@ -1189,25 +1251,9 @@ function VideoJsPlayer(poster = "") {
           case "ArrowLeft":
             if (!isLive && player && typeof player.currentTime === "function") {
               try {
-                // Store play state and pause during seek
-                wasPlayingBeforeSeek = !player.paused();
-                if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                  player.pause();
-                }
-
-                player.currentTime(player.currentTime() - 10);
+                // Use debounced seek to prevent buffer overload
+                debouncedSeek(-10);
                 showOverlay("backward");
-
-                // Only resume if it was playing AND not manually paused
-                if (wasPlayingBeforeSeek && !userManuallyPaused) {
-                  setTimeout(() => {
-                    player
-                      .play()
-                      .catch((err) =>
-                        console.log("Resume after seek failed:", err)
-                      );
-                  }, 200);
-                }
               } catch (err) {
                 console.warn("Player seek error:", err);
               }
@@ -1240,25 +1286,9 @@ function VideoJsPlayer(poster = "") {
         case "ArrowRight":
           if (!isLive && player && typeof player.currentTime === "function") {
             try {
-              // Store play state and pause during seek
-              wasPlayingBeforeSeek = !player.paused();
-              if (wasPlayingBeforeSeek) {
-                player.pause();
-              }
-
-              player.currentTime(player.currentTime() + 10);
+              // Use debounced seek to prevent buffer overload
+              debouncedSeek(10);
               showOverlay("forward");
-
-              // Only resume if it was playing
-              if (wasPlayingBeforeSeek) {
-                setTimeout(() => {
-                  player
-                    .play()
-                    .catch((err) =>
-                      console.log("Resume after seek failed:", err)
-                    );
-                }, 200);
-              }
             } catch (err) {
               console.warn("Player seek error:", err);
             }
@@ -1268,25 +1298,9 @@ function VideoJsPlayer(poster = "") {
         case "ArrowLeft":
           if (!isLive && player && typeof player.currentTime === "function") {
             try {
-              // Store play state and pause during seek
-              wasPlayingBeforeSeek = !player.paused();
-              if (wasPlayingBeforeSeek) {
-                player.pause();
-              }
-
-              player.currentTime(player.currentTime() - 10);
+              // Use debounced seek to prevent buffer overload
+              debouncedSeek(-10);
               showOverlay("backward");
-
-              // Only resume if it was playing
-              if (wasPlayingBeforeSeek) {
-                setTimeout(() => {
-                  player
-                    .play()
-                    .catch((err) =>
-                      console.log("Resume after seek failed:", err)
-                    );
-                }, 200);
-              }
             } catch (err) {
               console.warn("Player seek error:", err);
             }
@@ -1306,7 +1320,17 @@ function VideoJsPlayer(poster = "") {
     document.addEventListener("keydown", videojsPlayerdownHandler);
 
     VideoJsPlayer.cleanup = function () {
-      // Remove event listener first
+      // Clear any pending timeouts first
+      if (pendingSeekTimeout) {
+        clearTimeout(pendingSeekTimeout);
+        pendingSeekTimeout = null;
+      }
+      if (pendingResumeTimeout) {
+        clearTimeout(pendingResumeTimeout);
+        pendingResumeTimeout = null;
+      }
+
+      // Remove event listener
       try {
         document.removeEventListener("keydown", videojsPlayerdownHandler);
       } catch (err) {
@@ -1320,6 +1344,8 @@ function VideoJsPlayer(poster = "") {
       isPlayPauseFocused = true;
       isAspectRatioFocused = false;
       userManuallyPaused = false;
+      accumulatedSeekOffset = 0;
+      lastSeekTime = 0;
 
       // Store player reference to avoid race conditions
       const currentPlayer = player;
