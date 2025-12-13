@@ -1523,9 +1523,7 @@ function LivePage() {
           } else {
             // Not in fullscreen - original behavior
             if (playerSubFocus === 1) {
-              // From Play/Pause back to Fullscreen (0)
-              focusedSection = "player";
-              playerSubFocus = 0;
+       navigateLeft();
             } else {
               navigateLeft();
             }

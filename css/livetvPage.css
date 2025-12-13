@@ -730,9 +730,9 @@
 }
 
 .live-control-btn-focused {
-    background: var(--gold) !important;
-    color: white !important;
-    transform: scale(1.1);
+    /* background: var(--gold) !important; */
+    /* color: white !important; */
+    /* transform: scale(1.1); */
     /* box-shadow: 0 0 20px rgba(245, 197, 24, 0.5); */
 }
 
