@@ -56,19 +56,23 @@ window.onload = function () {
     }
   });
 
+  if (typeof Toaster === "function") Toaster();
+
   const navbarRoot = document.getElementById("navbar-root");
   if (navbarRoot) {
     navbarRoot.innerHTML = Navbar();
     initNavbar();
   }
 
-  Router.showPage("splashScreen");
+  // Show splash screen first
+  showSplashScreen();
 
   setTimeout(() => {
     const playlistsData = localStorage.getItem("playlistsData")
       ? JSON.parse(localStorage.getItem("playlistsData"))
       : [];
     const isLogin = localStorage.getItem("isLogin") === "true";
+
     if (isLogin) {
       localStorage.setItem("currentPage", "preLoginPage");
       Router.showPage("preLoginPage");
@@ -82,10 +86,32 @@ window.onload = function () {
     }
   }, 5000);
 
-  if (typeof Toaster === "function") Toaster();
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();
 };
+
+function showSplashScreen() {
+  const splashPage = document.getElementById("splash-page");
+  splashPage.innerHTML = `
+    <div class="splash-page-container">
+      <img src="/assets/main-logo.png" alt="Logo" class="spash-logo" />
+    </div>
+  `;
+  splashPage.style.display = "block";
+
+  // Hide navbar during splash screen
+  const navbarRoot = document.getElementById("navbar-root");
+  if (navbarRoot) {
+    navbarRoot.style.display = "none";
+  }
+
+  const allPages = document.querySelectorAll(".page");
+  allPages.forEach((page) => {
+    if (page.id !== "splash-page") {
+      page.style.display = "none";
+    }
+  });
+}
 
 function renderNavbarVisibility() {
   const currentPage = localStorage.getItem("currentPage");
