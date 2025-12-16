@@ -565,17 +565,25 @@ async function HomePage() {
     document.addEventListener("keydown", homePageKeydownEvents);
     document.addEventListener("keydown", (e) => {
       if (localStorage.getItem("currentPage") == "dashboard") {
-        const backKeys = [10009, "Escape", "Back", "BrowserBack", "XF86Back"];
+        const backKeys = [
+          10009,
+          "Escape",
+          "Back",
+          "BrowserBack",
+          "XF86Back",
+          "Backspace",
+        ];
         if (
-          (e.key === "XF86Exit" ||
-            e.key === "XF86Home" ||
-            e.keyCode === 10071 ||
-            backKeys.includes(e.keyCode) ||
-            backKeys.includes(e.key)) &&
-          typeof tizen !== "undefined"
+          e.key === "XF86Exit" ||
+          e.key === "XF86Home" ||
+          e.keyCode === 10071 ||
+          backKeys.includes(e.keyCode) ||
+          backKeys.includes(e.key)
         ) {
           e.preventDefault();
-          localStorage.setItem("currentPage", "exitPage");
+          localStorage.setItem("returnPage", "homePage");
+          localStorage.setItem("returnFocus", "homePage");
+          localStorage.setItem("currentPage", "exitModal");
           Router.showPage("exitModal");
         }
       }

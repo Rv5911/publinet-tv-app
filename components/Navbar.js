@@ -611,12 +611,43 @@ function initNavbar() {
     const key = e.key;
 
     // Pages where navbar should not be active
-    const NAVBAR_INACTIVE_PAGES = ["loginPage", "listPage", "settingsPage"];
+    const NAVBAR_INACTIVE_PAGES = [
+      "loginPage",
+      "listPage",
+      "settingsPage",
+      "exitModal",
+    ];
     if (NAVBAR_INACTIVE_PAGES.includes(currentPage)) {
       return; // Don't process any navbar keydown events on these pages
     }
 
     const isSearchFocused = document.activeElement === searchInput;
+
+    const backKeys = [
+      10009,
+      "Escape",
+      "Back",
+      "BrowserBack",
+      "XF86Back",
+      "Backspace",
+    ];
+
+    if (backKeys.includes(key)) {
+      if (
+        currentPage === "movieDetailPage" ||
+        currentPage === "seriesDetailPage" ||
+        currentPage === "videoJsPlayer"
+      ) {
+        return;
+      }
+      e.preventDefault();
+      localStorage.setItem("returnPage", currentPage);
+      localStorage.setItem("returnFocus", "navbar");
+      localStorage.setItem("currentPage", "exitModal");
+      Router.showPage("exitModal");
+      return;
+    }
+
     if (
       isSearchFocused &&
       !["ArrowLeft", "ArrowRight", "ArrowDown"].includes(key)
@@ -974,7 +1005,12 @@ function initNavbar() {
     const searchIcon = document.querySelector(".nav-search-bar");
 
     if (searchContainer) {
-      if (PAGES_WITH_SEARCH.includes(page)) {
+      let checkPage = page;
+      if (page === "exitModal") {
+        checkPage = localStorage.getItem("returnPage") || page;
+      }
+
+      if (PAGES_WITH_SEARCH.includes(checkPage)) {
         searchContainer.style.visibility = "visible";
         // Reset display property that might have been set by other pages (e.g., LivePage)
         if (searchInput) searchInput.style.display = "";

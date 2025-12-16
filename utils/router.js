@@ -68,9 +68,12 @@ const Router = (function () {
       pages[currentPageName].cleanup();
     }
 
-    Object.values(pages).forEach(function (p) {
-      if (p.el) p.el.style.display = "none";
-    });
+    // Only hide other pages if we are NOT opening the exit modal (overlay)
+    if (name !== "exitModal") {
+      Object.values(pages).forEach(function (p) {
+        if (p.el) p.el.style.display = "none";
+      });
+    }
 
     var page = pages[name];
     if (!page) return;

@@ -1326,18 +1326,12 @@ function handleSeriesKeyNavigation(e) {
     case "BrowserBack":
     case "XF86Back":
     case "SoftLeft":
-      seriesNavigationState.currentCategoryIndex = 0;
-      seriesNavigationState.currentCardIndex = 0;
-
-      const seriesContainer = document.querySelector(".series-page-container");
-      if (seriesContainer) {
-        seriesContainer.scrollTop = 0;
-      }
-
-      const navbarElS = document.querySelector("#navbar-root");
-      if (navbarElS) {
-        navbarElS.style.display = "block";
-      }
+    case "Backspace":
+    case 10009:
+      localStorage.setItem("returnPage", "seriesPage");
+      localStorage.setItem("returnFocus", "seriesPage");
+      localStorage.setItem("currentPage", "exitModal");
+      Router.showPage("exitModal");
       break;
   }
 

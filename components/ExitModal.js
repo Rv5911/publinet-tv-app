@@ -1,13 +1,13 @@
 function ExitModal() {
   // Remove existing modal and listeners if any
-  const existingModal = document.querySelector('.exit-main-container');
+  const existingModal = document.querySelector(".exit-main-container");
   if (existingModal) {
     existingModal.remove();
     if (ExitModal.cleanup) ExitModal.cleanup();
   }
 
   function handleExitClick(target) {
-    if (localStorage.getItem("currentPage") !== "exitPage") return;
+    if (localStorage.getItem("currentPage") !== "exitModal") return;
     if (target instanceof Event) target = target.target;
     if (!target) return;
 
@@ -18,8 +18,8 @@ function ExitModal() {
       if (ExitModal.cleanup) ExitModal.cleanup();
 
       try {
-              const app = tizen.application.getCurrentApplication();
-      if (app) app.exit();
+        const app = tizen.application.getCurrentApplication();
+        if (app) app.exit();
       } catch (err) {
         Toaster.showToast("error", "Failed to exit app");
       }
@@ -35,12 +35,47 @@ function ExitModal() {
   function closeModal() {
     if (ExitModal.cleanup) ExitModal.cleanup();
 
-    const modal = document.querySelector('.exit-main-container');
+    const modal = document.querySelector(".exit-main-container");
     if (modal) modal.remove();
-    localStorage.setItem("currentPage", "dashboard");
-    Router.showPage("dashboard");
-    document.body.style.backgroundImage = "none";
+
+    const returnPage = localStorage.getItem("returnPage") || "homePage";
+    const returnFocus = localStorage.getItem("returnFocus");
+
+    // Clear return state
+    localStorage.removeItem("returnPage");
+    localStorage.removeItem("returnFocus");
+
+    localStorage.setItem("currentPage", returnPage);
+    // Router.showPage(returnPage); // Removed to prevent reload/re-render. Background is already visible.
+    document.body.style.backgroundImage = "none"; // Ensure background is correct
     document.body.style.backgroundColor = "black";
+
+    // Restore Focus
+    if (returnFocus === "navbar") {
+      setTimeout(() => {
+        const navItems = document.querySelectorAll(".nav-item");
+        let targetItem = null;
+
+        // Find the navbar item that corresponds to the returnPage
+        navItems.forEach((item) => {
+          if (item.getAttribute("data-page") === returnPage) {
+            targetItem = item;
+          }
+        });
+
+        if (targetItem) {
+          targetItem.focus();
+
+          // Trigger any active state logic if needed (usually handled by focus/click)
+          navItems.forEach((item) => item.classList.remove("active"));
+          targetItem.classList.add("active");
+        } else {
+          // Fallback if no specific link matches (e.g. from a detail page if we supported that)
+          // Default to first item or just focus navbar area
+          if (navItems.length > 0) navItems[0].focus();
+        }
+      }, 100);
+    }
   }
 
   setTimeout(() => {
@@ -50,7 +85,7 @@ function ExitModal() {
     let focusIndex = 0;
     const buttons = [
       document.querySelector("#saveBtnExit"),
-      document.querySelector("#backBtnExit")
+      document.querySelector("#backBtnExit"),
     ].filter(Boolean);
 
     function setFocus(index) {
@@ -61,7 +96,13 @@ function ExitModal() {
     }
 
     function exitKeydownHandler(e) {
-      if (localStorage.getItem("currentPage") !== "exitPage") return;
+      if (localStorage.getItem("currentPage") !== "exitModal") return;
+
+      // STRICT BLOCKING: Stop all other listeners from receiving this event
+      e.stopImmediatePropagation();
+
+      // Prevent default for everything unless we explicitly handle it below
+      e.preventDefault();
 
       switch (e.key) {
         case "ArrowRight":
@@ -69,7 +110,6 @@ function ExitModal() {
         case "40":
           if (focusIndex < buttons.length - 1) focusIndex++;
           setFocus(focusIndex);
-          e.preventDefault();
           break;
 
         case "ArrowLeft":
@@ -77,7 +117,6 @@ function ExitModal() {
         case "38":
           if (focusIndex > 0) focusIndex--;
           setFocus(focusIndex);
-          e.preventDefault();
           break;
 
         case "Enter":
@@ -90,6 +129,8 @@ function ExitModal() {
         case "BrowserBack":
         case "XF86Back":
         case "SoftLeft":
+        case "Backspace":
+        case 10009:
           closeModal();
           break;
       }
@@ -97,11 +138,13 @@ function ExitModal() {
 
     const modalContainer = document.querySelector(".exit-main-container");
     modalContainer.addEventListener("click", handleExitClick);
-    document.addEventListener("keydown", exitKeydownHandler);
+
+    // Use Capture Phase (true) to intercept events before other listeners
+    document.addEventListener("keydown", exitKeydownHandler, true);
 
     ExitModal.cleanup = function () {
       modalContainer.removeEventListener("click", handleExitClick);
-      document.removeEventListener("keydown", exitKeydownHandler);
+      document.removeEventListener("keydown", exitKeydownHandler, true);
     };
 
     setFocus(focusIndex);
@@ -109,13 +152,7 @@ function ExitModal() {
 
   return `
     <div class="exit-main-container">
-      <div class="settings-header">
-        <div class="setting-login-header">
-          <img src="/assets/logo.png" alt="Logo" class="setting-header-logo" />
-        </div>
-        ${DateTimeComponent()}
-      </div>
-
+   
       <div class="clear-wrap">
         <div class="clear-panel" role="dialog" aria-labelledby="dialogTitle">
           <h1 class="clear-title" id="dialogTitle">Do you want to Exit the App?</h1>

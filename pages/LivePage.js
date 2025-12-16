@@ -867,19 +867,18 @@ function LivePage() {
           if (playerSubFocus === 1) {
             if (playPauseIcon)
               playPauseIcon.classList.add("lp-control-focused");
-              const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
-              if (icon) {
-                            icon.style.color = "white";
-                            icon.style.zoom = "2";
-              }
-            
+            const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+            if (icon) {
+              icon.style.color = "white";
+              icon.style.zoom = "2";
+            }
           } else if (playerSubFocus === 2) {
             if (aspectRatioBtn) {
               aspectRatioBtn.classList.add("lp-control-focused");
-                           const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+              const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
               if (icon) {
                 icon.style.color = "white";
-                      icon.style.zoom = "2";
+                icon.style.zoom = "2";
               }
             }
           } else if (playerSubFocus === 0) {
@@ -887,7 +886,7 @@ function LivePage() {
               const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
               if (icon) {
                 icon.style.color = "#fdbd0f";
-                      icon.style.zoom = "3";
+                icon.style.zoom = "3";
               }
             }
           }
@@ -1418,7 +1417,15 @@ function LivePage() {
 
     // Handle Fullscreen Exit
     if (
-      ["Escape", "Back", "BrowserBack", "XF86Back", "SoftLeft"].includes(e.key)
+      [
+        "Escape",
+        "Back",
+        "BrowserBack",
+        "XF86Back",
+        "SoftLeft",
+        "Backspace",
+      ].includes(e.key) ||
+      e.keyCode === 10009
     ) {
       if (isFullscreen) {
         e.preventDefault();
@@ -1434,6 +1441,11 @@ function LivePage() {
         } else if (document.msExitFullscreen) {
           document.msExitFullscreen();
         }
+        return;
+      } else {
+        e.preventDefault();
+        localStorage.setItem("currentPage", "exitPage");
+        Router.showPage("exitModal");
         return;
       }
     }
@@ -1537,7 +1549,7 @@ function LivePage() {
           } else {
             // Not in fullscreen - original behavior
             if (playerSubFocus === 1) {
-       navigateLeft();
+              navigateLeft();
             } else {
               navigateLeft();
             }
