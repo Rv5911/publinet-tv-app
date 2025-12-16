@@ -1140,6 +1140,7 @@ async function SeriesDetailPage() {
           if (seriesInfo.youtube_trailer) {
             const trailerUrl = `https://www.youtube.com/watch?v=${seriesInfo.youtube_trailer}`;
             localStorage.setItem("selectedVideoItemUrl", trailerUrl);
+            localStorage.setItem("from", "trailer_series");
 
             // Navigate to videoJsPlayer page
             localStorage.setItem("currentPage", "videojsPlayer");

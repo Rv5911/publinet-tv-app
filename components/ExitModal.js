@@ -50,32 +50,42 @@ function ExitModal() {
     document.body.style.backgroundImage = "none"; // Ensure background is correct
     document.body.style.backgroundColor = "black";
 
-    // Restore Focus
-    if (returnFocus === "navbar") {
-      setTimeout(() => {
-        const navItems = document.querySelectorAll(".nav-item");
-        let targetItem = null;
+    // Force Scroll to Top
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
 
-        // Find the navbar item that corresponds to the returnPage
-        navItems.forEach((item) => {
-          if (item.getAttribute("data-page") === returnPage) {
-            targetItem = item;
-          }
-        });
+    setTimeout(() => {
+      // Special Handling for Movies and Series - Focus FIRST CARD
+      if (returnPage === "moviesPage" && window.resetMoviesFocus) {
+        window.resetMoviesFocus();
+        return;
+      }
+      if (returnPage === "seriesPage" && window.resetSeriesFocus) {
+        window.resetSeriesFocus();
+        return;
+      }
 
-        if (targetItem) {
-          targetItem.focus();
+      // Default Behavior: Focus Navbar
+      const navItems = document.querySelectorAll(".nav-item");
+      let targetItem = null;
 
-          // Trigger any active state logic if needed (usually handled by focus/click)
-          navItems.forEach((item) => item.classList.remove("active"));
-          targetItem.classList.add("active");
-        } else {
-          // Fallback if no specific link matches (e.g. from a detail page if we supported that)
-          // Default to first item or just focus navbar area
-          if (navItems.length > 0) navItems[0].focus();
+      // Find the navbar item that corresponds to the returnPage
+      navItems.forEach((item) => {
+        if (item.getAttribute("data-page") === returnPage) {
+          targetItem = item;
         }
-      }, 100);
-    }
+      });
+
+      if (targetItem) {
+        targetItem.focus();
+        // Trigger any active state logic if needed
+        navItems.forEach((item) => item.classList.remove("active"));
+        targetItem.classList.add("active");
+      } else {
+        if (navItems.length > 0) navItems[0].focus();
+      }
+    }, 100);
   }
 
   setTimeout(() => {

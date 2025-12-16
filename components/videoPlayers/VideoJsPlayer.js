@@ -695,6 +695,10 @@ function VideoJsPlayer(poster = "") {
 
       overlays.forEach((o) => o.classList.add("hidden"));
 
+      // Hide Poster
+      const poster = document.querySelector(".vjs-poster");
+      if (poster) poster.style.opacity = "0"; // Use opacity to hide
+
       if (errorDialog) errorDialog.classList.remove("hidden");
     });
 
@@ -712,12 +716,42 @@ function VideoJsPlayer(poster = "") {
       if (navbarEl) {
         navbarEl.style.display = "block";
       }
+
+      // Simple return for trailers
+      if (fromValue === "trailer_series") {
+        document.body.style.backgroundImage = "none";
+        document.body.style.backgroundColor = "black";
+        disposePlayer();
+        localStorage.setItem("currentPage", "seriesDetailPage");
+        Router.showPage("seriesDetailPage");
+        return;
+      }
+      if (fromValue === "trailer_movie") {
+        document.body.style.backgroundImage = "none";
+        document.body.style.backgroundColor = "black";
+        disposePlayer();
+        localStorage.setItem("currentPage", "movieDetailPage");
+        Router.showPage("movieDetailPage");
+        return;
+      }
+
       if (fromValue === "series") {
         const episodeId = localStorage.getItem("selectedEpisodeId");
         localStorage.setItem("lastPlayedEpisodeId", episodeId);
       }
 
       const currentPlayer = player;
+
+      function disposePlayer() {
+        if (player) {
+          try {
+            player.dispose();
+            player = null;
+          } catch (e) {
+            console.warn("Error disposing player", e);
+          }
+        }
+      }
 
       if (!isYouTube) {
         if (currentPlayer) {

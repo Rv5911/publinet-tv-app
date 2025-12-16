@@ -63,7 +63,8 @@ const Router = (function () {
   function showPage(name) {
     if (
       currentPageName &&
-      typeof pages[currentPageName].cleanup === "function"
+      typeof pages[currentPageName].cleanup === "function" &&
+      name !== "exitModal"
     ) {
       pages[currentPageName].cleanup();
     }

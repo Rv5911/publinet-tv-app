@@ -311,6 +311,7 @@ async function MovieDetailPage() {
               "https://www.youtube.com/watch?v=" +
               movieDetailData.info.youtube_trailer;
             localStorage.setItem("selectedVideoItemUrl", trailerUrl);
+            localStorage.setItem("from", "trailer_movie");
             localStorage.setItem("currentPage", "videojsPlayer");
             Router.showPage("videoJsPlayer");
             document.body.style.backgroundImage = "none";
