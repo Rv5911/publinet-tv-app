@@ -189,7 +189,7 @@
 }
 
 .lp-fullscreen-icon {
-  zoom: 3;
+  zoom: 2;
 }
 
 #lp-fullscreen-btn {
@@ -199,8 +199,8 @@
   align-items: center;
   justify-content: center;
   position: absolute;
-  right: 50px;
-  bottom: 30px;
+  right: 40px;
+  bottom: 20px;
   z-index: 100;
   color: white;
 }
@@ -236,8 +236,7 @@
 
 /* Control Focus Styles */
 .lp-control-focused {
-  transform: scale(1.1);
-  border: 3px solid var(--gold) !important;
+  border: 2px solid var(--gold) !important;
 }
 
 .videojs-aspect-ratio-div.lp-control-focused button,

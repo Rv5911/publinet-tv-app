@@ -867,14 +867,28 @@ function LivePage() {
           if (playerSubFocus === 1) {
             if (playPauseIcon)
               playPauseIcon.classList.add("lp-control-focused");
+              const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+              if (icon) {
+                            icon.style.color = "white";
+                            icon.style.zoom = "2";
+              }
+            
           } else if (playerSubFocus === 2) {
             if (aspectRatioBtn) {
               aspectRatioBtn.classList.add("lp-control-focused");
+                           const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+              if (icon) {
+                icon.style.color = "white";
+                      icon.style.zoom = "2";
+              }
             }
           } else if (playerSubFocus === 0) {
             if (fullscreenBtn) {
               const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
-              if (icon) icon.classList.add("lp-control-focused");
+              if (icon) {
+                icon.style.color = "#fdbd0f";
+                      icon.style.zoom = "3";
+              }
             }
           }
 
