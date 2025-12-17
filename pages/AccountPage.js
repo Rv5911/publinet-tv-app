@@ -1,5 +1,6 @@
 function AccountPage() {
-  const currentPlaylistData=JSON.parse(localStorage.getItem("currentPlaylistData")) || {}
+  const currentPlaylistData =
+    JSON.parse(localStorage.getItem("currentPlaylistData")) || {};
   const existingModal = document.querySelector(".account-page-container");
   if (existingModal) {
     existingModal.remove();
@@ -33,10 +34,10 @@ function AccountPage() {
   setTimeout(() => {
     if (AccountPage.cleanup) AccountPage.cleanup();
 
-           const navbarEl=document.querySelector("#navbar-root");
+    const navbarEl = document.querySelector("#navbar-root");
 
-    if(navbarEl){
-        navbarEl.style.display="none";
+    if (navbarEl) {
+      navbarEl.style.display = "none";
     }
 
     let focusIndex = 0;
@@ -96,7 +97,7 @@ function AccountPage() {
   return `
     <div class="account-page-container">
 
-      <div class="clear-wrap">
+      <div class="account-clear-wrap">
         <div class="clear-panel" role="dialog" aria-labelledby="dialogTitle">
           <h1 class="clear-title" id="dialogTitle">Account Page</h1>
           <div>
@@ -104,22 +105,34 @@ function AccountPage() {
         <div class="account-page-content">
   <div class="account-item">
     <p>Username</p>
-    <p>${(JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info.username || "N/A"}</p>
+    <p>${
+      (JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info
+        .username || "N/A"
+    }</p>
   </div>
 
   <div class="account-item">
     <p>Account Status</p>
-    <p class="account-status">${(JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info.status || "N/A"}</p>
+    <p class="account-status">${
+      (JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info
+        .status || "N/A"
+    }</p>
   </div>
 
   <div class="account-item">
     <p>Expiry Date</p>
-    <p>${formatUnixDate((JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info.exp_date  || "N/A")}</p>
+    <p>${formatUnixDate(
+      (JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info
+        .exp_date || "N/A"
+    )}</p>
   </div>
 
   <div class="account-item">
     <p>Active Connections</p>
-    <p>${(JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info.active_cons  || "N/A"}</p>
+    <p>${
+      (JSON.parse(localStorage.getItem("currentPlaylistData")) || {}).user_info
+        .active_cons || "N/A"
+    }</p>
   </div>
 </div>
 

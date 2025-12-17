@@ -633,14 +633,13 @@ function initNavbar() {
     ];
 
     if (backKeys.includes(key)) {
-      if (
-        currentPage === "movieDetailPage" ||
-        currentPage === "seriesDetailPage" ||
-        currentPage === "videoJsPlayer" ||
-        currentPage === "moviesPage" ||
-        currentPage === "seriesPage" ||
-        currentPage === "liveTvPage"
-      ) {
+      if (sidebar && !sidebar.classList.contains("option-remove")) {
+        e.preventDefault();
+        closeSidebar();
+        return;
+      }
+
+      if (currentPage !== "homePage") {
         return;
       }
       e.preventDefault();
