@@ -1442,11 +1442,6 @@ function LivePage() {
           document.msExitFullscreen();
         }
         return;
-      } else {
-        e.preventDefault();
-        localStorage.setItem("currentPage", "exitPage");
-        Router.showPage("exitModal");
-        return;
       }
     }
 

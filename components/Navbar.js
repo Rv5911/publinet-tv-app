@@ -636,7 +636,10 @@ function initNavbar() {
       if (
         currentPage === "movieDetailPage" ||
         currentPage === "seriesDetailPage" ||
-        currentPage === "videoJsPlayer"
+        currentPage === "videoJsPlayer" ||
+        currentPage === "moviesPage" ||
+        currentPage === "seriesPage" ||
+        currentPage === "liveTvPage"
       ) {
         return;
       }

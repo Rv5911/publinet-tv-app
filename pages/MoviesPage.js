@@ -1217,10 +1217,18 @@ function handleMoviesKeyNavigation(e) {
     case "SoftLeft":
     case "Backspace":
     case 10009:
-      localStorage.setItem("returnPage", "moviesPage");
-      localStorage.setItem("returnFocus", "moviesPage");
-      localStorage.setItem("currentPage", "exitModal");
-      Router.showPage("exitModal");
+      moviesNavigationState.currentCategoryIndex = 0;
+      moviesNavigationState.currentCardIndex = 0;
+
+      const moviesContainer = document.querySelector(".movies-page-container");
+      if (moviesContainer) {
+        moviesContainer.scrollTop = 0;
+      }
+
+      const navbarEl = document.querySelector("#navbar-root");
+      if (navbarEl) {
+        navbarEl.style.display = "block";
+      }
       break;
   }
 
