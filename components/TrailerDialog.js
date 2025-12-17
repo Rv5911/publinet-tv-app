@@ -100,7 +100,7 @@ function TrailerDialog(onConfirm, onCancel) {
   return `
       <div class="trailer-dialog-container">
           <div class="trailer-dialog-panel" role="dialog" aria-labelledby="trailerDialogTitle">
-            <h1 class="trailer-dialog-title" id="trailerDialogTitle">Trailer will be open on samsung browser do you want to open that?</h1>
+            <h1 class="trailer-dialog-title" id="trailerDialogTitle">Trailer will be open on external browser do you want to open that?</h1>
             <div class="trailer-dialog-actions">
               <button class="trailer-btn yes" id="trailerYesBtn">Yes</button>
               <button class="trailer-btn no" id="trailerNoBtn">No</button>

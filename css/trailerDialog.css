@@ -13,7 +13,8 @@
 }
 
 .trailer-dialog-panel {
-  background-color: #1a1a1a;
+  background-color: black;
+  zoom: 1.4;
   border: 2px solid #333;
   border-radius: 10px;
   padding: 30px;
