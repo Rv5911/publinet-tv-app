@@ -1,0 +1,69 @@
+/* Trailer Dialog CSS */
+.trailer-dialog-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85); /* Dark overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.trailer-dialog-panel {
+  background-color: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 10px;
+  padding: 30px;
+  width: 50%;
+  max-width: 600px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.trailer-dialog-title {
+  color: #fff;
+  font-size: 24px;
+  margin-bottom: 30px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.trailer-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.trailer-btn {
+  padding: 10px 40px;
+  font-size: 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #333;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.trailer-btn.yes {
+  background-color: #2ecc71;
+  color: #000;
+  font-weight: bold;
+}
+
+.trailer-btn.no {
+  background-color: #e74c3c;
+  color: #fff;
+  font-weight: bold;
+}
+
+.trailer-btn:focus,
+.trailer-btn.trailer-focused {
+  outline: none;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  border: 2px solid #fff;
+}

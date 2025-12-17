@@ -1139,20 +1139,49 @@ async function SeriesDetailPage() {
         } else if (focused === trailerBtn) {
           if (seriesInfo.youtube_trailer) {
             const trailerUrl = `https://www.youtube.com/watch?v=${seriesInfo.youtube_trailer}`;
-            localStorage.setItem("selectedVideoItemUrl", trailerUrl);
-            localStorage.setItem("from", "trailer_series");
 
-            // Navigate to videoJsPlayer page
-            localStorage.setItem("currentPage", "videojsPlayer");
+            function openBrowser() {
+              if (typeof tizen !== "undefined" && tizen.application) {
+                var appControl = new tizen.ApplicationControl(
+                  "http://tizen.org/appcontrol/operation/view",
+                  trailerUrl,
+                  null,
+                  null,
+                  null
+                );
 
-            const navbarEl = document.querySelector("#navbar-root");
-            if (navbarEl) {
-              navbarEl.style.display = "none";
+                tizen.application.launchAppControl(
+                  appControl,
+                  null,
+                  function () {
+                    console.log("launch application control succeed");
+                  },
+                  function (e) {
+                    console.error("launch failed: " + e.message);
+                    window.open(trailerUrl, "_blank");
+                  },
+                  null
+                );
+              } else {
+                window.open(trailerUrl, "_blank");
+              }
             }
-            Router.showPage("videoJsPlayer");
 
-            document.body.style.backgroundImage = "none";
-            document.body.style.backgroundColor = "black";
+            // Show Confirmation Dialog
+            document.body.insertAdjacentHTML(
+              "beforeend",
+              TrailerDialog(
+                function onConfirm() {
+                  // Yes clicked
+                  openBrowser();
+                  setFocus(trailerBtn);
+                },
+                function onCancel() {
+                  // No clicked
+                  setFocus(trailerBtn);
+                }
+              )
+            );
           } else {
             alert("No trailer available");
           }
