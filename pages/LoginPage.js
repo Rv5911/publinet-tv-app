@@ -257,8 +257,8 @@ function LoginPage() {
 
         <div class="login-inputs-div">
           <div><input class="playlistname-input  login-input"  value="a"  type="text" placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input"  type="text" value="Abel57" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input" type="password" value="222333" placeholder="Enter Password"></div>
+          <div><input class="username-input login-input"  type="text" value="testapp265" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input" type="password" value="MaJWZ7EmGC" placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>

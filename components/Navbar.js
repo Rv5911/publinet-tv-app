@@ -923,6 +923,8 @@ function initNavbar() {
             window.cleanupSeriesNavigation();
           }
           const page = navItems[currentIndex - 1].getAttribute("data-page");
+                      localStorage.removeItem("previousMovieStreamId");
+                localStorage.removeItem("previousSeriesStreamId");
           window.searchQuery = "";
           clearMoviesAndSeriesLocalStorage();
           disposeLiveTvPlayer();
@@ -1035,6 +1037,8 @@ function initNavbar() {
   window.updateSearchVisibility = updateSearchVisibility;
 
   function openSidebar() {
+                localStorage.removeItem("previousMovieStreamId");
+                localStorage.removeItem("previousSeriesStreamId");
     buildDynamicSidebarOptions();
     sidebar.classList.remove("option-remove");
     // Manually set display block
@@ -1079,7 +1083,8 @@ function initNavbar() {
 
   function handleLogOut() {
     localStorage.setItem("isLogin", false);
-
+            localStorage.removeItem("previousMovieStreamId");
+                localStorage.removeItem("previousSeriesStreamId");
     const playlistsData = localStorage.getItem("playlistsData")
       ? JSON.parse(localStorage.getItem("playlistsData"))
       : [];
