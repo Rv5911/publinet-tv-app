@@ -182,7 +182,7 @@ async function MovieDetailPage() {
     focusableEls = [
       document.querySelector(".movie-detail-play-button"),
       fromStartBtn,
-      document.querySelector(".movie-detail-more-info-button"),
+      // document.querySelector(".movie-detail-more-info-button"),
       document.querySelector(".movie-detail-fav-button"),
       document.querySelector(".movie-detail-page-header-menu"),
     ];
@@ -387,7 +387,7 @@ async function MovieDetailPage() {
           btn.classList.remove("movie-detail-button-focused");
         });
 
-        if ([playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused)) {
+        if ([playBtn, fromStartBtn,favBtn].includes(focused)) {
           if (window.setNavbarFocus) {
             window.setNavbarFocus("moviesPage");
           } else {
@@ -405,7 +405,7 @@ async function MovieDetailPage() {
         if (focused === menuBtn && playBtn)
           currentFocusIndex = focusableEls.indexOf(playBtn);
         else if (
-          [playBtn, fromStartBtn, trailerBtn, favBtn].includes(focused) &&
+          [playBtn, fromStartBtn,  favBtn].includes(focused) &&
           castItems.length > 0
         )
           currentFocusIndex = focusableEls.indexOf(castItems[0]);
@@ -551,7 +551,7 @@ async function MovieDetailPage() {
               }
               ${
                 data.info && data.info.youtube_trailer
-                  ? '<button class="movie-detail-more-info-button" tabindex="0">Watch Trailer</button>'
+                  ? '<button class="movie-detail-more-info-button" style="display: none;" tabindex="0">Watch Trailer</button>'
                   : ""
               }
               <button class="movie-detail-fav-button" tabindex="0">

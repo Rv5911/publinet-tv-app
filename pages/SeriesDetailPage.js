@@ -311,7 +311,7 @@ async function SeriesDetailPage() {
     focusableEls = [
       playBtn,
       startOverBtn,
-      trailerBtn,
+      // trailerBtn,
       favBtn,
       menuBtn,
       seasonsBtn,
@@ -780,7 +780,7 @@ async function SeriesDetailPage() {
       const topButtons = [
         playBtn,
         startOverBtn,
-        trailerBtn,
+        // trailerBtn,
         favBtn,
         seasonsBtn,
         castBtn,
@@ -1396,7 +1396,7 @@ async function SeriesDetailPage() {
 
     // Add trailer button if available
     if (data.info && data.info.youtube_trailer) {
-      buttonsHtml += `<button class="series-detail-more-info-button" tabindex="0">Watch Trailer</button>`;
+      buttonsHtml += `<button class="series-detail-more-info-button" style="display: none;" tabindex="0">Watch Trailer</button>`;
     }
 
     // Add favorite button
