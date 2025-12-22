@@ -442,7 +442,10 @@ function initNavbar() {
       setupNavbarScrollListener();
     });
     // Observer options: check for child list changes (new pages loading)
-    observer.observe(appContainer, { childList: true, subtree: false });
+    observer.observe(appContainer, {
+      childList: true,
+      subtree: false,
+    });
   }
   const profileIcon = document.getElementById("profileIcon");
   const searchInput = document.getElementById("search-input");
@@ -640,6 +643,24 @@ function initNavbar() {
       }
 
       if (currentPage !== "homePage") {
+        if (currentPage === "movieDetailPage") {
+          e.preventDefault();
+          localStorage.removeItem("selectedMovieId");
+          localStorage.setItem("currentPage", "moviesPage");
+          Router.showPage("moviesPage");
+          return;
+        }
+        if (currentPage === "seriesDetailPage") {
+          const seasonsDropdown = document.querySelector(".seasons-dropdown");
+          if (seasonsDropdown && seasonsDropdown.style.display !== "none") {
+            return;
+          }
+          e.preventDefault();
+          localStorage.removeItem("selectedSeriesId");
+          localStorage.setItem("currentPage", "seriesPage");
+          Router.showPage("seriesPage");
+          return;
+        }
         return;
       }
       e.preventDefault();
@@ -657,7 +678,7 @@ function initNavbar() {
       return;
     }
 
-    if (currentPage === "moviesDetailPage") {
+    if (currentPage === "movieDetailPage") {
       return;
     }
 
