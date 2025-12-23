@@ -576,9 +576,9 @@ async function SeriesDetailPage() {
           <img src="${
             episode.info.movie_image ||
             seriesInfo.cover ||
-            "./assets/noImageFound.png"
+            "./assets/placeholder-img.png"
           }" class="episode-thumbnail" 
-          onerror="this.src='./assets/noImageFound.png'" />
+          onerror="this.src='./assets/placeholder-img.png'" />
           
           <div class="play-icon-overlay">
             <img src="./assets/playicon.png" />
@@ -657,11 +657,11 @@ async function SeriesDetailPage() {
         <img src="${
           castMember.profile_path
             ? castImageUrl + castMember.profile_path
-            : "/assets/placeholder-img.png"
+            : "./assets/placeholder-img.png"
         }" alt="${
           castMember.original_name || "Unknown"
         }" class="series-cast-item-image"
-        onerror="this.src='/assets/placeholder-img.png'"/>
+        onerror="this.src='./assets/placeholder-img.png'"/>
         <p class="series-cast-item-name">${
           castMember.original_name || "Unknown"
         }</p>
@@ -1412,9 +1412,9 @@ async function SeriesDetailPage() {
                     <div class="series-detail-content-main">
                         <div class="series-detail-image">
                             <img src="${
-                              seriesInfo.cover || "./assets/noImageFound.png"
+                              seriesInfo.cover || "./assets/placeholder-img.png"
                             }" 
-                                onerror="this.onerror=null; this.src='./assets/noImageFound.png';"
+                                onerror="this.onerror=null; this.src='./assets/placeholder-img.png';"
                                 class="series-detail-card-poster" />
                         </div>
 

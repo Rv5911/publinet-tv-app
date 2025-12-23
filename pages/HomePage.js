@@ -729,8 +729,12 @@ async function HomePage() {
            data-index="${cardIndex}" 
            data-stream-id="${id}"
            data-type="${type}"
+           data-image-url="${image}"
            tabindex="0"
-           style="background-image: url('${image}')">
+           style="background-image: url('${
+             image || "./assets/placeholder-img.png"
+           }')">
+           <img src="${image}" style="display: none;" onerror="this.parentElement.style.backgroundImage = 'url(./assets/placeholder-img.png)'" />
         <div class="home-card-content">
           <div class="home-card-top">
             <img src="./assets/heartIcon.png" 

@@ -321,9 +321,11 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
             data-series-id="${seriesId}" 
             data-is-adult="${isAdult}"
             data-is-locked="${isLocked}"
+            data-image-url="${imageUrl}"
             style="background-image: url('${
-              imageUrl ? imageUrl : "./assets/demo-img-card.png"
+              imageUrl ? imageUrl : "./assets/placeholder-img.png"
             }')">
+            <img src="${imageUrl}" style="display: none;" onerror="this.parentElement.style.backgroundImage = 'url(./assets/placeholder-img.png)'" />
             ${overlayHtml}
             <div class="series-card-content">
                 <div class="series-card-top">

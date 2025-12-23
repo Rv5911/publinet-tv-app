@@ -387,7 +387,7 @@ async function MovieDetailPage() {
           btn.classList.remove("movie-detail-button-focused");
         });
 
-        if ([playBtn, fromStartBtn,favBtn].includes(focused)) {
+        if ([playBtn, fromStartBtn, favBtn].includes(focused)) {
           if (window.setNavbarFocus) {
             window.setNavbarFocus("moviesPage");
           } else {
@@ -405,7 +405,7 @@ async function MovieDetailPage() {
         if (focused === menuBtn && playBtn)
           currentFocusIndex = focusableEls.indexOf(playBtn);
         else if (
-          [playBtn, fromStartBtn,  favBtn].includes(focused) &&
+          [playBtn, fromStartBtn, favBtn].includes(focused) &&
           castItems.length > 0
         )
           currentFocusIndex = focusableEls.indexOf(castItems[0]);
@@ -503,7 +503,9 @@ async function MovieDetailPage() {
 <div class="movie-detail-content-main">
 
 <div class="movie-detail-image">
-   <img src="${poster}" />
+   <img src="${
+     poster || "./assets/placeholder-img.png"
+   }" onerror="this.src='./assets/placeholder-img.png'" />
 </div>
 <div class="movie-detail-info-div">
 

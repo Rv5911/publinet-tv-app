@@ -777,16 +777,6 @@ function VideoJsPlayer(poster = "") {
             duration = 0;
           }
 
-          console.log("📊 FromHome - Continue Watching Check:", {
-            resumeTime,
-            duration,
-            isYouTube,
-            isLive,
-            errorActive,
-            fromValue,
-            playingItemData,
-          });
-
           // Only save if played for more than 5 seconds and not completed
           const isVideoCompleted =
             duration > 0 && Math.abs(resumeTime - duration) < 5;
@@ -803,11 +793,6 @@ function VideoJsPlayer(poster = "") {
               duration,
               type: playingItemData.season ? "series" : "movie",
             };
-
-            console.log(
-              "✅ Saving to continue watching:",
-              continueWatchingItem
-            );
 
             // Load playlists
             let playlists =
