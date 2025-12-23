@@ -433,6 +433,10 @@ async function HomePage() {
               JSON.stringify(selectedItem.movie_data)
             );
             localStorage.setItem("selectedVideoItemUrl", movieVideoUrl);
+            localStorage.setItem(
+              "selectedMovieId",
+              selectedItem.movie_data.stream_id
+            );
             localStorage.setItem("from", "movie");
             localStorage.setItem("fromHome", "true");
 
