@@ -678,10 +678,6 @@ function initNavbar() {
       return;
     }
 
-    if (currentPage === "movieDetailPage") {
-      return;
-    }
-
     if (currentPage == "settingsPage") return;
 
     if (isSortOptionsOpen) {
