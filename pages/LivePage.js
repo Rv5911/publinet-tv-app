@@ -49,6 +49,7 @@ function LivePage() {
   let cachedCats = null;
   let cachedStreams = null;
   let currentFocusElement = null; // Track focused element for efficiency
+  let lastFocusedSection = null;
 
   // DOM Elements
   let container;
@@ -747,6 +748,8 @@ function LivePage() {
       clearFast("lp-focused");
       clearFast("lp-control-focused");
 
+      currentFocusElement = null;
+
       if (playerVisualFocus) {
         const player = document.getElementById("lp-player-container");
         if (player) player.classList.add("lp-player-permanent-focus");
@@ -793,26 +796,33 @@ function LivePage() {
       const headerFavBtn = document.getElementById("lp-epg-fav-btn");
 
       if (epgIndex === -1) {
-        if (headerFavBtn) headerFavBtn.classList.add("lp-focused");
+        if (headerFavBtn && currentFocusElement !== headerFavBtn) {
+          headerFavBtn.classList.add("lp-focused");
+          currentFocusElement = headerFavBtn;
+        }
       } else {
-        const items = document.querySelectorAll(".lp-epg-item");
-        if (items[epgIndex]) {
-          items[epgIndex].classList.add("lp-focused");
-          items[epgIndex].scrollIntoView({
+        const items = document.getElementsByClassName("lp-epg-item");
+        const target = items[epgIndex];
+        if (target && currentFocusElement !== target) {
+          target.classList.add("lp-focused");
+          currentFocusElement = target;
+          target.scrollIntoView({
             block: "nearest",
           });
         }
       }
     } else if (focusedSection === "sidebar") {
-      const items = document.querySelectorAll(".lp-category-item");
-      if (items[sidebarIndex]) {
-        items[sidebarIndex].classList.add("lp-focused");
-        items[sidebarIndex].scrollIntoView({
+      const items = document.getElementsByClassName("lp-category-item");
+      const target = items[sidebarIndex];
+      if (target && currentFocusElement !== target) {
+        target.classList.add("lp-focused");
+        currentFocusElement = target;
+        target.scrollIntoView({
           block: "nearest",
         });
 
         // Conditional Marquee for Category
-        const name = items[sidebarIndex].querySelector(".lp-category-name");
+        const name = target.querySelector(".lp-category-name");
         if (name) {
           name.classList.remove("marquee-active");
           if (name.scrollWidth > name.clientWidth) {
@@ -954,29 +964,35 @@ function LivePage() {
         box.classList.add("lp-focused");
       }
     } else if (focusedSection === "channels") {
-      const items = document.querySelectorAll(".lp-channel-card");
-      if (items[channelIndex]) {
-        items[channelIndex].classList.add("lp-focused");
-        items[channelIndex].scrollIntoView({
-          block: "nearest",
-        });
+      const items = document.getElementsByClassName("lp-channel-card");
+      const target = items[channelIndex];
+      if (target) {
+        if (currentFocusElement !== target || buttonFocusIndex >= 0) {
+          target.classList.add("lp-focused");
+          currentFocusElement = target;
+          target.scrollIntoView({
+            block: "nearest",
+          });
 
-        // Conditional Marquee for Channel
-        const name = items[channelIndex].querySelector(".lp-channel-name");
-        if (name) {
-          name.classList.remove("marquee-active");
-          if (name.scrollWidth > name.clientWidth) {
-            name.classList.add("marquee-active");
+          // Conditional Marquee for Channel
+          const name = target.querySelector(".lp-channel-name");
+          if (name) {
+            name.classList.remove("marquee-active");
+            if (name.scrollWidth > name.clientWidth) {
+              name.classList.add("marquee-active");
+            }
           }
         }
 
-        // Handle button focus
+        // Handle button focus (always update if focus is on buttons within card)
         if (buttonFocusIndex >= 0) {
-          const buttons = items[channelIndex].querySelectorAll(
+          const buttons = target.querySelectorAll(
             ".lp-channel-fav-btn, .lp-channel-remove-btn"
           );
-          if (buttons[buttonFocusIndex]) {
-            buttons[buttonFocusIndex].classList.add("lp-focused");
+          const btnTarget = buttons[buttonFocusIndex];
+          if (btnTarget) {
+            btnTarget.classList.add("lp-focused");
+            currentFocusElement = btnTarget; // Buttons are also focus points
           }
         }
       }

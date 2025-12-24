@@ -43,6 +43,19 @@ let seriesNavigationDebounce = {
   isDebouncing: false,
 };
 
+// Optimized Focus Tracking
+let currentFocusedSeriesElement = null;
+let seriesContainerElement = null;
+let seriesNavRootElement = null;
+
+// Fast class removal helper
+function clearSeriesFocusFast(className) {
+  const elements = document.getElementsByClassName(className);
+  while (elements.length > 0) {
+    elements[0].classList.remove(className);
+  }
+}
+
 function normalizeTextSeries(s) {
   return (s || "").toLowerCase();
 }
@@ -1650,24 +1663,22 @@ function loadMoreSeriesForCategory(categoryIndex) {
 }
 
 function removeAllSeriesFocus() {
-  let allCards = document.querySelectorAll(".series-card");
-  for (let i = 0; i < allCards.length; i++) {
-    allCards[i].classList.remove("focused");
-
-    let titleElement = allCards[i].querySelector(".series-title-marquee");
-    if (titleElement) {
-      titleElement.classList.remove("marquee-active");
-    }
-  }
+  clearSeriesFocusFast("focused");
+  clearSeriesFocusFast("marquee-active");
+  currentFocusedSeriesElement = null;
 }
 
 function updateSeriesFocus() {
-  removeAllSeriesFocus();
-
-  let navigationFocus = localStorage.getItem("navigationFocus");
-  if (navigationFocus === "seriesPage") {
+  if (localStorage.getItem("navigationFocus") === "seriesPage") {
     if (seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
-      let currentCard = document.querySelector(
+      // Use cached container if available
+      if (!seriesContainerElement) {
+        seriesContainerElement = document.querySelector(
+          ".series-page-container"
+        );
+      }
+
+      const currentCard = document.querySelector(
         '.series-card[data-category="' +
           seriesNavigationState.currentCategoryIndex +
           '"][data-index="' +
@@ -1676,32 +1687,43 @@ function updateSeriesFocus() {
       );
 
       if (currentCard) {
+        // Fast class management
+        if (
+          currentFocusedSeriesElement &&
+          currentFocusedSeriesElement !== currentCard
+        ) {
+          currentFocusedSeriesElement.classList.remove("focused");
+          const oldTitle = currentFocusedSeriesElement.querySelector(
+            ".series-title-marquee"
+          );
+          if (oldTitle) oldTitle.classList.remove("marquee-active");
+        }
+
         currentCard.classList.add("focused");
+        currentFocusedSeriesElement = currentCard;
         scrollToSeriesElement(currentCard);
 
         // Show navbar when focused on first category (any card in category 0)
-        const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) {
-          if (seriesNavigationState.currentCategoryIndex === 0) {
-            navbarEl.style.display = "block";
-          } else {
-            navbarEl.style.display = "none";
-          }
+        if (!seriesNavRootElement) {
+          seriesNavRootElement = document.querySelector("#navbar-root");
+        }
+        if (seriesNavRootElement) {
+          seriesNavRootElement.style.display =
+            seriesNavigationState.currentCategoryIndex === 0 ? "block" : "none";
         }
 
         // Conditional Marquee
         const title = currentCard.querySelector(".series-title-marquee");
-        if (title) {
-          title.classList.remove("marquee-active");
-          if (title.scrollWidth > title.clientWidth) {
-            title.classList.add("marquee-active");
-          }
+        if (title && title.scrollWidth > title.clientWidth) {
+          title.classList.add("marquee-active");
         }
 
         seriesNavigationState.lastFocusedCategory =
           seriesNavigationState.currentCategoryIndex;
         seriesNavigationState.lastFocusedCard =
           seriesNavigationState.currentCardIndex;
+
+        activateSeriesMarquee(currentCard);
       }
     }
   }

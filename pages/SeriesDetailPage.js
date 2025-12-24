@@ -198,12 +198,12 @@ async function SeriesDetailPage() {
     }
   };
 
-  let currentFocusIndex = 0;
-  let focusableEls = [];
-  let lastFocused = null;
-  let isDropdownOpen = false;
-  let dropdownFocusIndex = 0;
   let currentEpisodeIndex = 0;
+
+  // Cached DOM Elements
+  let navRoot_SD = null;
+  let detailContainer_SD = null;
+  let episodesContainer_SD = null;
 
   const episodes = seriesDetailData.episodes || {};
 
@@ -227,6 +227,13 @@ async function SeriesDetailPage() {
     .sort((a, b) => a.season_number - b.season_number);
   const seriesInfo = seriesDetailData.info || {};
 
+  const clearSeriesDetailFocusFast = (className) => {
+    const elements = document.getElementsByClassName(className);
+    while (elements.length > 0) {
+      elements[0].classList.remove(className);
+    }
+  };
+
   const setFocus = (el, skipScroll = false) => {
     if (lastFocused) {
       lastFocused.classList.remove("series-detail-button-focused");
@@ -237,50 +244,49 @@ async function SeriesDetailPage() {
 
     el.classList.add("series-detail-button-focused");
 
+    el.classList.add("series-detail-button-focused");
+
     // Hide navbar when focusing on episodes, show when on top buttons
-    const navbarEl = document.querySelector("#navbar-root");
-    if (navbarEl) {
+    if (!navRoot_SD) navRoot_SD = document.querySelector("#navbar-root");
+    if (navRoot_SD) {
       if (el.classList.contains("seasons-episodes-item")) {
-        navbarEl.style.display = "none";
+        navRoot_SD.style.display = "none";
       } else {
-        navbarEl.style.display = "block";
+        navRoot_SD.style.display = "block";
       }
     }
 
     const title = el.querySelector(".episode-title");
-    if (title) {
-      if (title.scrollWidth > title.clientWidth) {
-        title.classList.add("marquee-active");
-      }
+    if (title && title.scrollWidth > title.clientWidth) {
+      title.classList.add("marquee-active");
     }
 
     // Don't scroll for seasons button specifically
     if (!skipScroll && el.id !== "seasons-button") {
       if (el.classList.contains("seasons-episodes-item")) {
-        const container = document.querySelector(
-          ".series-detail-page-content-container"
-        );
-        if (container) container.scrollTop = container.scrollHeight;
-
-        if (el.classList.contains("seasons-episodes-item")) {
-          const episodesContainer = document.querySelector(
-            ".series-detail-cast"
+        if (!detailContainer_SD)
+          detailContainer_SD = document.querySelector(
+            ".series-detail-page-content-container"
           );
-          if (episodesContainer) {
-            const elementLeft = el.offsetLeft;
-            const elementWidth = el.offsetWidth;
-            const containerWidth = episodesContainer.clientWidth;
-            const currentScrollLeft = episodesContainer.scrollLeft;
+        if (detailContainer_SD)
+          detailContainer_SD.scrollTop = detailContainer_SD.scrollHeight;
 
-            if (elementLeft < currentScrollLeft) {
-              episodesContainer.scrollLeft = elementLeft - 30;
-            } else if (
-              elementLeft + elementWidth >
-              currentScrollLeft + containerWidth
-            ) {
-              episodesContainer.scrollLeft =
-                elementLeft + elementWidth - containerWidth + 30;
-            }
+        if (!episodesContainer_SD)
+          episodesContainer_SD = document.querySelector(".series-detail-cast");
+        if (episodesContainer_SD) {
+          const elementLeft = el.offsetLeft;
+          const elementWidth = el.offsetWidth;
+          const containerWidth = episodesContainer_SD.clientWidth;
+          const currentScrollLeft = episodesContainer_SD.scrollLeft;
+
+          if (elementLeft < currentScrollLeft) {
+            episodesContainer_SD.scrollLeft = elementLeft - 30;
+          } else if (
+            elementLeft + elementWidth >
+            currentScrollLeft + containerWidth
+          ) {
+            episodesContainer_SD.scrollLeft =
+              elementLeft + elementWidth - containerWidth + 30;
           }
         }
       } else {
@@ -296,22 +302,20 @@ async function SeriesDetailPage() {
     const startOverBtn = document.querySelector(
       ".series-detail-start-over-button"
     );
-    const trailerBtn = document.querySelector(
-      ".series-detail-more-info-button"
-    );
     const menuBtn = document.querySelector(".series-detail-page-header-menu");
     const favBtn = document.querySelector(".series-detail-fav-button");
     const seasonsBtn = document.querySelector("#seasons-button");
     const castBtn = document.querySelector("#cast-button");
-    const episodeItems = [
-      ...document.querySelectorAll(".seasons-episodes-item"),
-    ];
-    const castItems = [...document.querySelectorAll(".series-cast-item")];
+    const episodeItems = Array.from(
+      document.getElementsByClassName("seasons-episodes-item")
+    );
+    const castItems = Array.from(
+      document.getElementsByClassName("series-cast-item")
+    );
 
     focusableEls = [
       playBtn,
       startOverBtn,
-      // trailerBtn,
       favBtn,
       menuBtn,
       seasonsBtn,

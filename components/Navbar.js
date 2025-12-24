@@ -368,6 +368,36 @@ function initNavbar() {
   const navItems = Array.from(document.querySelectorAll(".nav-item"));
   const sidebar = document.getElementById("sidebar");
 
+  function highlightNavItem(index) {
+    if (typeof setActiveItem === "function") {
+      setActiveItem(index);
+    }
+
+    if (index === 0) {
+      if (
+        document.activeElement &&
+        typeof document.activeElement.blur === "function"
+      ) {
+        document.activeElement.blur();
+      }
+      if (searchInput && typeof searchInput.blur === "function") {
+        searchInput.blur();
+      }
+    } else if (index === totalItems - 1) {
+      if (profileIcon && typeof profileIcon.focus === "function") {
+        profileIcon.focus();
+      }
+    } else {
+      if (
+        navItems &&
+        navItems[index - 1] &&
+        typeof navItems[index - 1].focus === "function"
+      ) {
+        navItems[index - 1].focus();
+      }
+    }
+  }
+
   // Navbar scroll logic
   // Navbar scroll logic refactored
   let currentScrollContainer = null;
@@ -996,23 +1026,23 @@ function initNavbar() {
     }
   }
 
-  function highlightNavItem(index) {
-    setActiveItem(index);
+  // function highlightNavItem(index) {
+  //   setActiveItem(index);
 
-    if (index === 0) {
-      // Don't focus the search input when navigating with arrows
-      // Only add the active class - actual focus happens on Enter key
-      if (document.activeElement) {
-        document.activeElement.blur(); // Blur whatever was previously focused (e.g. Home link)
-      }
-      searchInput.blur(); // Ensure it's not focused
-    } else if (index === totalItems - 1) {
-      profileIcon.focus();
-    } else {
-      const item = navItems[index - 1];
-      if (item) item.focus();
-    }
-  }
+  //   if (index === 0) {
+  //     // Don't focus the search input when navigating with arrows
+  //     // Only add the active class - actual focus happens on Enter key
+  //     if (document.activeElement) {
+  //       document.activeElement.blur(); // Blur whatever was previously focused (e.g. Home link)
+  //     }
+  //     searchInput.blur(); // Ensure it's not focused
+  //   } else if (index === totalItems - 1) {
+  //     profileIcon.focus();
+  //   } else {
+  //     const item = navItems[index - 1];
+  //     if (item) item.focus();
+  //   }
+  // }
 
   function updateSearchVisibility(page) {
     // Pages where search input should be visible
@@ -1371,6 +1401,8 @@ function initNavbar() {
       activeItem.focus();
     }
   }
+
+  window.updateSearchVisibility = updateSearchVisibility;
 }
 
 window.buildDynamicSidebarOptions = buildDynamicSidebarOptions;
