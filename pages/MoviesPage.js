@@ -763,8 +763,6 @@ function proceedToMovieDetail(categoryIndex, cardIndex, streamId) {
 
   cleanupMoviesNavigation();
 
-  document.querySelector("#loading-progress").style.display = "none";
-
   localStorage.setItem("currentPage", "movieDetailPage");
   localStorage.setItem("navigationFocus", "movieDetailPage");
 

@@ -8,7 +8,10 @@ let currentLoadingValue = 0;
 
 function resetLoadingPercentage() {
   const progressElement = document.getElementById("loading-progress");
-  if (!progressElement) return;
+  if (progressElement) {
+    progressElement.textContent = "0%";
+    progressElement.style.display = "block"; // Ensure it's visible
+  }
 
   if (currentAnimationId) {
     cancelAnimationFrame(currentAnimationId);
@@ -16,11 +19,11 @@ function resetLoadingPercentage() {
   }
 
   currentLoadingValue = 0;
-  progressElement.textContent = "0%";
 
   const messageElement = document.getElementById("loading-message");
   if (messageElement) {
     messageElement.textContent = "";
+    messageElement.style.display = "block"; // Ensure it's visible
   }
 }
 
@@ -92,10 +95,8 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = ""
 ) {
-  // http://whole.motorcycles/player_api.php?username=ShayneCMobAllVue24&password=ceFdzbZwJ&type=m3u_plus&output=ts
-  const defaultDns = "http://whole.motorcycles/";
-  // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
-  let alldns = [];
+  const defaultDns = "http://mega2025.site:8080/";
+  let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {
     alldns = [defaultDns];

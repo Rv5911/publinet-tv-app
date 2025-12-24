@@ -1,10 +1,10 @@
 function LivePage() {
-  // Create and show custom live page loader immediately (using HomePage loader styles)
+  // Create and show custom live page loader immediately
   const liveLoader = document.createElement("div");
-  liveLoader.id = "home-page-loader";
+  liveLoader.id = "live-page-loader";
   liveLoader.innerHTML = `
-    <div class="home-loader-content">
-      <div class="home-loader-spinner"></div>
+    <div class="live-loader-content">
+      <div class="live-loader-spinner"></div>
     </div>
   `;
   document.body.appendChild(liveLoader);
@@ -40,6 +40,15 @@ function LivePage() {
   let channelChunk = 1;
   const categoryPageSize = 20;
   const channelPageSize = 20;
+
+  // Optimized State Tracking
+  let lastCategoryId = null;
+  let lastCategoryQuery = "";
+  let lastChannelQuery = "";
+  let lastSort = "default";
+  let cachedCats = null;
+  let cachedStreams = null;
+  let currentFocusElement = null; // Track focused element for efficiency
 
   // DOM Elements
   let container;
@@ -127,11 +136,6 @@ function LivePage() {
   };
 
   const cleanup = () => {
-    const searchInput = document.getElementById("search-input");
-    const searchIcon = document.querySelector(".nav-search-bar");
-    if (searchInput) searchInput.style.display = "";
-    if (searchIcon) searchIcon.style.display = "";
-
     document.removeEventListener("keydown", handleKeydown);
     document.removeEventListener("sortChanged", handleSortChange);
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -179,11 +183,6 @@ function LivePage() {
     container = document.querySelector(".lp-main-container");
     if (!container) return;
 
-    const searchInput = document.getElementById("search-input");
-    const searchIcon = document.querySelector(".nav-search-bar");
-    if (searchInput) searchInput.style.display = "none";
-    if (searchIcon) searchIcon.style.display = "none";
-
     render();
     document.addEventListener("keydown", handleKeydown);
     document.addEventListener("sortChanged", handleSortChange);
@@ -211,6 +210,13 @@ function LivePage() {
   };
 
   const getFilteredCategories = () => {
+    // Return cache if parameters haven't changed
+    if (cachedCats && categorySearchQuery === lastCategoryQuery) {
+      const start = 0;
+      const end = categoryChunk * categoryPageSize;
+      return cachedCats.slice(start, end);
+    }
+
     let cats = [
       {
         category_id: "All",
@@ -237,6 +243,10 @@ function LivePage() {
           .includes(categorySearchQuery.toLowerCase())
       );
     }
+
+    // Update Cache
+    cachedCats = cats;
+    lastCategoryQuery = categorySearchQuery;
 
     // Return only the current chunk
     const start = 0;
@@ -276,6 +286,16 @@ function LivePage() {
   };
 
   const getFilteredChannels = () => {
+    // Return cache if parameters haven't changed
+    if (
+      cachedStreams &&
+      selectedCategoryId === lastCategoryId &&
+      channelSearchQuery === lastChannelQuery &&
+      currentSortOption === lastSort
+    ) {
+      return cachedStreams;
+    }
+
     let streams = [];
 
     if (selectedCategoryId === "All") {
@@ -313,6 +333,12 @@ function LivePage() {
       });
     }
 
+    // Update Cache
+    cachedStreams = streams;
+    lastCategoryId = selectedCategoryId;
+    lastChannelQuery = channelSearchQuery;
+    lastSort = currentSortOption;
+
     return streams;
   };
 
@@ -336,66 +362,64 @@ function LivePage() {
   };
 
   const render = () => {
-    container.innerHTML = `
-      <div class="lp-sidebar">
-        <div class="lp-search-box" id="lp-cat-search-box">
-          <input type="text" class="lp-search-input" id="lp-cat-search-input" placeholder="Search Categories" value="${categorySearchQuery}">
-          <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
-    
+    // Aggressive DOM Caching: Preserve the structure if it exists
+    if (!container.innerHTML.trim()) {
+      container.innerHTML = `
+        <div class="lp-sidebar">
+          <div class="lp-search-box" id="lp-cat-search-box">
+            <input type="text" class="lp-search-input" id="lp-cat-search-input" placeholder="Search Categories" value="${categorySearchQuery}">
+            <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
           </div>
-        <ul class="lp-category-list" id="lp-category-list"></ul>
-      </div>
-      <div class="lp-content">
-        <div class="lp-top-section">
-          <div class="lp-player-container" id="lp-player-container">
-            <div class="lp-video-wrapper">
-              <div style="width:100%; height:100%; zoom:1.4; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#666;">
-                <i class="fas fa-play-circle" style="font-size: 50px; margin-bottom:10px;"></i>
-                <p>Select a channel to play</p>
+          <ul class="lp-category-list" id="lp-category-list"></ul>
+        </div>
+        <div class="lp-content">
+          <div class="lp-top-section">
+            <div class="lp-player-container" id="lp-player-container">
+              <div class="lp-video-wrapper">
+                <div style="width:100%; height:100%; zoom:1.4; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#666;">
+                  <i class="fas fa-play-circle" style="font-size: 50px; margin-bottom:10px;"></i>
+                  <p>Select a channel to play</p>
+                </div>
+              </div>
+            </div>
+            <div class="lp-epg-container" id="lp-epg-container">
+              <div class="lp-epg-header"><span>Program Guide</span></div>
+              <div class="lp-epg-list" id="lp-epg-list">
+                <div style="padding:20px; color:#aaa; text-align:center; zoom:1.4;">
+                  Select a channel to view program information
+                </div>
               </div>
             </div>
           </div>
-          <div class="lp-epg-container" id="lp-epg-container">
-            <div class="lp-epg-header"><span>Program Guide</span></div>
-            <div class="lp-epg-list" id="lp-epg-list">
-              <div style="padding:20px; color:#aaa; text-align:center; zoom:1.4;">
-                Select a channel to view program information
+          <div class="lp-channels-section">
+            <div class="lp-channels-header">
+              <div class="lp-channel-search-bar" id="lp-chan-search-box">
+                <input type="text" class="lp-channel-search-input" id="lp-chan-search-input" placeholder="Search Channels" value="${channelSearchQuery}">
+                <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
               </div>
             </div>
+            <div class="lp-channels-grid" id="lp-channels-grid"></div>
           </div>
         </div>
-        <div class="lp-channels-section">
-          <div class="lp-channels-header">
-            <div class="lp-channel-search-bar" id="lp-chan-search-box">
-              <input type="text" class="lp-channel-search-input" id="lp-chan-search-input" placeholder="Search Channels" value="${channelSearchQuery}">
-              <i class="fas fa-search lp-search-icon" style="color: #aaa; margin-right: 10px;"></i>
-            
-              </div>
-          </div>
-          <div class="lp-channels-grid" id="lp-channels-grid"></div>
-        </div>
-      </div>
-    `;
+      `;
+      setupInputListeners();
+      setupScrollListener();
+      setupClickListeners();
+    }
 
     renderCategories();
     renderChannels();
 
-    setTimeout(() => {
-      setupInputListeners();
-      setupScrollListener();
-      setupClickListeners();
-
-      // Hide the loader after everything is rendered
-      const loaderElement = document.querySelector("#home-page-loader");
-      if (loaderElement) {
-        loaderElement.style.animation = "fadeOut 0.3s ease-out";
-        setTimeout(() => {
-          if (loaderElement && loaderElement.parentNode) {
-            loaderElement.parentNode.removeChild(loaderElement);
-          }
-        }, 300);
-      }
-    }, 100);
+    // Hide the loader quickly
+    const loaderElement = document.querySelector("#live-page-loader");
+    if (loaderElement) {
+      loaderElement.style.animation = "fadeOut 0.2s ease-out";
+      setTimeout(() => {
+        if (loaderElement && loaderElement.parentNode) {
+          loaderElement.parentNode.removeChild(loaderElement);
+        }
+      }, 200);
+    }
   };
 
   const renderCategories = () => {
@@ -600,6 +624,10 @@ function LivePage() {
     // Now perform the toggle operation
     const result = window.toggleFavoriteItem(stream, "favoritesLiveTV");
 
+    // Clear data cache on update
+    cachedStreams = null;
+    cachedCats = null;
+
     // Check if the operation was successful
     if (!result || !result.success) {
       console.error(
@@ -691,6 +719,10 @@ function LivePage() {
       localStorage.setItem("playlistsData", JSON.stringify(playlistsData));
     }
     window.Toaster.showToast("error", "Removed from Channel History");
+
+    // Clear data cache on update
+    cachedStreams = null;
+    cachedCats = null;
     channelChunk = 1;
     renderChannels();
     renderCategories();
@@ -703,39 +735,29 @@ function LivePage() {
   };
 
   const updateFocus = () => {
-    if (localStorage.getItem("navigationFocus") === "navbar") {
-      // Remove active focus classes but KEEP permanent player focus (red border)
-      document
-        .querySelectorAll(".lp-focused")
-        .forEach((el) => el.classList.remove("lp-focused"));
-      document
-        .querySelectorAll(".lp-control-focused")
-        .forEach((el) => el.classList.remove("lp-control-focused"));
+    // Fast class removal helper using live HTMLCollection
+    const clearFast = (className) => {
+      const elements = document.getElementsByClassName(className);
+      while (elements.length > 0) {
+        elements[0].classList.remove(className);
+      }
+    };
 
-      // Re-apply permanent red border if playerVisualFocus is true
+    if (localStorage.getItem("navigationFocus") === "navbar") {
+      clearFast("lp-focused");
+      clearFast("lp-control-focused");
+
       if (playerVisualFocus) {
         const player = document.getElementById("lp-player-container");
-        if (player) {
-          player.classList.add("lp-player-permanent-focus");
-        }
+        if (player) player.classList.add("lp-player-permanent-focus");
       }
       return;
     }
-    document
-      .querySelectorAll(".lp-focused")
-      .forEach((el) => el.classList.remove("lp-focused"));
 
-    // Globally remove control focus
-    document
-      .querySelectorAll(".lp-control-focused")
-      .forEach((el) => el.classList.remove("lp-control-focused"));
+    clearFast("lp-focused");
+    clearFast("lp-control-focused");
+    clearFast("lp-player-permanent-focus");
 
-    // Globally remove permanent player focus (will be re-added if needed)
-    document
-      .querySelectorAll(".lp-player-permanent-focus")
-      .forEach((el) => el.classList.remove("lp-player-permanent-focus"));
-
-    // Globally hide play/pause icon if not in player section
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
       document.getElementById("live-play-pause-btn");

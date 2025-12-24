@@ -1296,8 +1296,7 @@ async function SeriesDetailPage() {
         "selectedSeriesItem",
         JSON.stringify(selectedSeriesItem)
       );
-      document.querySelector("#loading-progress").style.display = "none";
-      Router.showPage("seriesDetail");
+      Router.showPage("seriesDetailPage");
     }
   }
 

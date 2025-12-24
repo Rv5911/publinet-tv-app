@@ -745,8 +745,6 @@ function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
 
   cleanupSeriesNavigation();
 
-  document.querySelector("#loading-progress").style.display = "none";
-
   localStorage.setItem("currentPage", "seriesDetailPage");
   localStorage.setItem("navigationFocus", "seriesDetailPage");
 
