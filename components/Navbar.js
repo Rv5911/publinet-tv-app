@@ -1095,6 +1095,10 @@ function initNavbar() {
   }
 
   function handleLogOut() {
+    // Clear HomeCarousel cache
+    window.homeCarouselCachedSliderData = null;
+    window.homeCarouselCachedPlaylistName = null;
+
     localStorage.setItem("isLogin", false);
 
     const playlistsData = localStorage.getItem("playlistsData")

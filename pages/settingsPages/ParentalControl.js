@@ -18,20 +18,19 @@ function ParentalControl() {
         ? currentPlaylist.parentalPassword
         : null;
 
-if (savedPassword && savedPassword.length > 0) {
-  inputs.forEach(function (inp) {
-    inp.type = "password";
-  });
+    if (savedPassword && savedPassword.length > 0) {
+      inputs.forEach(function (inp) {
+        inp.type = "password";
+      });
 
-  // Autofill both fields
-  inputs[0].value = savedPassword;
-  inputs[1].value = savedPassword;
-} else {
-  inputs.forEach(function (inp) {
-    inp.type = "text";
-  });
-}
-
+      // Autofill both fields
+      inputs[0].value = savedPassword;
+      inputs[1].value = savedPassword;
+    } else {
+      inputs.forEach(function (inp) {
+        inp.type = "text";
+      });
+    }
 
     // Set initial focus styles without focusing the input
     updateFocusStyles();
@@ -121,7 +120,6 @@ if (savedPassword && savedPassword.length > 0) {
           break;
 
         case "ArrowLeft":
-
           // If Clear button is focused, move to Save button
           if (currentFocus === inputs.length + 1) {
             currentFocus = inputs.length;
@@ -313,11 +311,10 @@ if (savedPassword && savedPassword.length > 0) {
 
       Toaster.showToast("success", "Password fields cleared!");
       console.log("Password fields cleared");
-// No saved password → show text inputs
-inputs.forEach(function (inp) {
-  if (inp) inp.type = "text";
-});
-
+      // No saved password → show text inputs
+      inputs.forEach(function (inp) {
+        if (inp) inp.type = "text";
+      });
     });
 
     // Clean up when component is destroyed

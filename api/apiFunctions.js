@@ -92,8 +92,10 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = ""
 ) {
-  const defaultDns = "http://mega2025.site:8080/";
-  let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  // http://whole.motorcycles/player_api.php?username=ShayneCMobAllVue24&password=ceFdzbZwJ&type=m3u_plus&output=ts
+  const defaultDns = "http://whole.motorcycles/";
+  // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  let alldns = [];
 
   if (alldns.length === 0) {
     alldns = [defaultDns];

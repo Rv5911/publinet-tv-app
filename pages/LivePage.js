@@ -66,6 +66,7 @@ function LivePage() {
   const unlockedLiveAdultChannelsInAll = new Set();
   const unlockedLiveAdultChannelsInFavorites = new Set();
   const unlockedLiveAdultChannelsInHistory = new Set();
+  const unlockedLiveAdultChannelsInCategories = new Set();
 
   // Adult category detection
   const isLiveAdultCategory = (name) => {
@@ -496,8 +497,8 @@ function LivePage() {
             String(stream.stream_id)
           );
         } else {
-          isChannelUnlocked = unlockedLiveAdultCatIds.has(
-            String(selectedCategoryId)
+          isChannelUnlocked = unlockedLiveAdultChannelsInCategories.has(
+            String(stream.stream_id)
           );
         }
       }
@@ -1494,7 +1495,9 @@ function LivePage() {
     if (focusedSection === "sidebarSearch" && e.key === "Enter") {
       const catInput = document.getElementById("lp-cat-search-input");
       if (catInput) {
-        catInput.focus({ preventScroll: true });
+        catInput.focus({
+          preventScroll: true,
+        });
         e.preventDefault();
         return;
       }
@@ -1503,7 +1506,9 @@ function LivePage() {
     if (focusedSection === "channelSearch" && e.key === "Enter") {
       const chanInput = document.getElementById("lp-chan-search-input");
       if (chanInput) {
-        chanInput.focus({ preventScroll: true });
+        chanInput.focus({
+          preventScroll: true,
+        });
         e.preventDefault();
         return;
       }
@@ -1994,10 +1999,10 @@ function LivePage() {
             );
             unlockSet = unlockedLiveAdultChannelsInHistory;
           } else {
-            isChannelUnlocked = unlockedLiveAdultCatIds.has(
-              String(selectedCategoryId)
+            isChannelUnlocked = unlockedLiveAdultChannelsInCategories.has(
+              String(stream.stream_id)
             );
-            unlockSet = null;
+            unlockSet = unlockedLiveAdultChannelsInCategories;
           }
         }
 
@@ -2012,6 +2017,8 @@ function LivePage() {
             () => {
               // PIN correct - unlock and play
               unlockSet.add(String(stream.stream_id));
+
+              // Single channel unlock (All/Favorites/History/Category)
               const card = document.querySelector(
                 `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
               );
@@ -2025,6 +2032,7 @@ function LivePage() {
                 const lockIcon = card.querySelector(".lp-channel-lock-icon");
                 if (lockIcon) lockIcon.remove();
               }
+
               playChannel(stream);
             },
             () => {
@@ -2134,10 +2142,11 @@ function LivePage() {
                     );
                     unlockSet = unlockedLiveAdultChannelsInHistory;
                   } else {
-                    isChannelUnlocked = unlockedLiveAdultCatIds.has(
-                      String(selectedCategoryId)
-                    );
-                    unlockSet = null;
+                    isChannelUnlocked =
+                      unlockedLiveAdultChannelsInCategories.has(
+                        String(stream.stream_id)
+                      );
+                    unlockSet = unlockedLiveAdultChannelsInCategories;
                   }
                 }
 
@@ -2152,6 +2161,8 @@ function LivePage() {
                     () => {
                       // PIN correct - unlock and play
                       unlockSet.add(String(stream.stream_id));
+
+                      // Single channel unlock (All/Favorites/History/Category)
                       const card = document.querySelector(
                         `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
                       );
@@ -2169,6 +2180,7 @@ function LivePage() {
                         );
                         if (lockIcon) lockIcon.remove();
                       }
+
                       playChannel(stream);
                     },
                     () => {
