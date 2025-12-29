@@ -19,10 +19,6 @@ function LivePage() {
   let buttonFocusIndex = -1; // -1 = no button focused, 0 = heart, 1 = remove
   let playerSubFocus = 0; // 0 = Video Border, 1 = Play/Pause, 2 = Aspect Ratio
 
-  // CLEVER APPROACH: playerVisualFocus maintains player's red border independently
-  // This allows the video to always display (when focusedSection="player") while
-  // still allowing navigation to other sections. The player keeps its visual focus
-  // (red border) even when focusedSection changes, ensuring video remains visible.
   let playerVisualFocus = true; // Separate variable to track player visual focus (red border)
 
   let epgIndex = -1; // -1 = Header (Favorite), 0+ = List Items
