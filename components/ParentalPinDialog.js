@@ -42,7 +42,7 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
     isDialogActive = false;
 
     try {
-      document.removeEventListener("keydown", keydownHandler);
+      document.removeEventListener("keydown", keydownHandler, true);
 
       if (submitBtn) submitBtn.onclick = null;
       if (cancelBtn) cancelBtn.onclick = null;
@@ -91,12 +91,14 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
   function keydownHandler(e) {
     if (!isDialogActive) return;
 
-    console.log("Key pressed:", e.key); // Debug log
+    // Strict isolation: prevent background listeners from firing
+    e.stopImmediatePropagation();
+
+    console.log("Key pressed in PIN dialog:", e.key);
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        // Only allow moving from input to submit button with down arrow
         if (focusIndex === 0) {
           input.blur();
           focusIndex = 1;
@@ -104,24 +106,20 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         }
         break;
       case "ArrowRight":
-        // Allow moving cursor in input
         if (document.activeElement === input) {
-          break;
+          return; // Allow native cursor movement
         }
         e.preventDefault();
-        // Only allow moving from submit to cancel with right arrow
         if (focusIndex === 1) {
           focusIndex = 2;
           updateFocus();
         }
         break;
       case "ArrowLeft":
-        // Allow moving cursor in input
         if (document.activeElement === input) {
-          break;
+          return; // Allow native cursor movement
         }
         e.preventDefault();
-        // Only allow moving from cancel to submit with left arrow
         if (focusIndex === 2) {
           focusIndex = 1;
           updateFocus();
@@ -129,7 +127,6 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         break;
       case "ArrowUp":
         e.preventDefault();
-        // Allow moving from both submit and cancel buttons to input with up arrow
         if (focusIndex === 1 || focusIndex === 2) {
           focusIndex = 0;
           updateFocus();
@@ -138,7 +135,6 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
       case "Enter":
         e.preventDefault();
         if (focusIndex === 0) {
-          // When input is visually selected and Enter is pressed, actually focus it
           if (input && input.focus) {
             input.focus();
           }
@@ -150,14 +146,28 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         break;
 
       case "Escape":
+      case "Back":
+      case "XF86Back":
+      case "10009":
         e.preventDefault();
         handleCancel();
+        break;
+      default:
+        // Prevent fall-through to background handlers for other keys
+        // (e.g. Backspace when in background shouldn't trigger page back)
+        if (
+          ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(
+            e.key
+          )
+        ) {
+          e.preventDefault();
+        }
         break;
     }
   }
 
-  // Add event listener to document instead of container
-  document.addEventListener("keydown", keydownHandler);
+  // Add event listener to document in capture phase to block background listeners
+  document.addEventListener("keydown", keydownHandler, true);
 
   if (submitBtn) {
     submitBtn.onclick = function (e) {

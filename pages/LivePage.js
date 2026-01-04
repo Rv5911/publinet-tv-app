@@ -46,6 +46,8 @@ function LivePage() {
   let cachedStreams = null;
   let currentFocusElement = null; // Track focused element for efficiency
   let lastFocusedSection = null;
+  let lastEnterTime = 0;
+  let lastEnteredChannelId = null;
 
   // DOM Elements
   let container;
@@ -1045,6 +1047,15 @@ function LivePage() {
       });
       return;
     }
+    if (
+      currentPlayingStream &&
+      String(currentPlayingStream.stream_id) === String(stream.stream_id)
+    ) {
+      console.log("Channel already playing, skipping reload");
+      return;
+    }
+
+    currentPlayingStream = stream; // Set early to prevent multiple reloads
 
     // Show loading indicator
     const videoWrapper = document.querySelector(".lp-video-wrapper");
@@ -1375,8 +1386,27 @@ function LivePage() {
       playerContainer.classList.add("fullscreen-mode"); // Add fullscreen class
       playerContainer.classList.remove("lp-focused");
       playerContainer.classList.remove("lp-player-active");
+
+      // Only hide if we are not actively focusing a control
       if (playPauseIcon) {
-        playPauseIcon.style.display = "none";
+        if (playerSubFocus === 1 || playerSubFocus === 2) {
+          playPauseIcon.style.display = "flex";
+          resetControlsTimer();
+        } else {
+          playPauseIcon.style.display = "none";
+        }
+      }
+
+      // Handle aspect ratio button similarly
+      const aspectRatioBtn =
+        document.getElementById("videojs-aspect-ratio") ||
+        document.getElementById("flow-aspect-ratio");
+      if (aspectRatioBtn) {
+        if (playerSubFocus === 1 || playerSubFocus === 2) {
+          aspectRatioBtn.style.display = "block";
+        } else {
+          aspectRatioBtn.style.display = "none";
+        }
       }
     } else {
       // Exiting fullscreen - show border and ensure controls are hidden
@@ -1570,23 +1600,26 @@ function LivePage() {
         break;
       case "ArrowLeft":
         if (focusedSection === "player") {
-          // In fullscreen, allow navigation between controls
+          // In fullscreen, ArrowLeft ALWAYS switches to previous channel
           if (checkIsFullscreen()) {
-            if (playerSubFocus === 2) {
-              // From Aspect Ratio back to Play/Pause
-              playerSubFocus = 1;
-            } else if (playerSubFocus === 1) {
-              // From Play/Pause back to Video Border
-              playerSubFocus = 0;
+            if (channelIndex > 0) {
+              channelIndex--;
+              const stream = filteredStreams[channelIndex];
+              if (stream) {
+                playChannel(stream);
+                renderChannels(); // Keep background in sync
+              }
+            } else {
+              if (window.Toaster) {
+                window.Toaster.showToast(
+                  "info",
+                  "No previous channel available"
+                );
+              }
             }
-            // If at Video Border (0), stay there in fullscreen
           } else {
             // Not in fullscreen - original behavior
-            if (playerSubFocus === 1) {
-              navigateLeft();
-            } else {
-              navigateLeft();
-            }
+            navigateLeft();
           }
         } else {
           navigateLeft();
@@ -1594,22 +1627,25 @@ function LivePage() {
         break;
       case "ArrowRight":
         if (focusedSection === "player") {
-          // In fullscreen, allow navigation between controls
+          // In fullscreen, ArrowRight ALWAYS switches to next channel
           if (checkIsFullscreen()) {
-            if (playerSubFocus === 0) {
-              // From Fullscreen (0) to Play/Pause (1) - Wait, logically UP/DOWN is better for this layout
-              // But keeping LEFT/RIGHT as fallback or secondary nav
-              playerSubFocus = 1;
-            } else if (playerSubFocus === 1) {
-              // From Play/Pause to Aspect Ratio
-              playerSubFocus = 2;
+            if (channelIndex < filteredStreams.length - 1) {
+              channelIndex++;
+              const stream = filteredStreams[channelIndex];
+              if (stream) {
+                playChannel(stream);
+                renderChannels(); // Keep background in sync
+              }
+            } else {
+              if (window.Toaster) {
+                window.Toaster.showToast("info", "No next channel available");
+              }
             }
-            // If at Aspect Ratio (2), stay there in fullscreen
           } else {
-            // Not in fullscreen - go to EPG if available
+            // Not in fullscreen - original behavior
             if (currentEpgData && currentEpgData.length > 0) {
               focusedSection = "epg";
-              epgIndex = 0; // Focus first item directly
+              epgIndex = 0;
             }
           }
         } else {
@@ -1933,56 +1969,33 @@ function LivePage() {
     if (focusedSection === "sidebar") {
       const cats = getFilteredCategories();
 
-      // CRITICAL FIX: Ensure sidebarIndex is in valid range
-      if (sidebarIndex < 0 || sidebarIndex >= cats.length) {
-        console.warn(`Invalid sidebarIndex: ${sidebarIndex}, resetting to 0`);
-        sidebarIndex = 0;
-      }
-
-      if (cats[sidebarIndex]) {
+      if (sidebarIndex >= 0 && sidebarIndex < cats.length) {
         const newCategoryId = cats[sidebarIndex].category_id;
-        console.log(`Category selected: ${newCategoryId}`);
-
-        // Only update if we're actually changing categories
         if (String(selectedCategoryId) !== String(newCategoryId)) {
           selectedCategoryId = newCategoryId;
-
-          // Clear channel search
           channelSearchQuery = "";
           const chanInput = document.getElementById("lp-chan-search-input");
           if (chanInput) chanInput.value = "";
-
-          channelChunk = 1; // Reset pagination
-          channelIndex = 0; // Reset channel focus
+          channelChunk = 1;
+          channelIndex = 0;
           buttonFocusIndex = -1;
-
-          // Render categories and channels with the new selection
-          renderCategories(); // Update visual selection
-          renderChannels(); // Update channel list
-
-          // Stop any playing channel
+          renderCategories();
+          renderChannels();
           playChannel("");
         }
-
-        // Always ensure focus stays on sidebar and the selected category
-        // renderCategories() will update sidebarIndex to match selectedCategoryId
         updateFocus();
       }
     } else if (focusedSection === "player") {
-      // Toggle fullscreen on Enter ONLY if border is focused
       const playerContainer = document.getElementById("lp-player-container");
       if (playerContainer) {
         if (playerSubFocus === 0) {
-          // Fullscreen Button - Turn on fullscreen
           toggleFullscreen();
         } else if (playerSubFocus === 1) {
-          // Play/Pause focused - Click it
           const btn =
             document.querySelector(".play-pause-icon") ||
             document.getElementById("live-play-pause-btn");
           if (btn) btn.click();
         } else if (playerSubFocus === 2) {
-          // Aspect Ratio focused - Click it
           const btn =
             document.getElementById("videojs-aspect-ratio") ||
             document.getElementById("flow-aspect-ratio");
@@ -1994,13 +2007,10 @@ function LivePage() {
       if (!stream) return;
 
       if (buttonFocusIndex === 0) {
-        // Heart button - show toaster
         toggleFavorite(stream, true);
       } else if (buttonFocusIndex === 1) {
-        // Remove button
         removeFromHistory(stream);
       } else {
-        // Check for adult content lock before playing
         const category = (window.liveCategories || []).find(
           (c) => c.category_id === stream.category_id
         );
@@ -2012,7 +2022,6 @@ function LivePage() {
           currentPlaylistForParental &&
           !!currentPlaylistForParental.parentalPassword;
 
-        // Determine if channel is unlocked
         let isChannelUnlocked = true;
         let unlockSet = null;
 
@@ -2046,42 +2055,57 @@ function LivePage() {
           !isChannelUnlocked &&
           unlockSet
         ) {
-          // Show parental PIN dialog
           ParentalPinDialog(
             () => {
-              // PIN correct - unlock and play
               unlockSet.add(String(stream.stream_id));
-
-              // Single channel unlock (All/Favorites/History/Category)
               const card = document.querySelector(
                 `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
               );
               if (card) {
-                const logoContainer = card.querySelector(
-                  ".lp-channel-logo-container"
-                );
-                if (logoContainer) {
-                  logoContainer.classList.remove("lp-channel-card-locked");
-                }
-                const lockIcon = card.querySelector(".lp-channel-lock-icon");
-                if (lockIcon) lockIcon.remove();
+                const logo = card.querySelector(".lp-channel-logo-container");
+                if (logo) logo.classList.remove("lp-channel-card-locked");
+                const lock = card.querySelector(".lp-channel-lock-icon");
+                if (lock) lock.remove();
               }
-
               playChannel(stream);
             },
             () => {
-              // PIN incorrect - do nothing
               console.log("Parental PIN incorrect");
             },
             currentPlaylistForParental,
             "liveTvPage"
           );
           return;
+        } else {
+          handleChannelAction(stream);
         }
-
-        // Play channel if not locked or already unlocked
-        playChannel(stream);
       }
+    }
+  };
+
+  const handleChannelAction = (stream) => {
+    const now = Date.now();
+    if (
+      lastEnteredChannelId === String(stream.stream_id) &&
+      now - lastEnterTime < 500
+    ) {
+      // First ensure it's playing (might already be if user clicked once then again)
+      playChannel(stream);
+
+      // Now toggle fullscreen
+      toggleFullscreen();
+
+      // Set focus to controls and show them
+      focusedSection = "player";
+      playerSubFocus = 1; // Play/Pause
+      updateFocus();
+      resetControlsTimer();
+
+      lastEnterTime = 0;
+    } else {
+      lastEnterTime = now;
+      lastEnteredChannelId = String(stream.stream_id);
+      playChannel(stream);
     }
   };
 
@@ -2228,7 +2252,7 @@ function LivePage() {
                 }
 
                 // Play channel if not locked or already unlocked
-                playChannel(stream);
+                handleChannelAction(stream);
               }
             }
           }

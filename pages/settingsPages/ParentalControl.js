@@ -94,6 +94,10 @@ function ParentalControl() {
     // No password visibility toggle: eye icons were removed
 
     function parentalControlKeydownEvents(e) {
+      if (localStorage.getItem("currentPage") === "parentalPinDialog") {
+        return;
+      }
+
       switch (e.key) {
         case "ArrowDown":
           if (
@@ -296,25 +300,49 @@ function ParentalControl() {
     });
 
     clearButton.addEventListener("click", function () {
-      // Clear both input fields
-      inputs[0].value = "";
-      inputs[1].value = "";
-
       const currentPlaylist = getCurrentPlaylist();
-      updatePlaylistData(currentPlaylist.playlistName, "parentalPassword", "");
-      // Remove focus styles after clearing
-      removeAllFocusStyles();
+      const hasPassword =
+        currentPlaylist &&
+        currentPlaylist.parentalPassword &&
+        currentPlaylist.parentalPassword.length > 0;
 
-      // Reset focus to first input
-      currentFocus = 0;
-      updateFocusStyles();
+      const clearAction = function () {
+        // Clear both input fields
+        inputs[0].value = "";
+        inputs[1].value = "";
 
-      Toaster.showToast("success", "Password fields cleared!");
-      console.log("Password fields cleared");
-      // No saved password → show text inputs
-      inputs.forEach(function (inp) {
-        if (inp) inp.type = "text";
-      });
+        updatePlaylistData(
+          currentPlaylist.playlistName,
+          "parentalPassword",
+          ""
+        );
+        // Remove focus styles after clearing
+        removeAllFocusStyles();
+
+        // Reset focus to first input
+        currentFocus = 0;
+        updateFocusStyles();
+
+        Toaster.showToast("success", "Password fields cleared!");
+        console.log("Password fields cleared");
+        // No saved password → show text inputs
+        inputs.forEach(function (inp) {
+          if (inp) inp.type = "text";
+        });
+      };
+
+      if (hasPassword) {
+        // Require PIN before clearing
+        ParentalPinDialog(
+          clearAction,
+          () => console.log("Clear action canceled by user"),
+          currentPlaylist,
+          "settingsPage"
+        );
+      } else {
+        // No password set, just clear local fields
+        clearAction();
+      }
     });
 
     // Clean up when component is destroyed
