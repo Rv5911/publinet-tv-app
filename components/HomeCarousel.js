@@ -31,11 +31,18 @@ async function HomeCarousel() {
 
   // Filter out adult content if needed, similar to previous logic
   let filteredItems = allStreams.filter((item) => {
-    const name = (item.name || "").toLowerCase();
+    const name = (item.name || "").toLowerCase().trim();
     // Ensure adultsCategories is defined or default to empty array
     const categories =
       typeof adultsCategories !== "undefined" ? adultsCategories : [];
-    return !categories.some((keyword) => name.includes(keyword));
+
+    // Check against keywords
+    const isAdult =
+      categories.some((keyword) =>
+        name.toLowerCase().trim().includes(keyword.toLowerCase().trim())
+      ) || /(adult|xxx|18\+|18\s*plus|sex|porn|nsfw)/i.test(name);
+
+    return !isAdult;
   });
 
   // Fallback if no items found
