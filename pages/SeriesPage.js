@@ -369,7 +369,7 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
                     </div>
                     <div class="series-card-bottom-right">
                         <h3>-</h3>
-                    <span class="movie-card-rating"> <img src="./assets/rating-star.png" class="movie-card-star-icon" />${
+                    <span class="movie-card-rating"><img src="./assets/rating-star.png" class="movie-card-star-icon" />${
                       seriesData.rating ? seriesData.rating : "0"
                     }</span>
                     </div>
@@ -1724,8 +1724,17 @@ function updateSeriesFocus() {
 
                 // Conditional Marquee
                 const title = currentCard.querySelector(".series-title-marquee");
-                if (title && title.scrollWidth > title.clientWidth) {
-                    title.classList.add("marquee-active");
+                if (title) {
+                    title.classList.remove("marquee-active");
+                    const scrollWidth = title.scrollWidth;
+                    const clientWidth = title.clientWidth;
+                    if (scrollWidth > clientWidth) {
+                        const scrollDist = scrollWidth - clientWidth;
+                        title.setAttribute("data-marquee", title.textContent);
+                        title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
+                        title.style.setProperty("--duration", `${scrollWidth / 150}s`);
+                        title.classList.add("marquee-active");
+                    }
                 }
 
                 seriesNavigationState.lastFocusedCategory =
@@ -1748,10 +1757,15 @@ function activateSeriesMarquee(card) {
     let container = titleElement.parentElement;
     if (!container) return;
 
-    if (titleElement.scrollWidth > container.offsetWidth) {
+    titleElement.classList.remove("marquee-active");
+    const scrollWidth = titleElement.scrollWidth;
+    const clientWidth = titleElement.clientWidth;
+    if (scrollWidth > clientWidth) {
+        const scrollDist = scrollWidth - clientWidth;
+        titleElement.setAttribute("data-marquee", titleElement.textContent);
+        titleElement.style.setProperty("--scroll-dist", `-${scrollDist}px`);
+        titleElement.style.setProperty("--duration", `${scrollWidth / 150}s`);
         titleElement.classList.add("marquee-active");
-    } else {
-        titleElement.classList.remove("marquee-active");
     }
 }
 

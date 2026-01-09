@@ -21,7 +21,7 @@
     }
 
     100% {
-        transform: translateX(-100%);
+        transform: translateX(-50%);
     }
 }
 
@@ -168,13 +168,19 @@
     margin: 0;
 }
 
-.livetv-channel-category-focused .livetv-channel-category-name {
+.livetv-channel-category-name.marquee-active::after {
+    content: attr(data-marquee);
+    padding-left: 50px;
+}
+
+.livetv-channel-category-focused .livetv-channel-category-name.marquee-active {
     display: inline-block !important;
     white-space: nowrap !important;
-    animation: marquee 10s linear infinite !important;
+    animation: marquee var(--duration, 4s) linear infinite !important;
     text-overflow: clip !important;
     overflow: visible !important;
-    padding-left: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 50px !important;
     width: auto !important;
     max-width: none !important;
 }
@@ -274,13 +280,19 @@
     display: block;
 }
 
-.channel-card-focused .channel-card-name {
+.channel-card-name.marquee-active::after {
+    content: attr(data-marquee);
+    padding-left: 50px;
+}
+
+.channel-card-focused .channel-card-name.marquee-active {
     display: inline-block !important;
     white-space: nowrap !important;
-    animation: marquee 10s linear infinite !important;
+    animation: marquee var(--duration, 4s) linear infinite !important;
     text-overflow: clip !important;
     overflow: visible !important;
-    padding-left: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 50px !important;
     width: auto !important;
     max-width: none !important;
 }
@@ -729,12 +741,12 @@
     transform: scale(0.95);
 }
 
-.live-control-btn-focused {
-    /* background: var(--gold) !important; */
-    /* color: white !important; */
-    /* transform: scale(1.1); */
-    /* box-shadow: 0 0 20px rgba(245, 197, 24, 0.5); */
-}
+/* .live-control-btn-focused {
+    background: var(--gold) !important;
+    color: white !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(245, 197, 24, 0.5);
+} */
 
 /* Hide controls when video is loading or has error */
 .live-video-loader:not(.hidden)~.live-video-controls,
@@ -1523,9 +1535,10 @@
     margin-right: 10px;
 }
 
-.videojs-aspect-ratio-div{
+.videojs-aspect-ratio-div {
     zoom: 1.5;
 }
+
 #videojs-aspect-ratio.videojs-aspect-ratio-btn-focused,
 #flow-aspect-ratio.flow-aspect-ratio-btn-focused {
     padding: 10px;

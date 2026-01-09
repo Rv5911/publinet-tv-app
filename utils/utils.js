@@ -658,7 +658,13 @@ function applyMarqueeEffect(containerSelector, titleSelector, focusedClass) {
     titles.forEach((title) => {
         const parent = title.closest(`.${focusedClass}`);
         if (parent) {
-            if (title.scrollWidth > title.clientWidth) {
+            const scrollWidth = title.scrollWidth;
+            const clientWidth = title.clientWidth;
+            if (scrollWidth > clientWidth) {
+                const scrollDist = scrollWidth - clientWidth;
+                title.setAttribute("data-marquee", title.textContent);
+                title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
+                title.style.setProperty("--duration", `${scrollWidth / 150}s`);
                 title.classList.add("marquee-active");
             }
         } else {
@@ -681,8 +687,6 @@ function clearMoviesAndSeriesLocalStorage() {
     localStorage.removeItem("seriesNavState");
     localStorage.removeItem("moviesNavState");
     localStorage.removeItem("sortvalue");
-
-    
 }
 
 window.updatePlaylistData = updatePlaylistData;

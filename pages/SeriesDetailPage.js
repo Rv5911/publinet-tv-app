@@ -263,8 +263,17 @@ async function SeriesDetailPage() {
         }
 
         const title = el.querySelector(".episode-title");
-        if (title && title.scrollWidth > title.clientWidth) {
-            title.classList.add("marquee-active");
+        if (title) {
+            title.classList.remove("marquee-active");
+            const scrollWidth = title.scrollWidth;
+            const clientWidth = title.clientWidth;
+            if (scrollWidth > clientWidth) {
+                const scrollDist = scrollWidth - clientWidth;
+                title.setAttribute("data-marquee", title.textContent);
+                title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
+                title.style.setProperty("--duration", `${scrollWidth / 150}s`);
+                title.classList.add("marquee-active");
+            }
         }
 
         // Don't scroll for seasons button specifically

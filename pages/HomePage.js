@@ -116,7 +116,13 @@ async function HomePage() {
                     if (title) {
                         // Reset first to ensure accurate measurement
                         title.classList.remove("marquee-active");
-                        if (title.scrollWidth > title.clientWidth) {
+                        const scrollWidth = title.scrollWidth;
+                        const clientWidth = title.clientWidth;
+                        if (scrollWidth > clientWidth) {
+                            const scrollDist = scrollWidth - clientWidth;
+                            title.setAttribute("data-marquee", title.textContent);
+                            title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
+                            title.style.setProperty("--duration", `${scrollWidth / 150}s`);
                             title.classList.add("marquee-active");
                         }
                     }
@@ -771,10 +777,7 @@ async function HomePage() {
               <h3 style="opacity: 0">${
                 isMovie ? "2h 0m" : item.seasons ? item.seasons + " S" : ""
               }</h3>
-              <span class="home-card-rating">
-                <img src="./assets/rating-star.png" class="home-card-star-icon" />
-                ${rating}
-              </span>
+              <span class="home-card-rating"><img src="./assets/rating-star.png" class="home-card-star-icon" />${rating}</span>
             </div>
           </div>
         </div>
