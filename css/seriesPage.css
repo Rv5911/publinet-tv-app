@@ -330,6 +330,7 @@
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee var(--duration, 4s) linear infinite !important;
+    animation-delay: 0.8s !important;
     text-overflow: clip !important;
     overflow: visible !important;
     padding-left: 0 !important;
@@ -559,11 +560,12 @@
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    gap: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
 }
 
 .movie-card-star-icon {
     width: 16px;
     height: 16px;
-    margin-right: 3px;
+    margin-right: 6px;
 }

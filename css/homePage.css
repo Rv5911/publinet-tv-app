@@ -285,6 +285,7 @@
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee var(--duration, 4s) linear infinite !important;
+    animation-delay: 0.8s !important;
     text-overflow: clip !important;
     overflow: visible !important;
     padding-left: 0 !important;
@@ -320,7 +321,7 @@
 .home-card-star-icon {
     width: 16px;
     height: 16px;
-    margin-right: 3px;
+    margin-right: 6px;
 }
 
 .home-page-no-data {
@@ -407,7 +408,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
 }
 
 .home-loader-spinner {
@@ -417,6 +417,7 @@
     border-top: 3px solid var(--dark-gold);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    margin-bottom: 25px;
 }
 
 @keyframes spin {
@@ -470,5 +471,6 @@
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    gap: 4px;
+    margin-right: 5px;
+    margin-bottom: 5px;
 }

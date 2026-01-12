@@ -1,296 +1,288 @@
 /* Carousel Container */
 .carousel-container {
-  width: 100%;
-  height: 883px;
-  /* or use height: 90vh; for responsive */
-  margin: auto;
-  overflow: hidden;
-  position: relative;
-  background: #000;
+    width: 100%;
+    height: 883px;
+    /* or use height: 90vh; for responsive */
+    margin: auto;
+    overflow: hidden;
+    position: relative;
+    background: #000;
 }
 
 /* Slides Wrapper */
 .carousel-slides {
-  display: flex;
-  transition: transform 0.5s ease-in-out;
-  width: 100%;
-  height: 100%;
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    width: 100%;
+    height: 100%;
 }
 
 /* Individual Slide */
 .slide {
-  flex: 1 0 100%;
-  height: 100%;
-  display: flex;
-  justify-content: flex-start;
-  /* Align content to left */
-  align-items: center;
-  overflow: hidden;
-  position: relative;
+    flex: 1 0 100%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-start;
+    /* Align content to left */
+    align-items: center;
+    overflow: hidden;
+    position: relative;
 }
 
 /* Gradient overlay around images */
 .slide::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-      181.38deg,
-      rgba(15, 15, 15, 0.07) 76.76%,
-      #0d0e3b 95.16%
-    ),
-    linear-gradient(
-      1.38deg,
-      rgba(15, 15, 15, 0.07) 76.76%,
-      rgba(0, 0, 0, 0.85) 95.16%
-    ),
-    linear-gradient(
-      270deg,
-      rgba(15, 15, 15, 0.07) 34.66%,
-      rgba(0, 0, 0, 0.85) 90.03%
-    ),
-    linear-gradient(
-      90deg,
-      rgba(15, 15, 15, 0.07) 34.66%,
-      rgba(0, 0, 0, 0.85) 90.03%
-    );
-  pointer-events: none;
-  z-index: 1;
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(181.38deg,
+            rgba(15, 15, 15, 0.07) 76.76%,
+            #0d0e3b 95.16%),
+        linear-gradient(1.38deg,
+            rgba(15, 15, 15, 0.07) 76.76%,
+            rgba(0, 0, 0, 0.85) 95.16%),
+        linear-gradient(270deg,
+            rgba(15, 15, 15, 0.07) 34.66%,
+            rgba(0, 0, 0, 0.85) 90.03%),
+        linear-gradient(90deg,
+            rgba(15, 15, 15, 0.07) 34.66%,
+            rgba(0, 0, 0, 0.85) 90.03%);
+    pointer-events: none;
+    z-index: 1;
 }
 
 .carousel-image {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
 }
 
 /* Content Wrapper */
 .carousel-content {
-  position: relative;
-  z-index: 2;
-  width: 80%;
-  padding-left: 80px;
-  /* Adjust based on design */
-  color: white;
-  zoom: 1;
-  display: flex;
-  flex-direction: column;
-  margin-top: 100px;
-  /* Push down slightly */
+    position: relative;
+    z-index: 2;
+    width: 80%;
+    padding-left: 80px;
+    /* Adjust based on design */
+    color: white;
+    zoom: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 100px;
+    /* Push down slightly */
 }
 
 /* Title */
 .carousel-title {
-  font-size: 64px;
-  font-weight: 700;
-  margin: 0;
-  margin-bottom: 20px;
-  line-height: 1.1;
-  text-transform: capitalize;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-size: 64px;
+    font-weight: 700;
+    margin: 0;
+    margin-bottom: 20px;
+    line-height: 1.1;
+    text-transform: capitalize;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .carousel-meta {
-  display: flex;
-  align-items: center;
-  zoom: 1.2;
-  margin-bottom: 20px;
-  font-size: 20px;
-  font-weight: 500;
+    display: flex;
+    align-items: center;
+    zoom: 1.2;
+    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 500;
 }
 
 .carousel-rating-badge {
-  display: flex;
-  align-items: center;
-  zoom: 1.1;
-  margin-left: 20px;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 5px 12px;
-  border-radius: 20px;
-  backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    zoom: 1.1;
+    margin-left: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 5px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
 }
 
 .star-icon {
-  width: 18px;
-  height: 18px;
+    width: 18px;
+    height: 18px;
+    margin-right: 5px;
 }
 
 /* Description */
 .carousel-description {
-  font-size: 30px;
-  line-height: 1.5;
-  color: #e0e0e0;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  /* Standard property */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    font-size: 30px;
+    line-height: 1.5;
+    color: #e0e0e0;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    /* Standard property */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* Watch Now Button */
 .carousel-watch-now-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 32px;
-  font-size: 20px;
-  zoom: 1.2;
-  font-weight: 600;
-  color: white;
-  background: transparent;
-  border: 2px solid var(--dark-gold, #ffd700);
-  border-radius: 30px;
-  cursor: pointer;
-  width: fit-content;
-  transition: all 0.3s ease;
-  margin-top: 20px;
+    display: flex;
+    align-items: center;
+    padding: 12px 32px;
+    font-size: 20px;
+    zoom: 1.2;
+    font-weight: 600;
+    color: white;
+    background: transparent;
+    border: 2px solid var(--dark-gold, #ffd700);
+    border-radius: 30px;
+    cursor: pointer;
+    width: fit-content;
+    transition: all 0.3s ease;
+    margin-top: 20px;
 }
 
 .carousel-watch-now-btn .btn-icon {
-  width: 20px;
-  height: 20px;
-  filter: brightness(0) invert(1);
-  /* Make icon white */
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    filter: brightness(0) invert(1);
+    /* Make icon white */
 }
 
 .carousel-watch-now-btn:hover,
 .carousel-watch-now-btn.focused {
-  background: var(--dark-gold, #ffd700);
-  color: black;
-  transform: scale(1.05);
-  box-shadow: 0 0 20px rgba(253, 189, 15, 0.4);
+    background: var(--dark-gold, #ffd700);
+    color: black;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(253, 189, 15, 0.4);
 }
 
 .carousel-watch-now-btn.focused .btn-icon {
-  filter: none;
-  /* Restore original icon color or make black */
-  filter: brightness(0);
-  /* Make icon black */
+    filter: none;
+    /* Restore original icon color or make black */
+    filter: brightness(0);
+    /* Make icon black */
 }
 
 /* Carousel Dots Container */
 .carousel-dots {
-  position: absolute;
-  bottom: 40px;
-  zoom: 2;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  z-index: 10;
+    position: absolute;
+    bottom: 40px;
+    zoom: 2;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    z-index: 10;
 }
 
 /* Individual Dot */
 .carousel-dot {
-  width: 12px;
-  height: 12px;
-  margin: 0 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.3s ease;
+    width: 12px;
+    height: 12px;
+    margin: 0 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 /* Active Dot */
 .carousel-dot.active {
-  width: 30px;
-  background: var(--dark-gold, #ffd700);
-  border-radius: 20px;
+    width: 30px;
+    background: var(--dark-gold, #ffd700);
+    border-radius: 20px;
 }
 
 /* Responsive */
 @media (max-width: 1200px) {
-  .carousel-container {
-    height: 70vh;
-  }
+    .carousel-container {
+        height: 70vh;
+    }
 
-  .carousel-content {
-    padding-left: 50px;
-    width: 60%;
-  }
+    .carousel-content {
+        padding-left: 50px;
+        width: 60%;
+    }
 
-  .carousel-title {
-    font-size: 48px;
-  }
+    .carousel-title {
+        font-size: 48px;
+    }
 }
 
 @media (max-width: 768px) {
-  .carousel-container {
-    height: 50vh;
-  }
+    .carousel-container {
+        height: 50vh;
+    }
 
-  .carousel-content {
-    padding-left: 20px;
-    width: 80%;
-    margin-top: 50px;
-  }
+    .carousel-content {
+        padding-left: 20px;
+        width: 80%;
+        margin-top: 50px;
+    }
 
-  .carousel-title {
-    font-size: 32px;
-  }
+    .carousel-title {
+        font-size: 32px;
+    }
 
-  .carousel-description {
-    font-size: 14px;
-    -webkit-line-clamp: 2;
-  }
+    .carousel-description {
+        font-size: 14px;
+        -webkit-line-clamp: 2;
+    }
 
-  .carousel-watch-now-btn {
-    padding: 10px 24px;
-    font-size: 16px;
-  }
+    .carousel-watch-now-btn {
+        padding: 10px 24px;
+        font-size: 16px;
+    }
 }
 
 .carousel-rating-badge {
-  background-color: #515dff;
-  padding-left: 14px;
-  padding-right: 16px;
-  border-radius: 16px;
-  padding-top: 3px;
-  font-size: 18px;
-  padding-bottom: 3px;
+    background-color: #515dff;
+    padding-left: 14px;
+    padding-right: 16px;
+    border-radius: 16px;
+    padding-top: 3px;
+    font-size: 18px;
+    padding-bottom: 3px;
 }
 
 .carousel-card-star-icon {
-  width: 16px;
-  height: 16px;
-  margin-right: 3px;
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
 }
 
 /* Carousel Loading State */
 .carousel-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  width: 100%;
-  background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background: #000;
 }
 
 .carousel-loading .spinner {
-  width: 80px;
-  height: 80px;
-  border-top: 3px solid var(--gold, #f5c518);
-  border-right: 3px solid var(--gold, #f5c518);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+    width: 80px;
+    height: 80px;
+    border-top: 3px solid var(--gold, #f5c518);
+    border-right: 3px solid var(--gold, #f5c518);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
 .carousel-loading .loading-text {
-  margin-top: 15px;
-  font-size: 1.2rem;
-  color: var(--gold, #fdbd0f);
-  font-family: Arial, sans-serif;
-  letter-spacing: 2px;
-  animation: fadeBlink 1.5s infinite;
+    margin-top: 15px;
+    font-size: 1.2rem;
+    color: var(--gold, #fdbd0f);
+    font-family: Arial, sans-serif;
+    letter-spacing: 2px;
+    animation: fadeBlink 1.5s infinite;
 }

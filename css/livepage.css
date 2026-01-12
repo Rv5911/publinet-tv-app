@@ -159,6 +159,7 @@
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee var(--duration, 4s) linear infinite !important;
+    animation-delay: 0.8s !important;
     text-overflow: clip !important;
     overflow: visible !important;
     padding-left: 0 !important;
@@ -556,6 +557,7 @@
     display: inline-block !important;
     white-space: nowrap !important;
     animation: marquee var(--duration, 4s) linear infinite !important;
+    animation-delay: 0.8s !important;
     text-overflow: clip !important;
     overflow: visible !important;
     padding-left: 0 !important;
@@ -614,11 +616,24 @@
 
 .lp-channel-buttons {
     display: flex;
-    gap: 8px;
     background: #1e1e3f;
 }
 
-.lp-channel-fav-btn,
+.lp-channel-fav-btn {
+    background: transparent;
+    border: none;
+    color: #8888aa;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+}
+
 .lp-channel-remove-btn {
     background: transparent;
     border: none;
@@ -824,7 +839,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
 }
 
 .live-loader-spinner {
@@ -834,6 +848,7 @@
     border-top: 3px solid var(--dark-gold);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    margin-bottom: 25px;
 }
 
 .live-loader-text {
@@ -1019,7 +1034,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
 }
 
 .live-loader-spinner {
@@ -1029,6 +1043,7 @@
     border-top: 3px solid var(--dark-gold);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    margin-bottom: 25px;
 }
 
 .live-loader-text {
