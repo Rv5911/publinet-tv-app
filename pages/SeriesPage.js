@@ -612,9 +612,20 @@ function loadMoreSeriesCategories() {
 
 function createSeriesCategorySection(category, categoryIndex) {
   let size = category.id === "popular" ? "large" : "normal";
+  let totalItems = category.series ? category.series.length : 0;
 
   let html = '<div class="' + category.containerClass + '">';
+  html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
+
+  if (totalItems > 0) {
+    html += `<div class="category-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
+              <span>View More (${totalItems})</span>
+              <i class="fas fa-chevron-right"></i>
+            </div>`;
+  }
+  html += "</div>";
+
   html +=
     '<div class="series-card-list ' +
     category.id +
@@ -624,13 +635,6 @@ function createSeriesCategorySection(category, categoryIndex) {
 
   let initialSeries = loadSeriesChunk(category, categoryIndex);
   html += initialSeries;
-
-  if (
-    category.series &&
-    category.series.length > getSeriesLoadedChunkCount(categoryIndex)
-  ) {
-    html += createSeriesLoadingIndicator(categoryIndex);
-  }
 
   html += "</div>";
   html += "</div>";
@@ -747,6 +751,13 @@ function handleSeriesSimpleEnter() {
     }
 
     proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
+  } else {
+    let viewMoreBtn = document.querySelector(
+      '.category-view-more[data-category="' + categoryIndex + '"].focused'
+    );
+    if (viewMoreBtn) {
+      handleViewMoreClick("series", categoryIndex);
+    }
   }
 }
 
@@ -773,6 +784,26 @@ function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
   localStorage.setItem("navigationFocus", "seriesDetailPage");
 
   Router.showPage("seriesDetailPage");
+}
+
+function handleViewMoreClick(type, categoryIndex) {
+  let categories =
+    type === "movies"
+      ? window.allMoviesCategories || []
+      : window.allSeriesCategories || [];
+  let category = categories[categoryIndex];
+
+  if (category) {
+    localStorage.setItem("viewMoreType", type);
+    localStorage.setItem("viewMoreCategoryId", category.id);
+    localStorage.setItem("viewMoreCategoryTitle", category.title);
+    localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
+
+    localStorage.setItem("currentPage", "categoryViewPage");
+    localStorage.setItem("navigationFocus", "categoryViewPage");
+
+    Router.showPage("categoryViewPage");
+  }
 }
 
 function handleSeriesLongPressEnter() {
@@ -1306,6 +1337,11 @@ function handleSeriesKeyNavigation(e) {
   if (currentPage !== "seriesPage" || navigationFocus !== "seriesPage") {
     return;
   }
+
+  if (e.type === "keyup" && e.key !== "Enter") {
+    return;
+  }
+
   if (
     e &&
     e.target &&
@@ -1387,28 +1423,18 @@ function cleanupSeriesNavigation() {
 }
 
 function getSeriesCurrentVisibleIndex(categoryIndex, cardIndex) {
-  let cardList = document.querySelector(
-    '.series-card-list[data-category="' + categoryIndex + '"]'
-  );
-  if (!cardList) return 0;
-
-  let containerWidth = cardList.offsetWidth;
-  let firstCard = cardList.querySelector(".series-card");
-  if (!firstCard) return 0;
-
-  let cardWidth = firstCard.offsetWidth + 16;
-  let visibleCardsCount = Math.floor(containerWidth / cardWidth);
-
-  // Clamp to last visible card index
-  if (cardIndex >= visibleCardsCount) {
-    return visibleCardsCount - 1;
+  if (cardIndex === "header") {
+    return 0;
   }
-
   return cardIndex;
 }
 
 function moveSeriesRight() {
   if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
+    return;
+  }
+
+  if (seriesNavigationState.currentCardIndex === "header") {
     return;
   }
 
@@ -1439,6 +1465,10 @@ function moveSeriesLeft() {
     return;
   }
 
+  if (seriesNavigationState.currentCardIndex === "header") {
+    return;
+  }
+
   if (seriesNavigationState.currentCardIndex > 0) {
     seriesNavigationState.currentCardIndex--;
   }
@@ -1456,52 +1486,31 @@ function moveSeriesDown() {
   let currentIndex = seriesNavigationState.currentCategoryIndex;
   let currentCardIndex = seriesNavigationState.currentCardIndex;
 
-  let nextCategoryIndex = findNextSeriesCategoryWithSeries(currentIndex + 1, 1);
-
-  if (nextCategoryIndex > 2) {
-    const navbarEl = document.querySelector("#navbar-root");
-    if (navbarEl) {
-      navbarEl.style.display = "none";
-    }
-  }
-
-  if (nextCategoryIndex !== -1) {
-    seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
-
-    let newCategory = getCurrentSeriesCategory();
-    if (newCategory) {
-      let loadedCount = getSeriesLoadedChunkCount(
-        seriesNavigationState.currentCategoryIndex
-      );
-
-      let visiblePosition = getSeriesCurrentVisibleIndex(
-        currentIndex,
-        currentCardIndex
-      );
-      seriesNavigationState.currentCardIndex =
-        loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
-    } else {
-      seriesNavigationState.currentCardIndex = 0;
-    }
-
-    let loadedCategoriesCount = seriesChunkLoadingState.loadedCategories;
-    if (
-      seriesNavigationState.currentCategoryIndex >=
-      loadedCategoriesCount - 2
-    ) {
-      loadMoreSeriesCategories();
-    }
+  if (currentCardIndex === "header") {
+    seriesNavigationState.currentCardIndex = 0;
   } else {
-    // Try to load more categories if we are at the bottom
-    loadMoreSeriesCategories();
+    let nextCategoryIndex = findNextSeriesCategoryWithSeries(
+      currentIndex + 1,
+      1
+    );
+    if (nextCategoryIndex !== -1) {
+      seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
+      seriesNavigationState.currentCardIndex = 0; // Bypass header on Arrow Down
 
-    let currentCategory = getCurrentSeriesCategory();
-    if (currentCategory && currentCategory.series) {
-      let loadedCount = getSeriesLoadedChunkCount(currentIndex);
-      let totalSeries = currentCategory.series.length;
-      if (loadedCount < totalSeries) {
-        loadMoreSeriesForCategory(currentIndex);
+      if (nextCategoryIndex > 2) {
+        const navbarEl = document.querySelector("#navbar-root");
+        if (navbarEl) navbarEl.style.display = "none";
       }
+
+      let loadedCategoriesCount = seriesChunkLoadingState.loadedCategories;
+      if (
+        seriesNavigationState.currentCategoryIndex >=
+        loadedCategoriesCount - 2
+      ) {
+        loadMoreSeriesCategories();
+      }
+    } else {
+      loadMoreSeriesCategories();
     }
   }
 }
@@ -1510,57 +1519,36 @@ function moveSeriesUp() {
   let currentIndex = seriesNavigationState.currentCategoryIndex;
   let currentCardIndex = seriesNavigationState.currentCardIndex;
 
-  let prevCategoryIndex = findNextSeriesCategoryWithSeries(
-    currentIndex - 1,
-    -1
-  );
-
-  if (prevCategoryIndex !== -1) {
-    seriesNavigationState.currentCategoryIndex = prevCategoryIndex;
-
-    let newCategory = getCurrentSeriesCategory();
-    if (newCategory) {
-      let loadedCount = getSeriesLoadedChunkCount(
-        seriesNavigationState.currentCategoryIndex
-      );
-
-      let visiblePosition = getSeriesCurrentVisibleIndex(
-        currentIndex,
-        currentCardIndex
-      );
-      seriesNavigationState.currentCardIndex =
-        loadedCount > 0 ? Math.min(visiblePosition, loadedCount - 1) : 0;
-    } else {
+  if (currentCardIndex === "header") {
+    let prevCategoryIndex = findNextSeriesCategoryWithSeries(
+      currentIndex - 1,
+      -1
+    );
+    if (prevCategoryIndex !== -1) {
+      seriesNavigationState.currentCategoryIndex = prevCategoryIndex;
       seriesNavigationState.currentCardIndex = 0;
+    } else {
+      const seriesContainer = document.querySelector(".series-page-container");
+      if (seriesContainer) seriesContainer.scrollTop = 0;
+      const navbarEl = document.querySelector("#navbar-root");
+      if (navbarEl) navbarEl.style.display = "block";
+
+      removeAllSeriesFocus();
+      saveSeriesNavigationState();
+      localStorage.setItem("navigationFocus", "navbar");
+
+      setTimeout(() => {
+        const seriesNavItem = document.querySelector(
+          '.nav-item[data-page="seriesPage"]'
+        );
+        if (seriesNavItem) {
+          seriesNavItem.focus();
+          seriesNavItem.classList.add("active");
+        }
+      }, 50);
     }
   } else {
-    try {
-      const seriesContainer = document.querySelector(".series-page-container");
-      if (seriesContainer) {
-        seriesContainer.scrollTop = 0;
-      }
-
-      const navbarEl = document.querySelector("#navbar-root");
-      if (navbarEl) {
-        navbarEl.style.display = "block";
-      }
-    } catch (e) {
-      console.log("Series scroll to top failed:", e);
-    }
-
-    removeAllSeriesFocus();
-    saveSeriesNavigationState();
-    localStorage.setItem("navigationFocus", "navbar");
-
-    setTimeout(() => {
-      const seriesNavItem = document.querySelector(
-        '.nav-item[data-page="seriesPage"]'
-      );
-      if (seriesNavItem) {
-        seriesNavItem.focus();
-        seriesNavItem.classList.add("active");
-      }
-    }, 50);
+    seriesNavigationState.currentCardIndex = "header";
   }
 }
 
@@ -1646,7 +1634,12 @@ function loadMoreSeriesForCategory(categoryIndex) {
       }
 
       if (newCardsHTML) {
-        cardList.insertAdjacentHTML("beforeend", newCardsHTML);
+        let viewMoreBtn = cardList.querySelector(".view-more-card");
+        if (viewMoreBtn) {
+          viewMoreBtn.insertAdjacentHTML("beforebegin", newCardsHTML);
+        } else {
+          cardList.insertAdjacentHTML("beforeend", newCardsHTML);
+        }
 
         if (seriesNavigationState.currentCategoryIndex === categoryIndex) {
           updateSeriesFocus();
@@ -1689,13 +1682,21 @@ function updateSeriesFocus() {
         );
       }
 
-      const currentCard = document.querySelector(
+      let selector =
         '.series-card[data-category="' +
+        seriesNavigationState.currentCategoryIndex +
+        '"][data-index="' +
+        seriesNavigationState.currentCardIndex +
+        '"]';
+
+      if (seriesNavigationState.currentCardIndex === "header") {
+        selector =
+          '.category-view-more[data-category="' +
           seriesNavigationState.currentCategoryIndex +
-          '"][data-index="' +
-          seriesNavigationState.currentCardIndex +
-          '"]'
-      );
+          '"]';
+      }
+
+      const currentCard = document.querySelector(selector);
 
       if (currentCard) {
         // Fast class management

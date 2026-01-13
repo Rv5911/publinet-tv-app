@@ -52,6 +52,12 @@ const Router = (function () {
       el: document.getElementById("series-detail-page"),
       render: SeriesDetailPage,
     },
+    categoryViewPage: {
+      el: document.getElementById("category-view-page"),
+      render: CategoryViewPage,
+      init: CategoryViewPage.init,
+      cleanup: CategoryViewPage.cleanup,
+    },
     exitModal: {
       el: document.getElementById("exit-modal"),
       render: ExitModal,
