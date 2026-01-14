@@ -131,8 +131,7 @@ function buildDynamicSidebarOptions() {
         sortItem.style.display = "none";
       }
     }
-    let label = "";
-    let action = "";
+    // Refactored to support multiple dynamic options
     const currentPlaylist = getCurrentPlaylist();
 
     // Return early if no playlist is available
@@ -159,60 +158,156 @@ function buildDynamicSidebarOptions() {
         (series) => series && series.itemId == selectedSeriesId
       );
 
-    if (currentPage === "moviesPage") {
+    const optionsToAdd = [];
+    const moviesPage = "moviesPage";
+    const seriesPage = "seriesPage";
+    const liveTvPage = "liveTvPage";
+    const movieDetailPage = "movieDetailPage";
+    const seriesDetailPage = "seriesDetailPage";
+
+    if (currentPage === moviesPage) {
       if (allRecentlyWatchedMovies && allRecentlyWatchedMovies.length > 0) {
-        label = "Remove All Recently Watched Movies";
-        action = "remove-all-movies";
-      } else {
-        return;
+        optionsToAdd.push({
+          label: "Remove All Recently Watched Movies",
+          action: "remove-all-movies",
+          icon: "fa-trash",
+        });
       }
-    } else if (currentPage === "seriesPage") {
+      // Add Refresh Option
+      optionsToAdd.push({
+        label: "Refresh Content",
+        action: "refresh-content",
+        icon: "fa-refresh",
+      });
+    } else if (currentPage === seriesPage) {
       if (allRecentlyWatchedSeries && allRecentlyWatchedSeries.length > 0) {
-        label = "Remove All Recently Watched Series";
-        action = "remove-all-series";
-      } else {
-        return;
+        optionsToAdd.push({
+          label: "Remove All Recently Watched Series",
+          action: "remove-all-series",
+          icon: "fa-trash",
+        });
       }
-    } else if (currentPage === "liveTvPage") {
+      // Add Refresh Option
+      optionsToAdd.push({
+        label: "Refresh Content",
+        action: "refresh-content",
+        icon: "fa-refresh",
+      });
+    } else if (currentPage === liveTvPage) {
       if (allRecentlyWatchedChannels && allRecentlyWatchedChannels.length > 0) {
-        label = "Clear Channel History";
-        action = "clear-channel-history";
-      } else {
-        return;
+        optionsToAdd.push({
+          label: "Clear Channel History",
+          action: "clear-channel-history",
+          icon: "fa-trash",
+        });
       }
-    }
-    // FIX: Use consistent page name and proper boolean check
-    else if (currentPage === "movieDetailPage") {
+    } else if (currentPage === movieDetailPage) {
       if (isIncludedInRecentlyWatchedMovies) {
-        label = "Remove Movie From Recently Watched";
-        action = "remove-movie";
-      } else {
-        console.log(
-          "Not showing remove option - movie not in recently watched"
-        );
-        return;
+        optionsToAdd.push({
+          label: "Remove Movie From Recently Watched",
+          action: "remove-movie",
+          icon: "fa-trash",
+        });
       }
-    } else if (currentPage === "seriesDetailPage") {
+    } else if (currentPage === seriesDetailPage) {
       if (isIncludedInRecentlyWatchedSeries) {
-        label = "Remove Series From Recently Watched";
-        action = "remove-series";
-      } else {
-        return;
+        optionsToAdd.push({
+          label: "Remove Series From Recently Watched",
+          action: "remove-series",
+          icon: "fa-trash",
+        });
       }
     }
 
-    if (!action) return;
+    if (optionsToAdd.length === 0) return;
 
-    const li = document.createElement("li");
-    li.className = "sidebar-link dynamic-sidebar-option";
-    li.setAttribute("tabindex", "0");
-    li.dataset.action = action;
-    li.innerHTML = `<i class="fa fa-trash" style="margin-right: 10px;" aria-hidden="true"></i> <p class="sidebar-link-label" style="margin-left: 20px;">${label}</p>`;
     const logoutItem = list.querySelector(".logout-navbar");
-    if (logoutItem) list.insertBefore(li, logoutItem);
-    else list.appendChild(li);
+
+    optionsToAdd.forEach((opt) => {
+      const li = document.createElement("li");
+      li.className = "sidebar-link dynamic-sidebar-option";
+      li.setAttribute("tabindex", "0");
+      li.dataset.action = opt.action;
+      li.innerHTML = `<i class="fa ${opt.icon}" style="margin-right: 10px;" aria-hidden="true"></i> <p class="sidebar-link-label" style="margin-left: 20px;">${opt.label}</p>`;
+
+      if (logoutItem) list.insertBefore(li, logoutItem);
+      else list.appendChild(li);
+    });
   } catch (e) {
     console.error("buildDynamicSidebarOptions error", e);
+  }
+}
+
+async function handleRefreshContent() {
+  const currentPage = localStorage.getItem("currentPage");
+  const loadingOverlay = document.getElementById("loading-overlay");
+
+  // Show loader
+  if (loadingOverlay) loadingOverlay.classList.remove("hidden");
+
+  // Block input
+  if (typeof enableKeyBlock === "function") {
+    enableKeyBlock(() => {
+      // Optional: Handle cancellation if needed, though usually refresh is fast enough or blocking
+      console.log("Refresh cancelled by user");
+    });
+  }
+
+  try {
+    if (currentPage === "moviesPage") {
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(10, "Refreshing Movies...");
+
+      const vodMovies = await getAllVodMovies();
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(50, "Refreshing Categories...");
+
+      const moviesCategories = await getMoviesCategories();
+
+      if (vodMovies) window.allMoviesStreams = vodMovies;
+      if (moviesCategories) window.moviesCategories = moviesCategories;
+
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(100, "Done!");
+
+      // Re-render
+      if (typeof Router !== "undefined" && Router.showPage) {
+        Router.showPage("moviesPage");
+      }
+    } else if (currentPage === "seriesPage") {
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(10, "Refreshing Series...");
+
+      const vodSeries = await getAllVodSeries();
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(50, "Refreshing Categories...");
+
+      const seriesCategories = await getSeriesCategories();
+
+      if (vodSeries) window.allSeriesStreams = vodSeries;
+      if (seriesCategories) window.allseriesCategories = seriesCategories;
+
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(100, "Done!");
+
+      // Re-render
+      if (typeof Router !== "undefined" && Router.showPage) {
+        Router.showPage("seriesPage");
+      }
+    }
+  } catch (err) {
+    console.error("Error refreshing content:", err);
+    if (typeof Toaster !== "undefined" && Toaster.showToast) {
+      Toaster.showToast("error", "Failed to refresh content");
+    }
+  } finally {
+    // Hide loader and unblock
+    setTimeout(() => {
+      if (loadingOverlay) loadingOverlay.classList.add("hidden");
+      if (typeof disableKeyBlock === "function") disableKeyBlock();
+      if (typeof resetLoadingPercentage === "function")
+        resetLoadingPercentage();
+    }, 500);
   }
 }
 
@@ -1295,6 +1390,9 @@ function initNavbar() {
             removeAllChannelHistory();
             disposeLiveTvPlayer();
             Router.showPage("liveTvPage");
+          } else if (action === "refresh-content") {
+            handleRefreshContent();
+            closeSidebar(); // Close explicitly here
           }
           closeSidebar();
           break;

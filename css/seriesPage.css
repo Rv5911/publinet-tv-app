@@ -100,10 +100,12 @@
 }
 
 .category-view-more.focused {
-    background: var(--dark-gold);
-    border-color: var(--dark-gold);
+    background: var(--dark-gold) !important;
+    border-color: var(--dark-gold) !important;
     transform: scale(1.1);
     box-shadow: 0 0 15px rgba(253, 189, 15, 0.5);
+    color: black !important;
+    z-index: 10;
 }
 
 .category-view-more i {
