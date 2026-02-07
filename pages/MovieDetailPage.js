@@ -40,12 +40,20 @@ async function MovieDetailPage() {
 
       document.removeEventListener(
         "keydown",
-        handleBackNavigationDuringLoading
+        handleBackNavigationDuringLoading,
       );
 
       localStorage.removeItem("selectedMovieId");
-      localStorage.setItem("currentPage", "moviesPage");
-      Router.showPage("moviesPage");
+
+      const returnPage = localStorage.getItem("returnPage") || "moviesPage";
+      if (returnPage === "categoryViewPage") {
+        localStorage.setItem("currentPage", "categoryViewPage");
+        Router.showPage("categoryViewPage");
+      } else {
+        localStorage.setItem("currentPage", "moviesPage");
+        Router.showPage("moviesPage");
+      }
+
       document.body.style.backgroundImage = "none";
       document.body.style.backgroundColor = "black";
 
@@ -68,7 +76,8 @@ async function MovieDetailPage() {
   // if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 
   // --- Fetch movie details ---
-  var movieDetailData = await getMovieDetail(movieDetailId);
+  // var movieDetailData = await getMovieDetail(movieDetailId);
+  var movieDetailData = [];
 
   // Check if navigation was interrupted during await
   if (navigationInterrupted) {
@@ -80,8 +89,16 @@ async function MovieDetailPage() {
     // if (loadingOverlay) loadingOverlay.classList.add("hidden");
     const loader = document.getElementById("movie-detail-loader");
     if (loader) loader.remove();
-    localStorage.setItem("currentPage", "moviesPage");
-    Router.showPage("moviesPage");
+
+    const returnPage = localStorage.getItem("returnPage") || "moviesPage";
+    if (returnPage === "categoryViewPage") {
+      localStorage.setItem("currentPage", "categoryViewPage");
+      Router.showPage("categoryViewPage");
+    } else {
+      localStorage.setItem("currentPage", "moviesPage");
+      Router.showPage("moviesPage");
+    }
+
     document.body.style.backgroundImage = "none";
     document.body.style.backgroundColor = "black";
     document.removeEventListener("keydown", handleBackNavigationDuringLoading);
@@ -132,17 +149,17 @@ async function MovieDetailPage() {
     currentPlaylist.continueWatchingMovies &&
     Array.isArray(currentPlaylist.continueWatchingMovies)
   ) {
-    continueWatchingIds = currentPlaylist.continueWatchingMovies.map(function (
-      item
-    ) {
-      return item.itemId ? Number(item.itemId) : 0;
-    });
+    continueWatchingIds = currentPlaylist.continueWatchingMovies.map(
+      function (item) {
+        return item.itemId ? Number(item.itemId) : 0;
+      },
+    );
   }
 
   var isContinueWatchingMovie = false;
   if (selectedMovieItem && selectedMovieItem.stream_id) {
     isContinueWatchingMovie = continueWatchingIds.includes(
-      Number(selectedMovieItem.stream_id)
+      Number(selectedMovieItem.stream_id),
     );
   }
 
@@ -177,7 +194,7 @@ async function MovieDetailPage() {
 
   function initFocus() {
     var fromStartBtn = document.querySelector(
-      ".movie-detail-from-start-button"
+      ".movie-detail-from-start-button",
     );
     focusableEls = [
       document.querySelector(".movie-detail-play-button"),
@@ -246,7 +263,7 @@ async function MovieDetailPage() {
 
       var playBtn = document.querySelector(".movie-detail-play-button");
       var fromStartBtn = document.querySelector(
-        ".movie-detail-from-start-button"
+        ".movie-detail-from-start-button",
       );
       var trailerBtn = document.querySelector(".movie-detail-more-info-button");
       var favBtn = document.querySelector(".movie-detail-fav-button");
@@ -289,7 +306,7 @@ async function MovieDetailPage() {
 
           localStorage.setItem(
             "playingItemData",
-            JSON.stringify(movieDetailData.movie_data)
+            JSON.stringify(movieDetailData.movie_data),
           );
           localStorage.setItem("selectedVideoItemUrl", movieVideoUrl);
           localStorage.setItem("from", "movie");
@@ -324,7 +341,7 @@ async function MovieDetailPage() {
             movieDetailData.movie_data && movieDetailData.movie_data.stream_id
               ? movieDetailData.movie_data.stream_id
               : 0,
-            "favouriteMovies"
+            "favouriteMovies",
           );
           if (res && res.success) {
             if (favBtn) {
@@ -342,7 +359,7 @@ async function MovieDetailPage() {
 
               Toaster.showToast(
                 res.isFav ? "success" : "error",
-                res.isFav ? "Added to Favorites" : "Removed from Favorites"
+                res.isFav ? "Added to Favorites" : "Removed from Favorites",
               );
             }
           } else {
@@ -381,7 +398,7 @@ async function MovieDetailPage() {
       }
       if (e.key === "ArrowUp") {
         const allDetailBtns = document.querySelectorAll(
-          ".movie-detail-button-focused"
+          ".movie-detail-button-focused",
         );
         allDetailBtns.forEach((btn) => {
           btn.classList.remove("movie-detail-button-focused");
@@ -419,8 +436,16 @@ async function MovieDetailPage() {
         e.key === "XF86Back"
       ) {
         localStorage.removeItem("selectedMovieId");
-        localStorage.setItem("currentPage", "moviesPage");
-        Router.showPage("moviesPage");
+
+        const returnPage = localStorage.getItem("returnPage") || "moviesPage";
+        if (returnPage === "categoryViewPage") {
+          localStorage.setItem("currentPage", "categoryViewPage");
+          Router.showPage("categoryViewPage");
+        } else {
+          localStorage.setItem("currentPage", "moviesPage");
+          Router.showPage("moviesPage");
+        }
+
         document.body.style.backgroundImage = "none";
         document.body.style.backgroundColor = "black";
         return;
@@ -445,7 +470,7 @@ async function MovieDetailPage() {
       data.movie_data && data.movie_data.stream_id
         ? isItemFavoriteForPlaylist(
             data.movie_data.stream_id,
-            "favouriteMovies"
+            "favouriteMovies",
           )
         : false;
     var heartIconHtml = isFav
@@ -518,9 +543,9 @@ async function MovieDetailPage() {
 <p class="moviedetail-rating"><img src="./assets/rating-star.png">3.3</p>
 <p class="moviedetail-duration">
   ${
-    data.info.duration_secs
+    data.info && data.info.duration_secs
       ? `${Math.floor(data.info.duration_secs / 3600)}h ${Math.floor(
-          (data.info.duration_secs % 3600) / 60
+          (data.info.duration_secs % 3600) / 60,
         )}m`
       : "N/A"
   }

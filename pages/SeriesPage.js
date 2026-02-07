@@ -79,7 +79,7 @@ function filterSeriesByQuery(streams) {
   const q = getSeriesSearchQuery();
   if (!q) return streams;
   return (streams || []).filter((s) =>
-    normalizeTextSeries(s && s.name).includes(q)
+    normalizeTextSeries(s && s.name).includes(q),
   );
 }
 
@@ -244,12 +244,12 @@ function sortSeriesCategories(categories, sortType) {
       alphabeticCategories.sort((a, b) =>
         (a.title || "")
           .toLowerCase()
-          .localeCompare((b.title || "").toLowerCase())
+          .localeCompare((b.title || "").toLowerCase()),
       );
       nonAlphabeticCategories.sort((a, b) =>
         (a.title || "")
           .toLowerCase()
-          .localeCompare((b.title || "").toLowerCase())
+          .localeCompare((b.title || "").toLowerCase()),
       );
       return alphabeticCategories.concat(nonAlphabeticCategories);
 
@@ -258,19 +258,19 @@ function sortSeriesCategories(categories, sortType) {
       alphabeticCategories.sort((a, b) =>
         (b.title || "")
           .toLowerCase()
-          .localeCompare((a.title || "").toLowerCase())
+          .localeCompare((a.title || "").toLowerCase()),
       );
       nonAlphabeticCategories.sort((a, b) =>
         (b.title || "")
           .toLowerCase()
-          .localeCompare((a.title || "").toLowerCase())
+          .localeCompare((a.title || "").toLowerCase()),
       );
       return alphabeticCategories.concat(nonAlphabeticCategories);
 
     case "recently-added":
       // Recently Added - sort by category_id descending (assuming higher IDs are newer)
       return categories.sort(
-        (a, b) => (b.category_id || 0) - (a.category_id || 0)
+        (a, b) => (b.category_id || 0) - (a.category_id || 0),
       );
 
     case "top-rated":
@@ -280,14 +280,14 @@ function sortSeriesCategories(categories, sortType) {
           a.series && a.series.length > 0
             ? a.series.reduce(
                 (sum, series) => sum + (parseFloat(series.rating_5based) || 0),
-                0
+                0,
               ) / a.series.length
             : 0;
         const avgRatingB =
           b.series && b.series.length > 0
             ? b.series.reduce(
                 (sum, series) => sum + (parseFloat(series.rating_5based) || 0),
-                0
+                0,
               ) / b.series.length
             : 0;
         return avgRatingB - avgRatingA;
@@ -314,7 +314,7 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
 
   let currentCardCategory = window.allseriesCategories
     ? window.allseriesCategories.filter(
-        (cat) => cat.category_id == seriesData.category_id
+        (cat) => cat.category_id == seriesData.category_id,
       )
     : [];
 
@@ -365,8 +365,8 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
                     <div class="series-card-bottom-left">
                         <h3>${categoryName}</h3>
                         <h2 class="${titleClass}">${
-    seriesData.title || "Unknown"
-  }</h2>
+                          seriesData.title || "Unknown"
+                        }</h2>
                     </div>
                     <div class="series-card-bottom-right">
                         <h3>-</h3>
@@ -431,7 +431,7 @@ function seriesCategoryHasSeries(categoryIndex) {
 
   // Check if the category exists in the DOM and has cards
   let cardList = document.querySelector(
-    '.series-card-list[data-category="' + categoryIndex + '"]'
+    '.series-card-list[data-category="' + categoryIndex + '"]',
   );
   if (!cardList) {
     return false;
@@ -488,7 +488,7 @@ function loadMoreSeriesCategories() {
     let container = document.querySelector(".series-page-container");
     if (container) {
       let categoriesLoading = container.querySelector(
-        ".categories-loading-indicator"
+        ".categories-loading-indicator",
       );
       if (categoriesLoading) categoriesLoading.remove();
     }
@@ -500,7 +500,7 @@ function loadMoreSeriesCategories() {
     let container = document.querySelector(".series-page-container");
     if (container) {
       let categoriesLoading = container.querySelector(
-        ".categories-loading-indicator"
+        ".categories-loading-indicator",
       );
       if (categoriesLoading) {
         categoriesLoading.remove();
@@ -513,19 +513,19 @@ function loadMoreSeriesCategories() {
 
   let nextChunk = Math.min(
     currentLoaded + seriesChunkLoadingState.categoryChunkSize,
-    allCategories.length
+    allCategories.length,
   );
 
   let safetyTimeout = setTimeout(function () {
     if (seriesChunkLoadingState.isLoading) {
       console.warn(
-        "loadMoreSeriesCategories: Safety timeout triggered, resetting loading state"
+        "loadMoreSeriesCategories: Safety timeout triggered, resetting loading state",
       );
       seriesChunkLoadingState.isLoading = false;
       let container = document.querySelector(".series-page-container");
       if (container) {
         let categoriesLoading = container.querySelector(
-          ".categories-loading-indicator"
+          ".categories-loading-indicator",
         );
         if (categoriesLoading) {
           categoriesLoading.remove();
@@ -544,7 +544,7 @@ function loadMoreSeriesCategories() {
       }
 
       let categoriesLoading = container.querySelector(
-        ".categories-loading-indicator"
+        ".categories-loading-indicator",
       );
       if (categoriesLoading) {
         categoriesLoading.remove();
@@ -579,7 +579,7 @@ function loadMoreSeriesCategories() {
       if (!hasMoreCategories && categoriesAdded === 0) {
         container.insertAdjacentHTML(
           "beforeend",
-          '<div class="no-more-categories"><p>No results found</p></div>'
+          '<div class="no-more-categories"><p>No results found</p></div>',
         );
       }
 
@@ -600,7 +600,7 @@ function loadMoreSeriesCategories() {
       let container = document.querySelector(".series-page-container");
       if (container) {
         let categoriesLoading = container.querySelector(
-          ".categories-loading-indicator"
+          ".categories-loading-indicator",
         );
         if (categoriesLoading) {
           categoriesLoading.remove();
@@ -715,7 +715,7 @@ function handleSeriesSimpleEnter() {
       categoryIndex +
       '"][data-index="' +
       cardIndex +
-      '"]'
+      '"]',
   );
 
   if (currentCard) {
@@ -741,7 +741,7 @@ function handleSeriesSimpleEnter() {
             // Stay on page
           },
           currentPlaylist,
-          "seriesPage"
+          "seriesPage",
         );
         return;
       } else {
@@ -753,7 +753,7 @@ function handleSeriesSimpleEnter() {
     proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
   } else {
     let viewMoreBtn = document.querySelector(
-      '.category-view-more[data-category="' + categoryIndex + '"].focused'
+      '.category-view-more[data-category="' + categoryIndex + '"].focused',
     );
     if (viewMoreBtn) {
       handleViewMoreClick("series", categoryIndex);
@@ -762,6 +762,7 @@ function handleSeriesSimpleEnter() {
 }
 
 function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
+  localStorage.setItem("returnPage", "seriesPage");
   localStorage.setItem("seriesCategoryIndex", categoryIndex);
   localStorage.setItem("seriesCardIndex", cardIndex);
   localStorage.setItem("seriesSelectedCategoryId", categoryIndex);
@@ -769,12 +770,12 @@ function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
   localStorage.setItem("selectedSeriesId", seriesId);
 
   const selectedSeriesItem = window.allSeriesStreams.find(
-    (item) => item.series_id == seriesId
+    (item) => item.series_id == seriesId,
   );
   if (selectedSeriesItem) {
     localStorage.setItem(
       "selectedSeriesItem",
-      JSON.stringify(selectedSeriesItem)
+      JSON.stringify(selectedSeriesItem),
     );
   }
 
@@ -794,6 +795,7 @@ function handleViewMoreClick(type, categoryIndex) {
   let category = categories[categoryIndex];
 
   if (category) {
+    saveSeriesNavigationState();
     localStorage.setItem("viewMoreType", type);
     localStorage.setItem("viewMoreCategoryId", category.id);
     localStorage.setItem("viewMoreCategoryTitle", category.title);
@@ -819,7 +821,7 @@ function handleSeriesLongPressEnter() {
       categoryIndex +
       '"][data-index="' +
       cardIndex +
-      '"]'
+      '"]',
   );
 
   if (currentCard) {
@@ -833,7 +835,7 @@ function handleSeriesLongPressEnter() {
     const result = toggleFavoriteItem(
       Number(seriesId),
       "favouriteSeries",
-      getCurrentPlaylistUsername()
+      getCurrentPlaylistUsername(),
     );
 
     // Update ALL cards across ALL categories with the same series_id
@@ -843,7 +845,7 @@ function handleSeriesLongPressEnter() {
     if (typeof Toaster !== "undefined" && Toaster.showToast) {
       Toaster.showToast(
         result.isFav ? "success" : "error",
-        result.isFav ? "Added to Favorites" : "Removed from Favorites"
+        result.isFav ? "Added to Favorites" : "Removed from Favorites",
       );
     }
 
@@ -852,7 +854,7 @@ function handleSeriesLongPressEnter() {
       seriesId,
       result.isFav,
       categoryIndex,
-      cardIndex
+      cardIndex,
     );
 
     // Restore scroll position
@@ -885,7 +887,7 @@ function updateMyFavSeriesCategoryRealtime(
   seriesId,
   isFav,
   currentCategoryIndex,
-  currentCardIndex
+  currentCardIndex,
 ) {
   const currentPlaylist = getCurrentPlaylist();
   const favIdsRaw = currentPlaylist
@@ -899,7 +901,7 @@ function updateMyFavSeriesCategoryRealtime(
   const favouriteSeries =
     window.allSeriesStreams && favIds.length
       ? window.allSeriesStreams.filter(
-          (s) => s && favIds.includes(String(s.series_id))
+          (s) => s && favIds.includes(String(s.series_id)),
         )
       : [];
 
@@ -922,7 +924,7 @@ function updateMyFavSeriesCategoryRealtime(
   if (isFav) {
     // Adding to favorites - append new card to My Fav
     const newSeries = window.allSeriesStreams.find(
-      (s) => s && String(s.series_id) === String(seriesId)
+      (s) => s && String(s.series_id) === String(seriesId),
     );
     if (newSeries) {
       const seriesData = formatSeriesData(newSeries);
@@ -933,7 +935,7 @@ function updateMyFavSeriesCategoryRealtime(
           seriesData,
           "normal",
           favCategoryIndex,
-          newIndex
+          newIndex,
         );
         favList.insertAdjacentHTML("beforeend", cardHTML);
 
@@ -962,7 +964,7 @@ function updateMyFavSeriesCategoryRealtime(
   } else {
     // Removing from favorites
     const cardToRemove = favList.querySelector(
-      '.series-card[data-series-id="' + seriesId + '"]'
+      '.series-card[data-series-id="' + seriesId + '"]',
     );
 
     if (cardToRemove) {
@@ -999,7 +1001,7 @@ function updateMyFavSeriesCategoryRealtime(
           // Adjust focus to stay within bounds
           seriesNavigationState.currentCardIndex = Math.min(
             currentCardIndex,
-            remainingCards.length - 1
+            remainingCards.length - 1,
           );
         }
       }
@@ -1064,7 +1066,7 @@ function createMyFavSeriesCategory() {
 
   // Update all existing category indices (shift them by 1)
   const allCategoryLists = pageContainer.querySelectorAll(
-    ".series-card-list:not(.fav-list)"
+    ".series-card-list:not(.fav-list)",
   );
   allCategoryLists.forEach((list) => {
     const currentIndex = parseInt(list.getAttribute("data-category"), 10);
@@ -1092,7 +1094,7 @@ function createMyFavSeriesCategory() {
   if (window.allSeriesCategories && window.allSeriesCategories.length > 0) {
     // Check if My Fav already exists in the array
     const favIndex = window.allSeriesCategories.findIndex(
-      (cat) => cat.id === "fav"
+      (cat) => cat.id === "fav",
     );
     if (favIndex === -1) {
       // My Fav doesn't exist, add it at the beginning
@@ -1168,7 +1170,7 @@ function removeMyFavSeriesCategory() {
   // Remove from window.allSeriesCategories
   if (window.allSeriesCategories && window.allSeriesCategories.length > 0) {
     const favIndex = window.allSeriesCategories.findIndex(
-      (cat) => cat.id === "fav"
+      (cat) => cat.id === "fav",
     );
     if (favIndex !== -1) {
       window.allSeriesCategories.splice(favIndex, 1);
@@ -1197,7 +1199,7 @@ function refreshSeriesFavoritesList() {
   const favouriteSeries =
     window.allSeriesStreams && favIds.length
       ? window.allSeriesStreams.filter(
-          (s) => s && favIds.includes(String(s.series_id))
+          (s) => s && favIds.includes(String(s.series_id)),
         )
       : [];
 
@@ -1220,12 +1222,12 @@ function refreshSeriesFavoritesList() {
     const currentList = document.querySelector(
       '.series-card-list[data-category="' +
         seriesNavigationState.currentCategoryIndex +
-        '"]'
+        '"]',
     );
     if (!currentList) {
       const nextIdx = findNextSeriesCategoryWithSeries(
         seriesNavigationState.currentCategoryIndex + 1,
-        1
+        1,
       );
       seriesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
       seriesNavigationState.currentCardIndex = 0;
@@ -1253,12 +1255,12 @@ function refreshSeriesFavoritesList() {
     const currentList = document.querySelector(
       '.series-card-list[data-category="' +
         seriesNavigationState.currentCategoryIndex +
-        '"]'
+        '"]',
     );
     if (!currentList) {
       const nextIdx = findNextSeriesCategoryWithSeries(
         seriesNavigationState.currentCategoryIndex + 1,
-        1
+        1,
       );
       seriesNavigationState.currentCategoryIndex = nextIdx !== -1 ? nextIdx : 0;
       seriesNavigationState.currentCardIndex = 0;
@@ -1313,16 +1315,16 @@ function refreshSeriesFavoritesList() {
         0,
         Math.min(
           seriesNavigationState.currentCardIndex,
-          favouriteSeries.length - 1
-        )
+          favouriteSeries.length - 1,
+        ),
       );
     } else if (seriesNavigationState.currentCategoryIndex === categoryIndex) {
       seriesNavigationState.currentCardIndex = Math.max(
         0,
         Math.min(
           seriesNavigationState.currentCardIndex,
-          favouriteSeries.length - 1
-        )
+          favouriteSeries.length - 1,
+        ),
       );
     }
     updateSeriesFocus();
@@ -1442,7 +1444,7 @@ function moveSeriesRight() {
   if (!currentCategory) return;
 
   let loadedCount = getSeriesLoadedChunkCount(
-    seriesNavigationState.currentCategoryIndex
+    seriesNavigationState.currentCategoryIndex,
   );
   let totalSeries = currentCategory.series ? currentCategory.series.length : 0;
 
@@ -1491,7 +1493,7 @@ function moveSeriesDown() {
   } else {
     let nextCategoryIndex = findNextSeriesCategoryWithSeries(
       currentIndex + 1,
-      1
+      1,
     );
     if (nextCategoryIndex !== -1) {
       seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
@@ -1522,7 +1524,7 @@ function moveSeriesUp() {
   if (currentCardIndex === "header") {
     let prevCategoryIndex = findNextSeriesCategoryWithSeries(
       currentIndex - 1,
-      -1
+      -1,
     );
     if (prevCategoryIndex !== -1) {
       seriesNavigationState.currentCategoryIndex = prevCategoryIndex;
@@ -1539,7 +1541,7 @@ function moveSeriesUp() {
 
       setTimeout(() => {
         const seriesNavItem = document.querySelector(
-          '.nav-item[data-page="seriesPage"]'
+          '.nav-item[data-page="seriesPage"]',
         );
         if (seriesNavItem) {
           seriesNavItem.focus();
@@ -1566,7 +1568,7 @@ function loadMoreSeriesForCategory(categoryIndex) {
 
   if (loadedCount >= totalSeries) {
     let cardList = document.querySelector(
-      '.series-card-list[data-category="' + categoryIndex + '"]'
+      '.series-card-list[data-category="' + categoryIndex + '"]',
     );
     if (cardList) {
       let loadingEl = cardList.querySelector(".series-loading-indicator");
@@ -1580,7 +1582,7 @@ function loadMoreSeriesForCategory(categoryIndex) {
   seriesChunkLoadingState.isLoading = true;
 
   let cardList = document.querySelector(
-    '.series-card-list[data-category="' + categoryIndex + '"]'
+    '.series-card-list[data-category="' + categoryIndex + '"]',
   );
   if (!cardList) {
     seriesChunkLoadingState.isLoading = false;
@@ -1594,17 +1596,17 @@ function loadMoreSeriesForCategory(categoryIndex) {
 
   cardList.insertAdjacentHTML(
     "beforeend",
-    createSeriesLoadingIndicator(categoryIndex)
+    createSeriesLoadingIndicator(categoryIndex),
   );
 
   let safetyTimeout = setTimeout(function () {
     if (seriesChunkLoadingState.isLoading) {
       console.warn(
-        "loadMoreSeriesForCategory: Safety timeout triggered, resetting loading state"
+        "loadMoreSeriesForCategory: Safety timeout triggered, resetting loading state",
       );
       seriesChunkLoadingState.isLoading = false;
       let cardList = document.querySelector(
-        '.series-card-list[data-category="' + categoryIndex + '"]'
+        '.series-card-list[data-category="' + categoryIndex + '"]',
       );
       if (cardList) {
         let loadingEl = cardList.querySelector(".series-loading-indicator");
@@ -1618,7 +1620,7 @@ function loadMoreSeriesForCategory(categoryIndex) {
   setTimeout(function () {
     try {
       let cardList = document.querySelector(
-        '.series-card-list[data-category="' + categoryIndex + '"]'
+        '.series-card-list[data-category="' + categoryIndex + '"]',
       );
       if (!cardList) {
         clearTimeout(safetyTimeout);
@@ -1654,7 +1656,7 @@ function loadMoreSeriesForCategory(categoryIndex) {
       seriesChunkLoadingState.isLoading = false;
 
       let cardList = document.querySelector(
-        '.series-card-list[data-category="' + categoryIndex + '"]'
+        '.series-card-list[data-category="' + categoryIndex + '"]',
       );
       if (cardList) {
         let loadingEl = cardList.querySelector(".series-loading-indicator");
@@ -1678,7 +1680,7 @@ function updateSeriesFocus() {
       // Use cached container if available
       if (!seriesContainerElement) {
         seriesContainerElement = document.querySelector(
-          ".series-page-container"
+          ".series-page-container",
         );
       }
 
@@ -1706,7 +1708,7 @@ function updateSeriesFocus() {
         ) {
           currentFocusedSeriesElement.classList.remove("focused");
           const oldTitle = currentFocusedSeriesElement.querySelector(
-            ".series-title-marquee"
+            ".series-title-marquee",
           );
           if (oldTitle) oldTitle.classList.remove("marquee-active");
         }
@@ -1805,7 +1807,7 @@ function saveSeriesNavigationState() {
         currentCardIndex: seriesNavigationState.currentCardIndex,
         lastFocusedCategory: seriesNavigationState.lastFocusedCategory,
         lastFocusedCard: seriesNavigationState.lastFocusedCard,
-      })
+      }),
     );
   } catch (e) {
     console.log("Error saving series navigation state:", e);
@@ -1849,12 +1851,12 @@ function restoreSeriesNavigationState() {
 
 function doesSeriesCardExist(categoryIndex, cardIndex) {
   let cardList = document.querySelector(
-    '.series-card-list[data-category="' + categoryIndex + '"]'
+    '.series-card-list[data-category="' + categoryIndex + '"]',
   );
   if (!cardList) return false;
 
   let card = cardList.querySelector(
-    '.series-card[data-index="' + cardIndex + '"]'
+    '.series-card[data-index="' + cardIndex + '"]',
   );
   return card !== null;
 }
@@ -1886,7 +1888,7 @@ function validateAndAdjustRestoredSeriesState() {
         }
         seriesChunkLoadingState.loadedCategories = Math.max(
           seriesChunkLoadingState.loadedCategories,
-          targetCategoryIndex + 3
+          targetCategoryIndex + 3,
         );
       }
     }
@@ -1899,7 +1901,7 @@ function validateAndAdjustRestoredSeriesState() {
 
     if (targetCardIndex >= loadedCount) {
       let cardList = document.querySelector(
-        '.series-card-list[data-category="' + targetCategoryIndex + '"]'
+        '.series-card-list[data-category="' + targetCategoryIndex + '"]',
       );
       if (cardList) {
         while (
@@ -1907,7 +1909,7 @@ function validateAndAdjustRestoredSeriesState() {
         ) {
           let newCardsHTML = loadSeriesChunk(
             currentCategory,
-            targetCategoryIndex
+            targetCategoryIndex,
           );
           if (!newCardsHTML) break;
 
@@ -1933,7 +1935,7 @@ function validateAndAdjustRestoredSeriesState() {
     let currentCategory = getCurrentSeriesCategory();
     if (currentCategory) {
       let loadedCount = getSeriesLoadedChunkCount(
-        seriesNavigationState.currentCategoryIndex
+        seriesNavigationState.currentCategoryIndex,
       );
 
       if (seriesNavigationState.currentCardIndex >= loadedCount) {
@@ -1943,7 +1945,7 @@ function validateAndAdjustRestoredSeriesState() {
       if (
         !doesSeriesCardExist(
           seriesNavigationState.currentCategoryIndex,
-          seriesNavigationState.currentCardIndex
+          seriesNavigationState.currentCardIndex,
         ) &&
         loadedCount < currentCategory.series.length
       ) {
@@ -1991,7 +1993,7 @@ function validateSeriesData() {
   if (window.allSeriesStreams && Array.isArray(window.allSeriesStreams)) {
     window.allSeriesStreams = window.allSeriesStreams.filter(
       (series) =>
-        series !== null && series !== undefined && typeof series === "object"
+        series !== null && series !== undefined && typeof series === "object",
     );
   }
 
@@ -2001,7 +2003,7 @@ function validateSeriesData() {
       (category) =>
         category !== null &&
         category !== undefined &&
-        typeof category === "object"
+        typeof category === "object",
     );
   }
 }
@@ -2031,7 +2033,7 @@ function SeriesPage() {
 
     localStorage.setItem(
       "previousPage",
-      localStorage.getItem("currentPage") || ""
+      localStorage.getItem("currentPage") || "",
     );
     localStorage.setItem("currentPage", "seriesPage");
     const activeEl = document.activeElement;
@@ -2052,7 +2054,7 @@ function SeriesPage() {
 
   localStorage.setItem(
     "previousPage",
-    localStorage.getItem("currentPage") || ""
+    localStorage.getItem("currentPage") || "",
   );
   localStorage.setItem("currentPage", "seriesPage");
   const activeEl = document.activeElement;
@@ -2075,13 +2077,13 @@ function SeriesPage() {
       window.allSeriesStreams && currentPlaylistFavIds
         ? filterSeriesByQuery(
             window.allSeriesStreams.filter((s) =>
-              currentPlaylistFavIds.includes(s.series_id)
-            )
+              currentPlaylistFavIds.includes(s.series_id),
+            ),
           )
         : [];
     let popularSeries = window.allSeriesStreams
       ? filterSeriesByQuery(
-          window.allSeriesStreams.filter((s) => s.rating_5based > 4)
+          window.allSeriesStreams.filter((s) => s.rating_5based > 4),
         ).slice(0, 10)
       : [];
 
@@ -2096,8 +2098,8 @@ function SeriesPage() {
       window.allSeriesStreams && recentlyWatchedSeriesIds
         ? filterSeriesByQuery(
             window.allSeriesStreams.filter((m) =>
-              recentlyWatchedSeriesIds.includes(m.series_id.toString())
-            )
+              recentlyWatchedSeriesIds.includes(m.series_id.toString()),
+            ),
           )
         : [];
 
@@ -2138,7 +2140,7 @@ function SeriesPage() {
 
     // Set up the complete categories list (fixed top + all API categories)
     window.allSeriesCategories = initialCategories.concat(
-      apiCategories.slice(3)
+      apiCategories.slice(3),
     );
 
     seriesChunkLoadingState.loadedCategories = initialCategories.length;

@@ -56,13 +56,13 @@ function LivePage() {
   const getCurrentPlaylist = () => {
     try {
       const currentPlaylistName = JSON.parse(
-        localStorage.getItem("selectedPlaylist") || "{}"
+        localStorage.getItem("selectedPlaylist") || "{}",
       ).playlistName;
       const playlistsData = JSON.parse(
-        localStorage.getItem("playlistsData") || "[]"
+        localStorage.getItem("playlistsData") || "[]",
       );
       return playlistsData.find(
-        (pl) => pl.playlistName === currentPlaylistName
+        (pl) => pl.playlistName === currentPlaylistName,
       );
     } catch (e) {
       return null;
@@ -92,7 +92,7 @@ function LivePage() {
 
     // Regexp fallback for common patterns
     return /(adult|xxx|18\+|18\s*plus|sex|porn|nsfw|erotic|nude|xnxx|xvideo|hot|porn)/i.test(
-      normalized
+      normalized,
     );
   };
 
@@ -135,12 +135,12 @@ function LivePage() {
       return allFavs.some((fav) => {
         if (isLiveAdultCategory(fav.name)) return true;
         const stream = (window.allLiveStreams || []).find(
-          (s) => String(s.stream_id) === String(fav.stream_id)
+          (s) => String(s.stream_id) === String(fav.stream_id),
         );
         if (!stream) return false;
         if (isLiveAdultCategory(stream.name)) return true;
         const itemCat = (window.liveCategories || []).find(
-          (c) => String(c.category_id) === String(stream.category_id)
+          (c) => String(c.category_id) === String(stream.category_id),
         );
         return itemCat ? isLiveAdultCategory(itemCat.category_name) : false;
       });
@@ -150,10 +150,10 @@ function LivePage() {
       const hasAdultCat = (window.liveCategories || []).some(
         (c) =>
           isLiveAdultCategory(c.category_name) &&
-          getCategoryCount(c.category_id) > 0
+          getCategoryCount(c.category_id) > 0,
       );
       const hasAdultChannelName = (window.allLiveStreams || []).some((s) =>
-        isLiveAdultCategory(s.name)
+        isLiveAdultCategory(s.name),
       );
       return hasAdultCat || hasAdultChannelName;
     }
@@ -197,7 +197,7 @@ function LivePage() {
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
     document.removeEventListener(
       "webkitfullscreenchange",
-      handleFullscreenChange
+      handleFullscreenChange,
     );
     document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
     document.removeEventListener("msfullscreenchange", handleFullscreenChange);
@@ -253,7 +253,7 @@ function LivePage() {
     // Listen for focus changes from Navbar
     window.addEventListener(
       "navigation-focus-change",
-      handleNavigationFocusChange
+      handleNavigationFocusChange,
     );
 
     // Add styles for parental control features
@@ -345,7 +345,7 @@ function LivePage() {
       cats = cats.filter((c) =>
         c.category_name
           .toLowerCase()
-          .includes(categorySearchQuery.toLowerCase())
+          .includes(categorySearchQuery.toLowerCase()),
       );
     }
 
@@ -383,7 +383,7 @@ function LivePage() {
       cats = cats.filter((c) =>
         c.category_name
           .toLowerCase()
-          .includes(categorySearchQuery.toLowerCase())
+          .includes(categorySearchQuery.toLowerCase()),
       );
     }
 
@@ -415,13 +415,13 @@ function LivePage() {
       streams = currentPlaylist ? currentPlaylist.ChannelListLive || [] : [];
     } else {
       streams = (window.allLiveStreams || []).filter(
-        (s) => String(s.category_id) === String(selectedCategoryId)
+        (s) => String(s.category_id) === String(selectedCategoryId),
       );
     }
 
     if (channelSearchQuery) {
       streams = streams.filter((s) =>
-        (s.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase())
+        (s.name || "").toLowerCase().includes(channelSearchQuery.toLowerCase()),
       );
     }
 
@@ -462,7 +462,7 @@ function LivePage() {
         : 0;
     }
     return (window.allLiveStreams || []).filter(
-      (s) => String(s.category_id) === String(catId)
+      (s) => String(s.category_id) === String(catId),
     ).length;
   };
 
@@ -561,12 +561,12 @@ function LivePage() {
         }" data-id="${cat.category_id}" data-index="${idx}">
           <div class="lp-category-name-wrapper">
             <span class="lp-category-name ${isLocked ? "lp-blur-text" : ""}">${
-          cat.category_name
-        }</span>
+              cat.category_name
+            }</span>
             ${isLocked ? '<i class="fas fa-lock lp-cat-lock-icon"></i>' : ""}
           </div>
           <span class="lp-category-count">${getCategoryCount(
-            cat.category_id
+            cat.category_id,
           )}</span>
         </li>
       `;
@@ -580,7 +580,7 @@ function LivePage() {
 
     filteredStreams = getFilteredChannels();
     console.log(
-      `Rendering channels. Category: ${selectedCategoryId}, Count: ${filteredStreams.length}`
+      `Rendering channels. Category: ${selectedCategoryId}, Count: ${filteredStreams.length}`,
     );
 
     grid.innerHTML = "";
@@ -598,7 +598,7 @@ function LivePage() {
 
       const cats = getAllFilteredCategories();
       const currentCat = cats.find(
-        (c) => String(c.category_id) === String(selectedCategoryId)
+        (c) => String(c.category_id) === String(selectedCategoryId),
       );
       const catName = currentCat ? currentCat.category_name : "";
 
@@ -653,7 +653,7 @@ function LivePage() {
               console.log("PIN incorrect");
             },
             currentPlaylistForParental,
-            "liveTvPage"
+            "liveTvPage",
           );
         };
 
@@ -683,7 +683,7 @@ function LivePage() {
     // Calculate which channels to show
     const endIdx = Math.min(
       channelChunk * channelPageSize,
-      filteredStreams.length
+      filteredStreams.length,
     );
     const channelsToRender = filteredStreams.slice(0, endIdx);
 
@@ -698,7 +698,7 @@ function LivePage() {
         ? window.isItemFavoriteForPlaylist(
             stream,
             "favoritesLiveTV",
-            playlistUsername
+            playlistUsername,
           )
         : false;
       const isHistory = selectedCategoryId === "channelHistory";
@@ -783,7 +783,7 @@ function LivePage() {
       ? window.isItemFavoriteForPlaylist(
           stream,
           "favoritesLiveTV",
-          playlistUsername
+          playlistUsername,
         )
       : false;
 
@@ -798,7 +798,7 @@ function LivePage() {
     if (!result || !result.success) {
       console.error(
         "Failed to toggle favorite:",
-        result ? result.message : "unknown error"
+        result ? result.message : "unknown error",
       );
       if (showToast && window.Toaster && window.Toaster.showToast) {
         window.Toaster.showToast("error", "Failed to update favorites");
@@ -833,7 +833,7 @@ function LivePage() {
     } else {
       // Update the specific card's heart icon based on fresh data
       const card = document.querySelector(
-        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
+        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`,
       );
       if (card) {
         const favBtn = card.querySelector(".lp-channel-fav-btn i");
@@ -846,7 +846,7 @@ function LivePage() {
             ? window.isItemFavoriteForPlaylist(
                 stream,
                 "favoritesLiveTV",
-                updatedPlaylistUsername
+                updatedPlaylistUsername,
               )
             : result.isFav;
 
@@ -870,11 +870,11 @@ function LivePage() {
 
   const removeFromHistory = (stream) => {
     const currentPlaylistName = JSON.parse(
-      localStorage.getItem("selectedPlaylist")
+      localStorage.getItem("selectedPlaylist"),
     ).playlistName;
     const playlistsData = JSON.parse(localStorage.getItem("playlistsData"));
     const currentPlaylistIndex = playlistsData.findIndex(
-      (pl) => pl.playlistName === currentPlaylistName
+      (pl) => pl.playlistName === currentPlaylistName,
     );
 
     if (currentPlaylistIndex !== -1) {
@@ -1173,7 +1173,7 @@ function LivePage() {
         // Handle button focus (always update if focus is on buttons within card)
         if (buttonFocusIndex >= 0) {
           const buttons = target.querySelectorAll(
-            ".lp-channel-fav-btn, .lp-channel-remove-btn"
+            ".lp-channel-fav-btn, .lp-channel-remove-btn",
           );
           const btnTarget = buttons[buttonFocusIndex];
           if (btnTarget) {
@@ -1258,10 +1258,10 @@ function LivePage() {
 
     try {
       const currentPlaylistData = JSON.parse(
-        localStorage.getItem("currentPlaylistData")
+        localStorage.getItem("currentPlaylistData"),
       );
       const playlistLiveExtension = JSON.parse(
-        localStorage.getItem("selectedPlaylist")
+        localStorage.getItem("selectedPlaylist"),
       );
 
       if (!currentPlaylistData || !playlistLiveExtension) {
@@ -1310,7 +1310,7 @@ function LivePage() {
             liveVideoUrl,
             stream.stream_icon,
             "100%",
-            stream.name || ""
+            stream.name || "",
           );
         } else if (typeof LiveVideoJsComponent === "function") {
           videoWrapper.innerHTML = LiveVideoJsComponent(
@@ -1318,7 +1318,7 @@ function LivePage() {
             liveVideoUrl,
             stream.stream_icon,
             "100%",
-            stream.name || ""
+            stream.name || "",
           );
         } else {
           videoWrapper.innerHTML = `<video src="${liveVideoUrl}" controls autoplay style="width:100%; height:100%;" data-stream-id="${stream.stream_id}"></video>`;
@@ -1334,7 +1334,7 @@ function LivePage() {
       });
 
       const playingCard = document.querySelector(
-        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
+        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`,
       );
       if (playingCard) {
         playingCard.classList.add("lp-channel-card-playing");
@@ -1343,7 +1343,7 @@ function LivePage() {
       if (selectedCategoryId !== "channelHistory" && window.addItemToHistory) {
         // Prevent adult channels from being added to history
         const category = (window.liveCategories || []).find(
-          (c) => c.category_id === stream.category_id
+          (c) => c.category_id === stream.category_id,
         );
         const isAdultChannel =
           (category && isLiveAdultCategory(category.category_name)) ||
@@ -1379,7 +1379,7 @@ function LivePage() {
       ? window.isItemFavoriteForPlaylist(
           stream,
           "favoritesLiveTV",
-          playlistUsername
+          playlistUsername,
         )
       : false;
 
@@ -1527,11 +1527,11 @@ function LivePage() {
         if (prog.start && prog.end) {
           const startStr = formatTime(
             prog.start_timestamp || prog.start,
-            timeFormatSetting
+            timeFormatSetting,
           );
           const endStr = formatTime(
             prog.stop_timestamp || prog.end,
-            timeFormatSetting
+            timeFormatSetting,
           );
           if (startStr && endStr) {
             timeDisplay = `${startStr} - ${endStr}`;
@@ -1614,7 +1614,7 @@ function LivePage() {
 
       // Ensure aspect ratio buttons are hidden immediately
       const arBtns = document.querySelectorAll(
-        ".videojs-aspect-ratio-div, .flow-aspect-ratio-div"
+        ".videojs-aspect-ratio-div, .flow-aspect-ratio-div",
       );
       arBtns.forEach((btn) => (btn.style.display = "none"));
 
@@ -1779,7 +1779,7 @@ function LivePage() {
     // Prevent default for navigation keys
     if (
       ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(
-        e.key
+        e.key,
       )
     ) {
       e.preventDefault();
@@ -1811,7 +1811,7 @@ function LivePage() {
               if (window.Toaster) {
                 window.Toaster.showToast(
                   "info",
-                  "No previous channel available"
+                  "No previous channel available",
                 );
               }
             }
@@ -1882,7 +1882,7 @@ function LivePage() {
       // Navigate up to Navbar
       localStorage.setItem("navigationFocus", "navbar");
       const navItem = document.querySelector(
-        '.nav-item[data-page="liveTvPage"]'
+        '.nav-item[data-page="liveTvPage"]',
       );
       if (navItem) navItem.focus();
       const catInput = document.getElementById("lp-cat-search-input");
@@ -1900,7 +1900,7 @@ function LivePage() {
         if (!checkIsFullscreen()) {
           localStorage.setItem("navigationFocus", "navbar");
           const navItem = document.querySelector(
-            '.nav-item[data-page="liveTvPage"]'
+            '.nav-item[data-page="liveTvPage"]',
           );
           if (navItem) navItem.focus();
         }
@@ -1923,7 +1923,7 @@ function LivePage() {
         // No video playing - go directly to Navbar
         localStorage.setItem("navigationFocus", "navbar");
         const navItem = document.querySelector(
-          '.nav-item[data-page="liveTvPage"]'
+          '.nav-item[data-page="liveTvPage"]',
         );
         if (navItem) navItem.focus();
         const chanInput = document.getElementById("lp-chan-search-input");
@@ -1957,7 +1957,7 @@ function LivePage() {
         // From first EPG item to Navbar
         localStorage.setItem("navigationFocus", "navbar");
         const navItem = document.querySelector(
-          '.nav-item[data-page="liveTvPage"]'
+          '.nav-item[data-page="liveTvPage"]',
         );
         if (navItem) navItem.focus();
       }
@@ -2035,7 +2035,7 @@ function LivePage() {
         document.querySelectorAll(".lp-channel-card")[channelIndex];
       if (currentCard) {
         const buttons = currentCard.querySelectorAll(
-          ".lp-channel-fav-btn, .lp-channel-remove-btn"
+          ".lp-channel-fav-btn, .lp-channel-remove-btn",
         );
 
         if (buttonFocusIndex === -1 && buttons.length > 0) {
@@ -2124,7 +2124,7 @@ function LivePage() {
         ) {
           // Reuse the logic or check if locked via state
           const isLocked = !unlockedLiveAdultCatIds.has(
-            String(currentCat.category_id)
+            String(currentCat.category_id),
           );
           // If we don't have isAdult here, we can just check if it's in the locked set or recalculate
           // For simplicity, let's assume if it matches locking criteria, we block.
@@ -2140,7 +2140,7 @@ function LivePage() {
         if (isLocked) {
           window.Toaster.showToast(
             "error",
-            "Please unlock this category first!"
+            "Please unlock this category first!",
           );
           return;
         }
@@ -2176,7 +2176,7 @@ function LivePage() {
         document.querySelectorAll(".lp-channel-card")[channelIndex];
       if (currentCard) {
         const buttons = currentCard.querySelectorAll(
-          ".lp-channel-fav-btn, .lp-channel-remove-btn"
+          ".lp-channel-fav-btn, .lp-channel-remove-btn",
         );
 
         if (buttonFocusIndex === -1 && buttons.length > 0) {
@@ -2231,7 +2231,7 @@ function LivePage() {
                 selectedCategoryId = newCategoryId;
                 channelSearchQuery = "";
                 const chanInput = document.getElementById(
-                  "lp-chan-search-input"
+                  "lp-chan-search-input",
                 );
                 if (chanInput) chanInput.value = "";
                 channelChunk = 1;
@@ -2249,7 +2249,7 @@ function LivePage() {
               console.log("Parental PIN incorrect for category");
             },
             currentPlaylistForParental,
-            "liveTvPage"
+            "liveTvPage",
           );
           return;
         }
@@ -2368,7 +2368,7 @@ function LivePage() {
                       selectedCategoryId = newCategoryId;
                       channelSearchQuery = "";
                       const chanInput = document.getElementById(
-                        "lp-chan-search-input"
+                        "lp-chan-search-input",
                       );
                       if (chanInput) chanInput.value = "";
                       channelChunk = 1;
@@ -2388,7 +2388,7 @@ function LivePage() {
                     console.log("Parental PIN incorrect for category");
                   },
                   currentPlaylistForParental,
-                  "liveTvPage"
+                  "liveTvPage",
                 );
                 return;
               }
@@ -2435,7 +2435,7 @@ function LivePage() {
               } else {
                 // Check for adult content lock before playing
                 const category = (window.liveCategories || []).find(
-                  (c) => c.category_id === stream.category_id
+                  (c) => c.category_id === stream.category_id,
                 );
                 const isAdultChannel = category
                   ? isLiveAdultCategory(category.category_name)
@@ -2452,24 +2452,24 @@ function LivePage() {
                 if (isAdultChannel && parentalEnabled) {
                   if (selectedCategoryId === "All") {
                     isChannelUnlocked = unlockedLiveAdultChannelsInAll.has(
-                      String(stream.stream_id)
+                      String(stream.stream_id),
                     );
                     unlockSet = unlockedLiveAdultChannelsInAll;
                   } else if (selectedCategoryId === "favorites") {
                     isChannelUnlocked =
                       unlockedLiveAdultChannelsInFavorites.has(
-                        String(stream.stream_id)
+                        String(stream.stream_id),
                       );
                     unlockSet = unlockedLiveAdultChannelsInFavorites;
                   } else if (selectedCategoryId === "channelHistory") {
                     isChannelUnlocked = unlockedLiveAdultChannelsInHistory.has(
-                      String(stream.stream_id)
+                      String(stream.stream_id),
                     );
                     unlockSet = unlockedLiveAdultChannelsInHistory;
                   } else {
                     isChannelUnlocked =
                       unlockedLiveAdultChannelsInCategories.has(
-                        String(stream.stream_id)
+                        String(stream.stream_id),
                       );
                     unlockSet = unlockedLiveAdultChannelsInCategories;
                   }
@@ -2489,19 +2489,19 @@ function LivePage() {
 
                       // Single channel unlock (All/Favorites/History/Category)
                       const card = document.querySelector(
-                        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`
+                        `.lp-channel-card[data-stream-id="${stream.stream_id}"]`,
                       );
                       if (card) {
                         const logoContainer = card.querySelector(
-                          ".lp-channel-logo-container"
+                          ".lp-channel-logo-container",
                         );
                         if (logoContainer) {
                           logoContainer.classList.remove(
-                            "lp-channel-card-locked"
+                            "lp-channel-card-locked",
                           );
                         }
                         const lockIcon = card.querySelector(
-                          ".lp-channel-lock-icon"
+                          ".lp-channel-lock-icon",
                         );
                         if (lockIcon) lockIcon.remove();
                       }
@@ -2513,7 +2513,7 @@ function LivePage() {
                       console.log("Parental PIN incorrect");
                     },
                     currentPlaylistForParental,
-                    "liveTvPage"
+                    "liveTvPage",
                   );
                   return;
                 }

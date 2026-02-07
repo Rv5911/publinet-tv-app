@@ -34,7 +34,7 @@ function CategoryViewPage() {
   if (type === "movies") {
     const categories = window.allMoviesCategories || [];
     const category = categories.find(
-      (cat) => String(cat.id) === String(categoryId)
+      (cat) => String(cat.id) === String(categoryId),
     );
     if (category) {
       allItems = category.movies || [];
@@ -42,7 +42,7 @@ function CategoryViewPage() {
   } else {
     const categories = window.allSeriesCategories || [];
     const category = categories.find(
-      (cat) => String(cat.id) === String(categoryId)
+      (cat) => String(cat.id) === String(categoryId),
     );
     if (category) {
       allItems = category.series || [];
@@ -51,28 +51,40 @@ function CategoryViewPage() {
 
   categoryViewNavigationState.items = allItems;
   categoryViewNavigationState.totalItems = allItems.length;
-  categoryViewNavigationState.currentCardIndex = 0;
-  categoryViewNavigationState.isHeaderFocused = false;
-  categoryViewNavigationState.renderedItemsCount = Math.min(
-    allItems.length,
-    GRID_CHUNK_SIZE
-  );
+
+  // Restore focus state if returning from detail page
+  if (localStorage.getItem("preserveCategoryViewFocus") === "true") {
+    const lastIndex = parseInt(
+      localStorage.getItem("categoryViewLastIndex") || "0",
+    );
+    categoryViewNavigationState.currentCardIndex = lastIndex;
+    categoryViewNavigationState.isHeaderFocused = false;
+    // Ensure we render enough items to show the focused one
+    categoryViewNavigationState.renderedItemsCount = Math.max(
+      Math.min(allItems.length, GRID_CHUNK_SIZE),
+      lastIndex + GRID_CHUNK_SIZE,
+    );
+    localStorage.removeItem("preserveCategoryViewFocus");
+  } else {
+    categoryViewNavigationState.currentCardIndex = 0;
+    categoryViewNavigationState.isHeaderFocused = false;
+    categoryViewNavigationState.renderedItemsCount = Math.min(
+      allItems.length,
+      GRID_CHUNK_SIZE,
+    );
+  }
 
   let initialItems = allItems.slice(
     0,
-    categoryViewNavigationState.renderedItemsCount
+    categoryViewNavigationState.renderedItemsCount,
   );
 
   let html = `
     <div class="category-view-page-container">
       <div class="category-view-header">
-        <div class="back-indicator" id="category-back-btn">
-          <i class="fas fa-arrow-left"></i>
-          <span>Back</span>
-        </div>
         <h1>${categoryTitle} <span class="item-count">(${
-    allItems.length
-  } items)</span></h1>
+          allItems.length
+        } items)</span></h1>
       </div>
       <div class="category-view-grid" id="category-view-grid">
         ${renderCategoryGridItems(initialItems, type, 0)}
@@ -92,13 +104,13 @@ function loadMoreGridItems() {
 
   const nextCount = Math.min(
     state.totalItems,
-    state.renderedItemsCount + GRID_CHUNK_SIZE
+    state.renderedItemsCount + GRID_CHUNK_SIZE,
   );
   const newItems = state.items.slice(state.renderedItemsCount, nextCount);
   const newHtml = renderCategoryGridItems(
     newItems,
     state.type,
-    state.renderedItemsCount
+    state.renderedItemsCount,
   );
 
   grid.insertAdjacentHTML("beforeend", newHtml);
@@ -180,8 +192,8 @@ function handleCategoryViewKeyNavigation(e) {
       break;
     case "ArrowDown":
       if (isHeaderFocused) {
-        categoryViewNavigationState.isHeaderFocused = false;
-        categoryViewNavigationState.currentCardIndex = 0;
+        // categoryViewNavigationState.isHeaderFocused = false;
+        // categoryViewNavigationState.currentCardIndex = 0;
       } else {
         if (currentIndex + itemsPerRow < total) {
           categoryViewNavigationState.currentCardIndex += itemsPerRow;
@@ -192,9 +204,8 @@ function handleCategoryViewKeyNavigation(e) {
           ) {
             loadMoreGridItems();
           }
-        } else if (currentIndex < total - 1) {
-          categoryViewNavigationState.currentCardIndex = total - 1;
         }
+        // Removed logic that forced jump to last item
       }
       break;
     case "ArrowUp":
@@ -202,7 +213,7 @@ function handleCategoryViewKeyNavigation(e) {
       if (currentIndex - itemsPerRow >= 0) {
         categoryViewNavigationState.currentCardIndex -= itemsPerRow;
       } else {
-        categoryViewNavigationState.isHeaderFocused = true;
+        // categoryViewNavigationState.isHeaderFocused = true;
       }
       break;
     case "Enter":
@@ -242,19 +253,15 @@ function updateCategoryViewFocus() {
   focusedElements.forEach((el) => {
     el.classList.remove("focused");
     const marquee = el.querySelector(
-      ".movie-title-marquee, .series-title-marquee"
+      ".movie-title-marquee, .series-title-marquee",
     );
     if (marquee) marquee.classList.remove("marquee-active");
   });
 
   if (isHeaderFocused) {
-    if (headerBack) {
-      headerBack.classList.add("focused");
-      headerBack.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
+    // Header focus (Back button) removed functionality but kept state just in case,
+    // though without the button it effectively does nothing visual.
+    // Keeping logic simple, if header focused was set to true (not reachable via keys now), nothing highlights.
     return;
   }
 
@@ -264,14 +271,14 @@ function updateCategoryViewFocus() {
   if (currentCard) {
     currentCard.classList.add("focused");
     currentCard.scrollIntoView({
-      behavior: "smooth",
+      // behavior: "smooth",
       block: "center",
       inline: "nearest",
     });
 
     // Handle Marquee
     const marquee = currentCard.querySelector(
-      ".movie-title-marquee, .series-title-marquee"
+      ".movie-title-marquee, .series-title-marquee",
     );
     if (marquee) {
       if (marquee.scrollWidth > marquee.clientWidth) {
@@ -294,21 +301,23 @@ function handleCategoryViewEnter() {
 
   if (currentCard) {
     const streamId = currentCard.getAttribute(
-      type === "movies" ? "data-stream-id" : "data-series-id"
+      type === "movies" ? "data-stream-id" : "data-series-id",
     );
 
-    // We can reuse the detail page navigation logic from MoviesPage or SeriesPage
-    // But we need to handle back navigation correctly.
+    // Persist state for return
+    localStorage.setItem("categoryViewLastIndex", index);
+    localStorage.setItem("preserveCategoryViewFocus", "true");
+    localStorage.setItem("returnPage", "categoryViewPage");
 
     if (type === "movies") {
       localStorage.setItem("selectedMovieId", streamId);
       const selectedMovieItem = window.allMoviesStreams.find(
-        (item) => item.stream_id == streamId
+        (item) => item.stream_id == streamId,
       );
       if (selectedMovieItem) {
         localStorage.setItem(
           "selectedMovieData",
-          JSON.stringify(selectedMovieItem)
+          JSON.stringify(selectedMovieItem),
         );
       }
       localStorage.setItem("currentPage", "movieDetailPage");
@@ -317,12 +326,12 @@ function handleCategoryViewEnter() {
     } else {
       localStorage.setItem("selectedSeriesId", streamId);
       const selectedSeriesItem = window.allSeriesStreams.find(
-        (item) => item.series_id == streamId
+        (item) => item.series_id == streamId,
       );
       if (selectedSeriesItem) {
         localStorage.setItem(
           "selectedSeriesItem",
-          JSON.stringify(selectedSeriesItem)
+          JSON.stringify(selectedSeriesItem),
         );
       }
       localStorage.setItem("currentPage", "seriesDetailPage");
@@ -336,12 +345,12 @@ function goBackFromCategoryView() {
   const type = categoryViewNavigationState.type;
   const page = type === "movies" ? "moviesPage" : "seriesPage";
 
-  // User requested: "on back buttton view more please focsu on first card of opend category"
-  if (type === "movies") {
-    moviesNavigationState.currentCardIndex = 0;
-  } else {
-    seriesNavigationState.currentCardIndex = 0;
-  }
+  // Removed focus reset to preserve previous state on the main page.
+  // if (type === "movies") {
+  //   moviesNavigationState.currentCardIndex = 0;
+  // } else {
+  //   seriesNavigationState.currentCardIndex = 0;
+  // }
 
   localStorage.setItem("currentPage", page);
   localStorage.setItem("navigationFocus", page);

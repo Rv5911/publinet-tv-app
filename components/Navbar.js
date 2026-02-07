@@ -112,7 +112,7 @@ function buildDynamicSidebarOptions() {
 
         // Hide Top Rated for Live TV
         const topRatedOption = sidebar.querySelector(
-          '.sort-checkbox[data-sort="top-rated"]'
+          '.sort-checkbox[data-sort="top-rated"]',
         );
         if (topRatedOption) {
           const li = topRatedOption.closest("li");
@@ -149,13 +149,13 @@ function buildDynamicSidebarOptions() {
     const isIncludedInRecentlyWatchedMovies =
       allRecentlyWatchedMovies &&
       allRecentlyWatchedMovies.some(
-        (movie) => movie && movie.itemId == selectedMovieId
+        (movie) => movie && movie.itemId == selectedMovieId,
       );
 
     const isIncludedInRecentlyWatchedSeries =
       allRecentlyWatchedSeries &&
       allRecentlyWatchedSeries.some(
-        (series) => series && series.itemId == selectedSeriesId
+        (series) => series && series.itemId == selectedSeriesId,
       );
 
     const optionsToAdd = [];
@@ -201,6 +201,12 @@ function buildDynamicSidebarOptions() {
           icon: "fa-trash",
         });
       }
+      // Add Refresh Option for Live TV
+      optionsToAdd.push({
+        label: "Refresh Content",
+        action: "refresh-content",
+        icon: "fa-refresh",
+      });
     } else if (currentPage === movieDetailPage) {
       if (isIncludedInRecentlyWatchedMovies) {
         optionsToAdd.push({
@@ -290,9 +296,28 @@ async function handleRefreshContent() {
       if (typeof updateLoadingPercentage === "function")
         updateLoadingPercentage(100, "Done!");
 
-      // Re-render
       if (typeof Router !== "undefined" && Router.showPage) {
         Router.showPage("seriesPage");
+      }
+    } else if (currentPage === "liveTvPage") {
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(10, "Refreshing Live TV...");
+
+      const vodAllLiveStreams = await getAllLiveStreams();
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(50, "Refreshing Categories...");
+
+      const liveCategories = await getLiveCategories();
+
+      if (vodAllLiveStreams) window.allLiveStreams = vodAllLiveStreams;
+      if (liveCategories) window.liveCategories = liveCategories;
+
+      if (typeof updateLoadingPercentage === "function")
+        updateLoadingPercentage(100, "Done!");
+
+      // Re-render
+      if (typeof Router !== "undefined" && Router.showPage) {
+        Router.showPage("liveTvPage");
       }
     }
   } catch (err) {
@@ -416,7 +441,7 @@ function removeFavoriteMovieById(streamId) {
     }
     document
       .querySelectorAll(
-        '.movie-card[data-stream-id="' + streamId + '"] .movie-card-heart'
+        '.movie-card[data-stream-id="' + streamId + '"] .movie-card-heart',
       )
       .forEach((h) => (h.style.display = "none"));
     if (typeof refreshMoviesFavoritesList === "function")
@@ -448,7 +473,7 @@ function removeFavoriteSeriesById(seriesId) {
     }
     document
       .querySelectorAll(
-        '.series-card[data-series-id="' + seriesId + '"] .series-card-heart'
+        '.series-card[data-series-id="' + seriesId + '"] .series-card-heart',
       )
       .forEach((h) => (h.style.display = "none"));
     if (typeof refreshSeriesFavoritesList === "function")
@@ -528,7 +553,7 @@ function initNavbar() {
       if (el) newContainer = el;
     } else if (currentPage === "seriesDetailPage") {
       const el = document.querySelector(
-        ".series-detail-page-content-container"
+        ".series-detail-page-content-container",
       );
       if (el) newContainer = el;
     }
@@ -541,7 +566,7 @@ function initNavbar() {
       if (currentScrollContainer) {
         currentScrollContainer.removeEventListener(
           "scroll",
-          handleNavbarScroll
+          handleNavbarScroll,
         );
       }
 
@@ -578,7 +603,7 @@ function initNavbar() {
   const sortOptions = document.getElementById("sort-options");
   const arrowIcon = sortItem.querySelector(".arrow-icon");
   const sortCheckboxes = Array.from(
-    document.querySelectorAll(".sort-checkbox")
+    document.querySelectorAll(".sort-checkbox"),
   );
 
   let currentIndex = 0;
@@ -618,7 +643,7 @@ function initNavbar() {
 
       // Clean up video elements
       const videoWrappers = document.querySelectorAll(
-        ".livetv-video-wrapper, .live-video-player-div"
+        ".livetv-video-wrapper, .live-video-player-div",
       );
       videoWrappers.forEach((wrapper) => {
         const videos = wrapper.querySelectorAll("video");
@@ -654,7 +679,7 @@ function initNavbar() {
     window.dispatchEvent(
       new CustomEvent("global-search", {
         detail: window.searchQuery,
-      })
+      }),
     );
     const currentPage = localStorage.getItem("currentPage");
     clearTimeout(searchDebounceTimer);
@@ -744,6 +769,7 @@ function initNavbar() {
       "listPage",
       "settingsPage",
       "exitModal",
+      "categoryViewPage",
     ];
     if (NAVBAR_INACTIVE_PAGES.includes(currentPage)) {
       return; // Don't process any navbar keydown events on these pages
@@ -771,8 +797,14 @@ function initNavbar() {
         if (currentPage === "movieDetailPage") {
           e.preventDefault();
           localStorage.removeItem("selectedMovieId");
-          localStorage.setItem("currentPage", "moviesPage");
-          Router.showPage("moviesPage");
+          const returnPage = localStorage.getItem("returnPage") || "moviesPage";
+          if (returnPage === "categoryViewPage") {
+            localStorage.setItem("currentPage", "categoryViewPage");
+            Router.showPage("categoryViewPage");
+          } else {
+            localStorage.setItem("currentPage", "moviesPage");
+            Router.showPage("moviesPage");
+          }
           return;
         }
         if (currentPage === "seriesDetailPage") {
@@ -782,8 +814,14 @@ function initNavbar() {
           }
           e.preventDefault();
           localStorage.removeItem("selectedSeriesId");
-          localStorage.setItem("currentPage", "seriesPage");
-          Router.showPage("seriesPage");
+          const returnPage = localStorage.getItem("returnPage") || "seriesPage";
+          if (returnPage === "categoryViewPage") {
+            localStorage.setItem("currentPage", "categoryViewPage");
+            Router.showPage("categoryViewPage");
+          } else {
+            localStorage.setItem("currentPage", "seriesPage");
+            Router.showPage("seriesPage");
+          }
           return;
         }
         return;
@@ -863,7 +901,7 @@ function initNavbar() {
       case "ArrowLeft":
         if (searchInput.classList.contains("active")) {
           querySelectorAll(".nav-item").forEach((item) =>
-            item.classList.remove("active")
+            item.classList.remove("active"),
           );
           profileIcon.classList.remove("active");
           searchInput.blur();
@@ -929,7 +967,7 @@ function initNavbar() {
 
               // Focus on play button in series detail
               const playBtn = document.querySelector(
-                ".series-detail-play-button"
+                ".series-detail-play-button",
               );
               if (playBtn) {
                 playBtn.classList.add("series-detail-button-focused");
@@ -946,13 +984,13 @@ function initNavbar() {
             localStorage.setItem("navigationFocus", "movieDetailPage");
             setTimeout(() => {
               const firstDetailPlayBtn = document.querySelector(
-                ".movie-detail-play-button"
+                ".movie-detail-play-button",
               );
               if (firstDetailPlayBtn) {
                 document
                   .querySelectorAll(".movie-detail-button-focused")
                   .forEach((btn) =>
-                    btn.classList.remove("movie-detail-button-focused")
+                    btn.classList.remove("movie-detail-button-focused"),
                   );
                 firstDetailPlayBtn.classList.add("movie-detail-button-focused");
                 firstDetailPlayBtn.focus();
@@ -984,7 +1022,7 @@ function initNavbar() {
                   targetCard = firstCard;
                   targetCategoryIndex = parseInt(
                     list.getAttribute("data-category") || "0",
-                    10
+                    10,
                   );
                   break; // Found the first category with cards
                 }
@@ -1027,7 +1065,7 @@ function initNavbar() {
                   targetCard = firstCard;
                   targetCategoryIndex = parseInt(
                     list.getAttribute("data-category") || "0",
-                    10
+                    10,
                   );
                   break; // Found the first category with cards
                 }
@@ -1184,11 +1222,11 @@ function initNavbar() {
     localStorage.setItem("navigationFocus", "sidebar");
     isSortOptionsOpen = false;
     const items = Array.from(
-      sidebar.querySelectorAll("li.sidebar-link")
+      sidebar.querySelectorAll("li.sidebar-link"),
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none"
+        item.style.display !== "none",
     );
     updateSidebarSelection(items, 0);
     const firstItem = items[0];
@@ -1263,7 +1301,7 @@ function initNavbar() {
     isSortOptionsOpen = true;
 
     const sortOptionItems = Array.from(
-      sortOptions.querySelectorAll(".sort-option")
+      sortOptions.querySelectorAll(".sort-option"),
     );
     if (sortOptionItems.length > 0) {
       updateSortOptionsSelection(sortOptionItems, 0);
@@ -1281,11 +1319,11 @@ function initNavbar() {
     if (sortMenuItem) {
       sortMenuItem.focus();
       const sidebarItems = Array.from(
-        sidebar.querySelectorAll("li.sidebar-link")
+        sidebar.querySelectorAll("li.sidebar-link"),
       ).filter(
         (item) =>
           !item.classList.contains("option-remove") &&
-          item.style.display !== "none"
+          item.style.display !== "none",
       );
       const sortIndex = sidebarItems.indexOf(sortMenuItem);
       updateSidebarSelection(sidebarItems, sortIndex);
@@ -1299,7 +1337,7 @@ function initNavbar() {
 
     // Check the selected one
     const selectedCheckbox = document.querySelector(
-      `.sort-checkbox[data-sort="${sortType}"]`
+      `.sort-checkbox[data-sort="${sortType}"]`,
     );
     if (selectedCheckbox) {
       selectedCheckbox.checked = true;
@@ -1328,16 +1366,16 @@ function initNavbar() {
     if (isSortOptionsOpen) return;
 
     const items = Array.from(
-      sidebar.querySelectorAll("li.sidebar-link")
+      sidebar.querySelectorAll("li.sidebar-link"),
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none"
+        item.style.display !== "none",
     );
     if (!items.length) return;
 
     let activeIndex = items.findIndex((item) =>
-      item.classList.contains("active")
+      item.classList.contains("active"),
     );
     if (activeIndex === -1) activeIndex = 0;
 
@@ -1370,7 +1408,7 @@ function initNavbar() {
           } else if (action === "remove-movie") {
             removeItemFromHistoryById(
               localStorage.getItem("selectedMovieId"),
-              "continueWatchingMovies"
+              "continueWatchingMovies",
             );
             localStorage.setItem("isContinueWatchingMovie", "false");
             Router.showPage("movieDetailPage");
@@ -1380,7 +1418,7 @@ function initNavbar() {
             localStorage.setItem("isContinueWatchingSeries", "false");
             removeItemFromHistoryById(
               localStorage.getItem("selectedSeriesId"),
-              "continueWatchingSeries"
+              "continueWatchingSeries",
             );
 
             Router.showPage("seriesDetailPage");
@@ -1434,12 +1472,12 @@ function initNavbar() {
 
   function handleSortOptionsKeys(e) {
     const sortOptionItems = Array.from(
-      sortOptions.querySelectorAll(".sort-option")
+      sortOptions.querySelectorAll(".sort-option"),
     );
     if (!sortOptionItems.length) return;
 
     let activeIndex = sortOptionItems.findIndex((item) =>
-      item.classList.contains("active")
+      item.classList.contains("active"),
     );
     if (activeIndex === -1) activeIndex = 0;
 
