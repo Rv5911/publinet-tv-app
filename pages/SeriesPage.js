@@ -1,6 +1,6 @@
 let seriesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: 0,
+  currentCardIndex: "header",
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -619,7 +619,7 @@ function createSeriesCategorySection(category, categoryIndex) {
   html += "<h1>" + category.title + "</h1>";
 
   if (totalItems > 0) {
-    html += `<div class="category-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
+    html += `<div class="series-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
               <span>View More (${totalItems})</span>
               <i class="fas fa-chevron-right"></i>
             </div>`;
@@ -753,7 +753,7 @@ function handleSeriesSimpleEnter() {
     proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
   } else {
     let viewMoreBtn = document.querySelector(
-      '.category-view-more[data-category="' + categoryIndex + '"].focused',
+      '.series-view-more[data-category="' + categoryIndex + '"].focused',
     );
     if (viewMoreBtn) {
       handleViewMoreClick("series", categoryIndex);
@@ -1422,6 +1422,15 @@ function cleanupSeriesNavigation() {
     seriesEnterKeyState.timeoutId = null;
   }
   seriesEnterKeyState.isPressed = false;
+
+  // Remove focused class from all view-more buttons to prevent style persistence
+  const viewMoreButtons = document.querySelectorAll(
+    ".series-view-more.focused",
+  );
+  viewMoreButtons.forEach((btn) => btn.classList.remove("focused"));
+
+  // Clear all focus classes
+  removeAllSeriesFocus();
 }
 
 function getSeriesCurrentVisibleIndex(categoryIndex, cardIndex) {
@@ -1488,16 +1497,19 @@ function moveSeriesDown() {
   let currentIndex = seriesNavigationState.currentCategoryIndex;
   let currentCardIndex = seriesNavigationState.currentCardIndex;
 
+  // Navigation flow: previous category cards → view-more button → current category cards → next category view-more
   if (currentCardIndex === "header") {
+    // Currently on view-more button, go down to the card row of the same category
     seriesNavigationState.currentCardIndex = 0;
   } else {
+    // Currently on card row, go to view-more button of next category
     let nextCategoryIndex = findNextSeriesCategoryWithSeries(
       currentIndex + 1,
       1,
     );
     if (nextCategoryIndex !== -1) {
       seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
-      seriesNavigationState.currentCardIndex = 0; // Bypass header on Arrow Down
+      seriesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
 
       if (nextCategoryIndex > 2) {
         const navbarEl = document.querySelector("#navbar-root");
@@ -1693,7 +1705,7 @@ function updateSeriesFocus() {
 
       if (seriesNavigationState.currentCardIndex === "header") {
         selector =
-          '.category-view-more[data-category="' +
+          '.series-view-more[data-category="' +
           seriesNavigationState.currentCategoryIndex +
           '"]';
       }

@@ -85,7 +85,8 @@
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.category-view-more {
+.category-view-more,
+.series-view-more {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -94,21 +95,20 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 18px;
   font-weight: 500;
 }
 
-.category-view-more.focused {
+.category-view-more.focused,
+.series-view-more.focused {
   background: var(--dark-gold) !important;
   border-color: var(--dark-gold) !important;
   transform: scale(1.1);
-  box-shadow: 0 0 15px rgba(253, 189, 15, 0.5);
-  color: black !important;
   z-index: 10;
 }
 
-.category-view-more i {
+.category-view-more i,
+.series-view-more i {
   font-size: 14px;
 }
 

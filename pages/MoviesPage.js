@@ -1,7 +1,7 @@
 // MoviesPage.js file
 let moviesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: 0,
+  currentCardIndex: "header",
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -627,7 +627,7 @@ function createMoviesCategorySection(category, categoryIndex) {
   html += "<h1>" + category.title + "</h1>";
 
   if (totalItems > 0) {
-    html += `<div class="category-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
+    html += `<div class="movies-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
               <span>View More (${totalItems})</span>
               <i class="fas fa-chevron-right"></i>
             </div>`;
@@ -759,7 +759,7 @@ function handleMoviesSimpleEnter() {
     proceedToMovieDetail(categoryIndex, cardIndex, streamId);
   } else {
     let viewMoreBtn = document.querySelector(
-      '.category-view-more[data-category="' + categoryIndex + '"].focused',
+      '.movies-view-more[data-category="' + categoryIndex + '"].focused',
     );
     if (viewMoreBtn) {
       handleViewMoreClick("movies", categoryIndex);
@@ -1314,6 +1314,15 @@ function cleanupMoviesNavigation() {
     moviesEnterKeyState.timeoutId = null;
   }
   moviesEnterKeyState.isPressed = false;
+
+  // Remove focused class from all view-more buttons to prevent style persistence
+  const viewMoreButtons = document.querySelectorAll(
+    ".movies-view-more.focused",
+  );
+  viewMoreButtons.forEach((btn) => btn.classList.remove("focused"));
+
+  // Clear all focus classes
+  removeAllMoviesFocus();
 }
 
 function getMoviesCurrentVisibleIndex(categoryIndex, cardIndex) {
@@ -1381,18 +1390,19 @@ function moveMoviesDown() {
   let currentIndex = moviesNavigationState.currentCategoryIndex;
   let currentCardIndex = moviesNavigationState.currentCardIndex;
 
+  // Navigation flow: previous category cards → view-more button → current category cards → next category view-more
   if (currentCardIndex === "header") {
-    // Go down to the card row of the same category
+    // Currently on view-more button, go down to the card row of the same category
     moviesNavigationState.currentCardIndex = 0;
   } else {
-    // Current in card row, go to first card of next category
+    // Currently on card row, go to view-more button of next category
     let nextCategoryIndex = findNextMoviesCategoryWithMovies(
       currentIndex + 1,
       1,
     );
     if (nextCategoryIndex !== -1) {
       moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
-      moviesNavigationState.currentCardIndex = 0; // Bypass header on Arrow Down
+      moviesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
 
       if (nextCategoryIndex > 2) {
         const navbarEl = document.querySelector("#navbar-root");
@@ -1596,7 +1606,7 @@ function updateMoviesFocus() {
 
       if (moviesNavigationState.currentCardIndex === "header") {
         selector =
-          '.category-view-more[data-category="' +
+          '.movies-view-more[data-category="' +
           moviesNavigationState.currentCategoryIndex +
           '"]';
       }
