@@ -76,8 +76,8 @@ async function MovieDetailPage() {
   // if (loadingOverlay) loadingOverlay.classList.remove("hidden");
 
   // --- Fetch movie details ---
-  // var movieDetailData = await getMovieDetail(movieDetailId);
-  var movieDetailData = [];
+  var movieDetailData = await getMovieDetail(movieDetailId);
+  // var movieDetailData = [];
 
   // Check if navigation was interrupted during await
   if (navigationInterrupted) {
@@ -109,17 +109,68 @@ async function MovieDetailPage() {
     movieDetailData.info && movieDetailData.info.tmdb_id
       ? movieDetailData.info.tmdb_id
       : 0;
-  var getMovieCastData = await getMovieCast(tmdbId);
-  // var getMovieCastData = [];
 
-  // Check again if navigation was interrupted during second await
-  if (navigationInterrupted) {
-    document.removeEventListener("keydown", handleBackNavigationDuringLoading);
-    return;
+  // Remove the loading navigation handler and loader since we're ready to show the main page content
+  document.removeEventListener("keydown", handleBackNavigationDuringLoading);
+  const loader = document.getElementById("movie-detail-loader");
+  if (loader) loader.remove();
+
+  // Initialize with empty cast data
+  var getMovieCastData = {
+    cast: [],
+  };
+
+  // Fetch cast data in the background (non-blocking)
+  if (tmdbId) {
+    getMovieCast(tmdbId)
+      .then(function (data) {
+        if (navigationInterrupted) return;
+        if (data && data.cast && data.cast.length > 0) {
+          getMovieCastData = data;
+          updateCastUI(data);
+        }
+      })
+      .catch(function (error) {
+        console.warn("Failed to fetch movie cast:", error);
+      });
   }
 
-  // Remove the loading navigation handler since we're done loading
-  document.removeEventListener("keydown", handleBackNavigationDuringLoading);
+  function updateCastUI(data) {
+    const castContainer = document.querySelector(".movie-detail-cast");
+    if (!castContainer) return;
+
+    if (!data || !data.cast || data.cast.length === 0) {
+      castContainer.innerHTML =
+        '<p class="movie-no-cast-text">No cast and crew is available</p>';
+      return;
+    }
+
+    let castHtml = "";
+    for (var i = 0; i < data.cast.length; i++) {
+      var item = data.cast[i];
+      var profile = item.profile_path
+        ? castImageUrl + item.profile_path
+        : "./assets/placeholder-img.png";
+      var name = item.name ? item.name : "";
+
+      castHtml +=
+        '<div class="movie-cast-item" tabindex="0">' +
+        '<img src="' +
+        profile +
+        '" alt="' +
+        name +
+        '" class="movie-cast-item-image" ' +
+        "onerror=\"this.src='./assets/placeholder-img.png'\" />" +
+        '<p class="movie-cast-item-name">' +
+        name +
+        "</p>" +
+        "</div>";
+    }
+    castContainer.innerHTML = castHtml;
+
+    // Refresh focusable elements to include the newly loaded cast
+    rebuildFocusableEls();
+  }
 
   // --- Continue Watching logic ---
   var selectedPlaylistData = localStorage.getItem("selectedPlaylist");
@@ -163,10 +214,6 @@ async function MovieDetailPage() {
     );
   }
 
-  // if (loadingOverlay) loadingOverlay.classList.add("hidden");
-  const loader = document.getElementById("movie-detail-loader");
-  if (loader) loader.remove();
-
   var htmlContent = renderMovieDetailPage(movieDetailData);
 
   var currentFocusIndex = 0;
@@ -192,7 +239,7 @@ async function MovieDetailPage() {
     }
   }
 
-  function initFocus() {
+  function rebuildFocusableEls() {
     var fromStartBtn = document.querySelector(
       ".movie-detail-from-start-button",
     );
@@ -204,7 +251,7 @@ async function MovieDetailPage() {
       document.querySelector(".movie-detail-page-header-menu"),
     ];
 
-    var castEls = document.querySelectorAll(".movie-cast-item-image");
+    var castEls = document.querySelectorAll(".movie-cast-item");
     if (castEls && castEls.length > 0) {
       for (var j = 0; j < castEls.length; j++) {
         focusableEls.push(castEls[j]);
@@ -212,6 +259,10 @@ async function MovieDetailPage() {
     }
 
     focusableEls = focusableEls.filter(Boolean);
+  }
+
+  function initFocus() {
+    rebuildFocusableEls();
     currentFocusIndex = 0;
     setFocus(focusableEls[currentFocusIndex]);
   }
@@ -268,7 +319,7 @@ async function MovieDetailPage() {
       var trailerBtn = document.querySelector(".movie-detail-more-info-button");
       var favBtn = document.querySelector(".movie-detail-fav-button");
       var menuBtn = document.querySelector(".movie-detail-page-header-menu");
-      var castItems = document.querySelectorAll(".movie-cast-item-image");
+      var castItems = document.querySelectorAll(".movie-cast-item");
 
       // --- Enter key ---
       if (e.key === "Enter") {
@@ -520,6 +571,9 @@ async function MovieDetailPage() {
           "</p>" +
           "</div>";
       }
+    } else {
+      castHtml =
+        '<p class="movie-no-cast-text">No cast and crew is available</p>';
     }
 
     return `
@@ -596,11 +650,12 @@ async function MovieDetailPage() {
 
 </div>
     </div>
-    <div class="movie-detail-cast">
-    <div>
-
+    <div class="movie-detail-cast-section">
+      <h2 class="moviedetail-cast-title">Cast and Crew</h2>
+      <div class="movie-detail-cast">
+        ${castHtml}
+      </div>
     </div>
-    ${castHtml}</div>
   </div>
 </div>
 `;
