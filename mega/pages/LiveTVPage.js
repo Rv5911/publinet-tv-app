@@ -2443,6 +2443,25 @@ function LiveTvPage() {
           return;
         }
 
+        // 🔴 UPDATED: Fallback backward navigation logic if NOT fullscreen:
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const sidebarEl = document.getElementById("sidebar");
+        const isSidebarOpen =
+          sidebarEl && !sidebarEl.classList.contains("option-remove");
+
+        if (focusedSection === "sidebar" || isSidebarOpen) {
+          localStorage.setItem("returnPage", "liveTvPage");
+          Router.showPage("homePage");
+        } else {
+          focusedSection = "sidebar";
+          if (sidebarIndex === -1) sidebarIndex = 0;
+          if (!isSidebarOpen) {
+            openSidebar("liveTvPage");
+          }
+        }
+        updateFocus();
         return;
       }
 

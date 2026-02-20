@@ -1346,7 +1346,9 @@ function VideoJsPlayer(poster = "") {
       if (isAspectRatioFocused) {
         const aspectRatioButton = document.getElementById("aspectRatioButton");
         if (aspectRatioButton) {
-          switch (e.key) {
+          const arKey =
+            e.keyCode === 461 || e.keyCode === 10009 ? "Back" : e.key;
+          switch (arKey) {
             case "ArrowUp":
               // Move focus to seek bar
               focusSeekBar();
@@ -1369,6 +1371,8 @@ function VideoJsPlayer(poster = "") {
             case "Back":
             case "BrowserBack":
             case "XF86Back":
+            case 10009:
+            case 461:
               goBack();
               e.preventDefault();
               break;
@@ -1381,7 +1385,9 @@ function VideoJsPlayer(poster = "") {
       if (isSeekBarFocused) {
         const seekBar = document.getElementById("customSeek");
         if (seekBar) {
-          switch (e.key) {
+          const seekKey =
+            e.keyCode === 461 || e.keyCode === 10009 ? "Back" : e.key;
+          switch (seekKey) {
             case "ArrowLeft":
               if (
                 !isLive &&
@@ -1448,6 +1454,8 @@ function VideoJsPlayer(poster = "") {
             case "Back":
             case "BrowserBack":
             case "XF86Back":
+            case 10009:
+            case 461:
               goBack();
               e.preventDefault();
               break;
@@ -1458,7 +1466,8 @@ function VideoJsPlayer(poster = "") {
 
       // 🔴 UPDATED: Play/Pause overlay navigation logic
       if (isPlayPauseFocused) {
-        switch (e.key) {
+        const ppKey = e.keyCode === 461 || e.keyCode === 10009 ? "Back" : e.key;
+        switch (ppKey) {
           case "ArrowDown":
             // Move focus to seek bar
             focusSeekBar();
@@ -1531,7 +1540,9 @@ function VideoJsPlayer(poster = "") {
       }
 
       // 🔴 Fallback controls (when nothing is focused)
-      switch (e.key) {
+      const fallbackKey =
+        e.keyCode === 461 || e.keyCode === 10009 ? "Back" : e.key;
+      switch (fallbackKey) {
         case "Enter":
           if (player && typeof player.paused === "function") {
             try {

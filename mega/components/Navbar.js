@@ -829,24 +829,44 @@ function initNavbar() {
           e.preventDefault();
           localStorage.setItem("currentPage", "homePage");
           Router.showPage("homePage");
+          if (window.setNavbarFocus) {
+            window.setNavbarFocus("homePage");
+          } else {
+            localStorage.setItem("navigationFocus", "homePage");
+          }
           return;
         }
         if (currentPage === "moviesPage") {
           e.preventDefault();
           localStorage.setItem("currentPage", "homePage");
           Router.showPage("homePage");
+          if (window.setNavbarFocus) {
+            window.setNavbarFocus("homePage");
+          } else {
+            localStorage.setItem("navigationFocus", "homePage");
+          }
           return;
         }
         if (currentPage === "seriesPage") {
           e.preventDefault();
           localStorage.setItem("currentPage", "homePage");
           Router.showPage("homePage");
+          if (window.setNavbarFocus) {
+            window.setNavbarFocus("homePage");
+          } else {
+            localStorage.setItem("navigationFocus", "homePage");
+          }
           return;
         }
         if (currentPage === "liveTvPage") {
           e.preventDefault();
           localStorage.setItem("currentPage", "homePage");
           Router.showPage("homePage");
+          if (window.setNavbarFocus) {
+            window.setNavbarFocus("homePage");
+          } else {
+            localStorage.setItem("navigationFocus", "homePage");
+          }
           return;
         }
         return;
