@@ -859,13 +859,15 @@ function initNavbar() {
           return;
         }
         if (currentPage === "liveTvPage") {
-          e.preventDefault();
-          localStorage.setItem("currentPage", "homePage");
-          Router.showPage("homePage");
-          if (window.setNavbarFocus) {
-            window.setNavbarFocus("homePage");
-          } else {
-            localStorage.setItem("navigationFocus", "homePage");
+          if (navigationFocus === "navbar") {
+            e.preventDefault();
+            localStorage.setItem("currentPage", "homePage");
+            Router.showPage("homePage");
+            if (window.setNavbarFocus) {
+              window.setNavbarFocus("homePage");
+            } else {
+              localStorage.setItem("navigationFocus", "homePage");
+            }
           }
           return;
         }

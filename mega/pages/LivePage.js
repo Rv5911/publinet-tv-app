@@ -104,14 +104,28 @@ function LivePage() {
     init();
   }, 0);
 
-  // Cross-browser fullscreen detection helper
+  // Fullscreen detection — CSS class is most reliable on LG webOS
   const checkIsFullscreen = () => {
-    return (
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
+    const container = document.getElementById("lp-player-container");
+
+    // 1️⃣ Trust our own CSS class (most reliable on LG)
+    const cssFs = !!(
+      container && container.classList.contains("fullscreen-mode")
     );
+
+    // 2️⃣ Video.js fullscreen state
+    const vjsFs = !!(
+      window.livePlayer &&
+      typeof window.livePlayer.isFullscreen === "function" &&
+      window.livePlayer.isFullscreen()
+    );
+
+    // 3️⃣ Native browser fullscreen (fallback only)
+    const nativeFs = !!(
+      document.fullscreenElement || document.webkitFullscreenElement
+    );
+
+    return cssFs || vjsFs || nativeFs;
   };
 
   const isCategoryAdult = (catId, catName) => {
@@ -163,35 +177,53 @@ function LivePage() {
 
   // Add this function after state variables, before cleanup function
   const toggleFullscreen = () => {
-    const playerContainer = document.getElementById("lp-player-container");
+    const playerContainer = document.getElementById(
+      "lp-player-container",
+    );
     if (!playerContainer) return;
 
-    if (!checkIsFullscreen()) {
-      // Enter fullscreen
-      if (playerContainer.requestFullscreen) {
-        playerContainer.requestFullscreen();
-      } else if (playerContainer.mozRequestFullScreen) {
-        playerContainer.mozRequestFullScreen();
-      } else if (playerContainer.webkitRequestFullscreen) {
-        playerContainer.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-      } else if (playerContainer.msRequestFullscreen) {
-        playerContainer.msRequestFullscreen();
-      }
+    if (playerContainer.classList.contains("fullscreen-mode")) {
+      // Exit CSS fullscreen
+      playerContainer.classList.remove("fullscreen-mode");
     } else {
-      // Exit fullscreen
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
+      // Enter CSS fullscreen
+      playerContainer.classList.add("fullscreen-mode");
+    }
+  };
+
+  const handleFullscreenBackCapture = (e) => {
+    if (
+      e.keyCode === 461 ||
+      e.keyCode === 10009 ||
+      e.key === "Back" ||
+      e.key === "BrowserBack"
+    ) {
+      const container = document.getElementById("lp-player-container");
+
+      const isCssFullscreen =
+        container && container.classList.contains("fullscreen-mode");
+
+      if (isCssFullscreen) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        console.log("Exiting CSS fullscreen");
+
+        // ✅ ONLY remove CSS class
+        container.classList.remove("fullscreen-mode");
+
+        // Restore focus
+        focusedSection = "player";
+        playerSubFocus = 1;
+        updateFocus();
+
+        return; // STOP — do not navigate
       }
     }
   };
 
   const cleanup = () => {
+    window.removeEventListener("keydown", handleFullscreenBackCapture, true);
     document.removeEventListener("keydown", handleKeydown);
     document.removeEventListener("sortChanged", handleSortChange);
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -240,6 +272,7 @@ function LivePage() {
     if (!container) return;
 
     render();
+    window.addEventListener("keydown", handleFullscreenBackCapture, true);
     document.addEventListener("keydown", handleKeydown);
     document.addEventListener("sortChanged", handleSortChange);
 
@@ -515,15 +548,63 @@ function LivePage() {
     renderCategories();
     renderChannels();
 
-    // Hide the loader quickly
-    const loaderElement = document.querySelector("#live-page-loader");
-    if (loaderElement) {
-      loaderElement.style.animation = "fadeOut 0.2s ease-out";
+    // Hide the loader quickly (skip entirely on silent restore)
+    const isSilentRestore = localStorage.getItem("liveTvSilentRestore") === "1";
+    if (isSilentRestore) {
+      // Instantly remove loader — user has a black overlay during bounce
+      const loaderEl = document.querySelector("#live-page-loader");
+      if (loaderEl && loaderEl.parentNode)
+        loaderEl.parentNode.removeChild(loaderEl);
+    } else {
+      const loaderElement = document.querySelector("#live-page-loader");
+      if (loaderElement) {
+        loaderElement.style.animation = "fadeOut 0.2s ease-out";
+        setTimeout(() => {
+          if (loaderElement && loaderElement.parentNode) {
+            loaderElement.parentNode.removeChild(loaderElement);
+          }
+        }, 200);
+      }
+    }
+
+    // Check if we need to auto-restore a channel from a bounce
+    const restoreStreamId = localStorage.getItem("liveTvRestoreStreamId");
+    const restoreCatId = localStorage.getItem("liveTvRestoreCategoryId");
+    if (restoreStreamId) {
+      localStorage.removeItem("liveTvRestoreStreamId");
+      localStorage.removeItem("liveTvSilentRestore");
+      if (restoreCatId) {
+        selectedCategoryId = restoreCatId;
+        localStorage.removeItem("liveTvRestoreCategoryId");
+      }
       setTimeout(() => {
-        if (loaderElement && loaderElement.parentNode) {
-          loaderElement.parentNode.removeChild(loaderElement);
+        renderCategories();
+        renderChannels();
+        const streams = getFilteredChannels();
+        const streamToPlay = streams.find(
+          (s) => String(s.stream_id) === String(restoreStreamId),
+        );
+        if (streamToPlay) {
+          // Find index to restore focus
+          const idx = streams.findIndex(
+            (s) => String(s.stream_id) === String(restoreStreamId),
+          );
+          if (idx !== -1) {
+            channelIndex = idx;
+            channelChunk = Math.ceil((idx + 1) / channelPageSize);
+            renderChannels(); // re-render with the correct chunk count
+          }
+          playChannel(streamToPlay);
+          focusedSection = "player";
+          playerSubFocus = 1;
+          updateFocus();
         }
-      }, 200);
+
+        // Remove the black overlay — restoration is complete
+        const overlay = document.getElementById("lp-fullscreen-exit-overlay");
+        if (overlay)
+          overlay.parentNode && overlay.parentNode.removeChild(overlay);
+      }, 50);
     }
   };
 
@@ -1015,7 +1096,6 @@ function LivePage() {
         const isFullscreen = checkIsFullscreen();
 
         if (
-          !isFullscreen &&
           playerSubFocus !== 0 &&
           playerSubFocus !== 1 &&
           playerSubFocus !== 2
@@ -1363,6 +1443,45 @@ function LivePage() {
     }
   };
 
+  window.forceReloadLivePlayer = () => {
+    console.log("forceReloadLivePlayer triggered (seamless page bounce)");
+    const streamToRestore = currentPlayingStream;
+    console.log(
+      "Stream to restore:",
+      streamToRestore ? streamToRestore.stream_id : "none",
+    );
+
+    if (streamToRestore) {
+      // Save channel so it auto-resumes when Live page reloads
+      localStorage.setItem(
+        "liveTvRestoreStreamId",
+        String(streamToRestore.stream_id),
+      );
+      localStorage.setItem("liveTvRestoreCategoryId", selectedCategoryId);
+    }
+
+    localStorage.setItem("returnPage", "liveTvPage");
+    localStorage.setItem("liveTvSilentRestore", "1");
+
+    // Inject a black overlay so user doesn't see Home page during the bounce
+    let blackOverlay = document.getElementById("lp-fullscreen-exit-overlay");
+    if (!blackOverlay) {
+      blackOverlay = document.createElement("div");
+      blackOverlay.id = "lp-fullscreen-exit-overlay";
+      blackOverlay.style.cssText =
+        "position:fixed;top:0;left:0;width:100%;height:100%;background:black;z-index:999999;";
+      document.body.appendChild(blackOverlay);
+    }
+
+    console.log("Bouncing: homePage -> liveTvPage (with black overlay)");
+
+    // Bounce to home then immediately to live — this forces WebOS to exit native fullscreen
+    Router.showPage("homePage");
+    setTimeout(() => {
+      Router.showPage("liveTvPage");
+    }, 300);
+  };
+
   const updateEPG = (stream) => {
     currentPlayingStream = stream;
     const epgList = document.getElementById("lp-epg-list");
@@ -1566,8 +1685,9 @@ function LivePage() {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
-    // Cross-browser fullscreen detection
-    const isFullscreen = checkIsFullscreen();
+    // CSS fullscreen detection — lp-player-container owns the fullscreen-mode class
+    const fsEl = document.getElementById("lp-player-container");
+    const isFullscreen = !!(fsEl && fsEl.classList.contains("fullscreen-mode"));
 
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
@@ -1675,8 +1795,9 @@ function LivePage() {
       return; // Don't process keydown events until user navigates into the page
     }
 
-    // Cross-browser fullscreen detection
-    const isFullscreen = checkIsFullscreen();
+    // CSS fullscreen detection — lp-player-container owns the fullscreen-mode class
+    const fsEl = document.getElementById("lp-player-container");
+    const isFullscreen = !!(fsEl && fsEl.classList.contains("fullscreen-mode"));
 
     // Handle Fullscreen Exit
     if (
@@ -1695,34 +1816,85 @@ function LivePage() {
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        // Cross-browser exit fullscreen
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
+        const playerContainer = document.getElementById(
+          "lp-player-container",
+        );
+
+        if (playerContainer) {
+          // ✅ Only remove CSS fullscreen
+          playerContainer.classList.remove("fullscreen-mode");
         }
-        return;
+
+        // Restore focus
+        focusedSection = "player";
+        playerSubFocus = 1;
+        updateFocus();
+
+        return; // STOP here — do NOT navigate
       } else {
         // Fallback backward navigation logic:
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        // Safety catch: If we were somehow stuck in fullscreen visually but not natively,
+        // or if player is focused, force exit fullscreen visually before anything else.
+        const playerContainer = document.getElementById(
+          "lp-player-container",
+        );
+        if (
+          playerContainer &&
+          playerContainer.classList.contains("fullscreen-mode")
+        ) {
+          if (typeof toggleFullscreen === "function") {
+            toggleFullscreen();
+          } else {
+            playerContainer.classList.remove("fullscreen-mode");
+            focusedSection = "player";
+            updateFocus();
+          }
+          return;
+        }
 
         const sidebarEl = document.getElementById("sidebar");
         const isSidebarOpen =
           sidebarEl && !sidebarEl.classList.contains("option-remove");
 
         if (focusedSection === "sidebar" || isSidebarOpen) {
+          if (typeof disposeLiveTvPlayer !== "undefined") {
+            disposeLiveTvPlayer();
+          } else if (
+            window.livePlayer &&
+            typeof window.livePlayer.dispose === "function"
+          ) {
+            try {
+              window.livePlayer.dispose();
+            } catch (e) {}
+            window.livePlayer = null;
+          }
+
           localStorage.setItem("returnPage", "liveTvPage");
           Router.showPage("homePage");
+        } else if (focusedSection === "player") {
+          // If focus is on the player, a back press should just focus the sidebar
+          // instead of immediately going home, simulating a graceful exit.
+          focusedSection = "sidebar";
+          if (sidebarIndex === -1) sidebarIndex = 0;
+          if (!isSidebarOpen) {
+            window.dispatchEvent(
+              new CustomEvent("navigation-focus-change", {
+                detail: { page: "liveTvPage" },
+              }),
+            );
+          }
         } else {
           focusedSection = "sidebar";
           if (sidebarIndex === -1) sidebarIndex = 0;
           if (!isSidebarOpen) {
-            openSidebar("liveTvPage");
+            window.dispatchEvent(
+              new CustomEvent("navigation-focus-change", {
+                detail: { page: "liveTvPage" },
+              }),
+            );
           }
         }
         updateFocus();
@@ -1877,7 +2049,10 @@ function LivePage() {
         break;
     }
 
-    if (focusedSection === "player" && !checkIsFullscreen()) {
+    if (
+      focusedSection === "player" &&
+      !checkIsFullscreen()
+    ) {
       resetControlsTimer();
     }
 
@@ -1886,7 +2061,10 @@ function LivePage() {
 
   const navigateUp = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (focusedSection === "player" && checkIsFullscreen()) {
+    if (
+      focusedSection === "player" &&
+      checkIsFullscreen()
+    ) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -1988,7 +2166,10 @@ function LivePage() {
 
   const navigateDown = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (focusedSection === "player" && checkIsFullscreen()) {
+    if (
+      focusedSection === "player" &&
+      checkIsFullscreen()
+    ) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -2083,7 +2264,10 @@ function LivePage() {
 
   const navigateLeft = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (focusedSection === "player" && checkIsFullscreen()) {
+    if (
+      focusedSection === "player" &&
+      checkIsFullscreen()
+    ) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
@@ -2122,7 +2306,10 @@ function LivePage() {
 
   const navigateRight = () => {
     // In strict fullscreen mode, if controls are hidden, DO NOT Navigate
-    if (focusedSection === "player" && checkIsFullscreen()) {
+    if (
+      focusedSection === "player" &&
+      checkIsFullscreen()
+    ) {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");

@@ -3,7 +3,7 @@ function LiveVideoJsComponent(
   srcUrl = "",
   poster = "./assets/placeholder.png",
   height = "100%",
-  channelName = ""
+  channelName = "",
 ) {
   const id = "live-videojs-player";
   let epgData = [];
@@ -24,10 +24,10 @@ function LiveVideoJsComponent(
   console.log(srcUrl, "srcUrlsrcUrlsrcUrl");
 
   const currentPlaylistName = JSON.parse(
-    localStorage.getItem("selectedPlaylist")
+    localStorage.getItem("selectedPlaylist"),
   ).playlistName;
   const currentPlaylist = JSON.parse(
-    localStorage.getItem("playlistsData")
+    localStorage.getItem("playlistsData"),
   ).filter((pl) => pl.playlistName === currentPlaylistName)[0];
 
   const streamFormat = currentPlaylist.streamFormat;
@@ -265,7 +265,7 @@ function LiveVideoJsComponent(
     if (isTsStream && typeof flowplayer !== "undefined") {
       const hlsUrl = srcUrl.replace(
         /\.ts(\?.*)?$/i,
-        (m, q) => `.m3u8${q || ""}`
+        (m, q) => `.m3u8${q || ""}`,
       );
       const fpContainer = document.getElementById("flowplayer-live");
       if (fpContainer) {
@@ -300,6 +300,8 @@ function LiveVideoJsComponent(
           exitFullscreen() {
             try {
               if (document.exitFullscreen) document.exitFullscreen();
+              else if (document.webkitCancelFullScreen)
+                document.webkitCancelFullScreen();
               else if (document.webkitExitFullscreen)
                 document.webkitExitFullscreen();
             } catch {}
@@ -506,34 +508,26 @@ function LiveVideoJsComponent(
           });
         }
 
-        const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
-        if (fullscreenBtn) {
-          fullscreenBtn.addEventListener("click", () => {
-            const playerContainer = document.querySelector(
-              ".live-video-player-div"
-            );
+      const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
 
-            if (!document.fullscreenElement) {
-              // Enter fullscreen - request on the container, not the player
-              if (playerContainer.requestFullscreen) {
-                playerContainer.requestFullscreen();
-              } else if (playerContainer.webkitRequestFullscreen) {
-                playerContainer.webkitRequestFullscreen();
-              } else if (playerContainer.msRequestFullscreen) {
-                playerContainer.msRequestFullscreen();
-              }
-            } else {
-              // Exit fullscreen
-              if (document.exitFullscreen) {
-                document.exitFullscreen();
-              } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-              } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-              }
-            }
-          });
-        }
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener("click", () => {
+    const container = document.getElementById(
+      "lp-player-container"
+    );
+
+    if (!container) return;
+
+    if (container.classList.contains("fullscreen-mode")) {
+      // Exit CSS fullscreen
+      container.classList.remove("fullscreen-mode");
+    } else {
+      // Enter CSS fullscreen
+      container.classList.add("fullscreen-mode");
+    }
+  });
+}
+
 
         const handleFullscreenChange = () => {
           const techEl = document.querySelector(".vjs-tech");
@@ -618,7 +612,7 @@ function LiveVideoJsComponent(
         window.VideoAspectRatio.showOverlay(newLabel);
       } else {
         console.warn(
-          "Aspect ratio handler: No video element or VideoAspectRatio module found"
+          "Aspect ratio handler: No video element or VideoAspectRatio module found",
         );
       }
     };
@@ -639,7 +633,11 @@ function LiveVideoJsComponent(
     }
     const aspectRatioButton = document.getElementById("videojs-aspect-ratio");
     if (aspectRatioButton) {
-      aspectRatioButton.removeEventListener("click", handleAspectRatioChange);
+      try {
+        aspectRatioButton.removeEventListener("click", handleAspectRatioChange);
+      } catch (e) {
+        console.warn("Could not remove aspect ratio listener:", e.message);
+      }
     }
     // Store player reference to avoid race conditions
     const currentPlayer = window.livePlayer;
@@ -706,7 +704,7 @@ function LiveVideoJsComponent(
              <video>
                <source type="application/x-mpegURL" src="${srcUrl.replace(
                  /\.ts(\?.*)?$/i,
-                 (m, q) => `.m3u8${q || ""}`
+                 (m, q) => `.m3u8${q || ""}`,
                )}">
              </video>
            </div>`
