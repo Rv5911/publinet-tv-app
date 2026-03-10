@@ -996,7 +996,7 @@ function LivePage() {
             const scrollDist = scrollWidth - clientWidth;
             name.setAttribute("data-marquee", name.textContent);
             name.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-            name.style.setProperty("--duration", `${scrollWidth / 150}s`);
+            name.style.setProperty("--duration", `${scrollWidth / 50}s`);
             name.classList.add("marquee-active");
           }
         }
@@ -1164,7 +1164,7 @@ function LivePage() {
               const scrollDist = scrollWidth - clientWidth;
               name.setAttribute("data-marquee", name.textContent);
               name.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-              name.style.setProperty("--duration", `${scrollWidth / 150}s`);
+              name.style.setProperty("--duration", `${scrollWidth / 50}s`);
               name.classList.add("marquee-active");
             }
           }

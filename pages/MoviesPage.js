@@ -482,7 +482,7 @@ function findNextMoviesCategoryWithMovies(startIndex, direction) {
   return -1;
 }
 
-function loadMoreMoviesCategories() {
+function loadMoreMoviesCategories(targetIndex = -1) {
   if (moviesChunkLoadingState.isLoading) return;
 
   let allCategories = window.allMoviesCategories || [];
@@ -494,7 +494,7 @@ function loadMoreMoviesCategories() {
     .some(function (cat) {
       return cat && cat.movies && cat.movies.length > 0;
     });
-  if (!remainingHasItems) {
+  if (!remainingHasItems && targetIndex === -1) {
     let container = document.querySelector(".movies-page-container");
     if (container) {
       let categoriesLoading = container.querySelector(
@@ -521,8 +521,10 @@ function loadMoreMoviesCategories() {
 
   moviesChunkLoadingState.isLoading = true;
 
+  let chunkSize = targetIndex !== -1 ? Math.max(targetIndex - currentLoaded + 1, moviesChunkLoadingState.categoryChunkSize) : moviesChunkLoadingState.categoryChunkSize;
+
   let nextChunk = Math.min(
-    currentLoaded + moviesChunkLoadingState.categoryChunkSize,
+    currentLoaded + chunkSize,
     allCategories.length,
   );
 
@@ -1391,6 +1393,8 @@ function moveMoviesDown() {
   let currentIndex = moviesNavigationState.currentCategoryIndex;
   let currentCardIndex = moviesNavigationState.currentCardIndex;
 
+  const isSearch = !!getMoviesSearchQuery();
+
   // Navigation flow: previous category cards → view-more button → current category cards → next category view-more
   if (currentCardIndex === "header") {
     // Currently on view-more button, go down to the card row of the same category
@@ -1403,7 +1407,11 @@ function moveMoviesDown() {
     );
     if (nextCategoryIndex !== -1) {
       moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
-      moviesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
+      if (isSearch) {
+        moviesNavigationState.currentCardIndex = 0;
+      } else {
+        moviesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
+      }
 
       if (nextCategoryIndex > 2) {
         const navbarEl = document.querySelector("#navbar-root");
@@ -1413,9 +1421,9 @@ function moveMoviesDown() {
       let loadedCategoriesCount = moviesChunkLoadingState.loadedCategories;
       if (
         moviesNavigationState.currentCategoryIndex >=
-        loadedCategoriesCount - 2
+        loadedCategoriesCount - 1
       ) {
-        loadMoreMoviesCategories();
+        loadMoreMoviesCategories(moviesNavigationState.currentCategoryIndex);
       }
     } else {
       // End of everything
@@ -1427,6 +1435,8 @@ function moveMoviesDown() {
 function moveMoviesUp() {
   let currentIndex = moviesNavigationState.currentCategoryIndex;
   let currentCardIndex = moviesNavigationState.currentCardIndex;
+
+  const isSearch = !!getMoviesSearchQuery();
 
   if (currentCardIndex === "header") {
     // Current in header, go to card row of previous category
@@ -1463,8 +1473,44 @@ function moveMoviesUp() {
       }, 50);
     }
   } else {
-    // Current in row, go to header of same category
-    moviesNavigationState.currentCardIndex = "header";
+    if (isSearch) {
+      // In search mode, go to previous category directly from card row
+      let prevCategoryIndex = findNextMoviesCategoryWithMovies(
+        currentIndex - 1,
+        -1,
+      );
+      if (prevCategoryIndex !== -1) {
+        moviesNavigationState.currentCategoryIndex = prevCategoryIndex;
+        moviesNavigationState.currentCardIndex = 0;
+      } else {
+        // Jump to Navbar
+        try {
+          const moviesContainer = document.querySelector(
+            ".movies-page-container",
+          );
+          if (moviesContainer) moviesContainer.scrollTop = 0;
+          const navbarEl = document.querySelector("#navbar-root");
+          if (navbarEl) navbarEl.style.display = "block";
+        } catch (e) {}
+
+        removeAllMoviesFocus();
+        saveMoviesNavigationState();
+        localStorage.setItem("navigationFocus", "navbar");
+
+        setTimeout(() => {
+          const moviesNavItem = document.querySelector(
+            '.nav-item[data-page="moviesPage"]',
+          );
+          if (moviesNavItem) {
+            moviesNavItem.focus();
+            moviesNavItem.classList.add("active");
+          }
+        }, 50);
+      }
+    } else {
+      // Current in row, go to header of same category
+      moviesNavigationState.currentCardIndex = "header";
+    }
   }
 }
 
@@ -2057,7 +2103,21 @@ function MoviesPage() {
       apiCategories.slice(3),
     );
 
-    moviesChunkLoadingState.loadedCategories = initialCategories.length;
+    const searchQuery = getMoviesSearchQuery();
+    if (searchQuery) {
+      // During search, load more categories initially to ensure screen is full (infinite logic still applies)
+      moviesChunkLoadingState.loadedCategories = Math.min(
+        10,
+        window.allMoviesCategories.length,
+      );
+      initialCategories = window.allMoviesCategories.slice(
+        0,
+        moviesChunkLoadingState.loadedCategories,
+      );
+    } else {
+      moviesChunkLoadingState.loadedCategories = initialCategories.length;
+    }
+
     moviesChunkLoadingState.loadedChunks = {};
     moviesChunkLoadingState.isLoading = false;
 
