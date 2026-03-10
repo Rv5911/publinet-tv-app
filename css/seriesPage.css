@@ -621,10 +621,11 @@
 
 /* Category View Page */
 .category-view-page-container {
-  padding: 40px 60px;
+  padding: 100px 60px 60px;
   height: 100vh;
   box-sizing: border-box;
   overflow-y: auto;
+  overflow-x: hidden;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
 
@@ -669,12 +670,18 @@
 
 .category-view-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 30px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .category-view-grid .movie-card,
 .category-view-grid .series-card {
-  margin-right: 0;
-  width: 100%;
+  margin-right: 0 !important;
+  width: 100% !important;
+  height: 350px !important;
+  min-width: 0 !important;
+  flex-shrink: 1 !important;
+  box-sizing: border-box;
 }

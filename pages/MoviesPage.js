@@ -626,9 +626,10 @@ function createMoviesCategorySection(category, categoryIndex) {
   html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
 
-  if (totalItems > 0) {
+  let threshold = size === "large" ? 3 : 6;
+  if (totalItems > threshold) {
     html += `<div class="movies-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
-              <span>View More (${totalItems})</span>
+              <span>See More (${totalItems})</span>
               <i class="fas fa-chevron-right"></i>
             </div>`;
   }

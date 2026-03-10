@@ -14,7 +14,7 @@ let categoryViewNavigationState = {
   categoryTitle: "",
 };
 
-const GRID_CHUNK_SIZE = 30; // 5 rows of 6
+const GRID_CHUNK_SIZE = 36; // 6 rows of 6
 
 let categoryViewDebounce = {
   lastKeyPress: 0,
@@ -195,8 +195,9 @@ function handleCategoryViewKeyNavigation(e) {
         // categoryViewNavigationState.isHeaderFocused = false;
         // categoryViewNavigationState.currentCardIndex = 0;
       } else {
-        if (currentIndex + itemsPerRow < total) {
-          categoryViewNavigationState.currentCardIndex += itemsPerRow;
+        const nextRowStartIndex = (Math.floor(currentIndex / itemsPerRow) + 1) * itemsPerRow;
+        if (nextRowStartIndex < total) {
+          categoryViewNavigationState.currentCardIndex = Math.min(currentIndex + itemsPerRow, total - 1);
           // Load more if needed
           if (
             categoryViewNavigationState.currentCardIndex >=
@@ -205,7 +206,6 @@ function handleCategoryViewKeyNavigation(e) {
             loadMoreGridItems();
           }
         }
-        // Removed logic that forced jump to last item
       }
       break;
     case "ArrowUp":

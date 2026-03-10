@@ -2042,17 +2042,19 @@ function LivePage() {
           buttonFocusIndex = 0;
         } else if (buttonFocusIndex >= 0) {
           buttonFocusIndex = -1;
-          if (channelIndex + 4 < filteredStreams.length) {
+          const nextRowStart = (Math.floor(channelIndex / 4) + 1) * 4;
+          if (nextRowStart < filteredStreams.length) {
+            const nextIndex = Math.min(channelIndex + 4, filteredStreams.length - 1);
             const loadedCount = channelChunk * channelPageSize;
             if (
-              channelIndex + 4 >= loadedCount &&
+              nextIndex >= loadedCount &&
               loadedCount < filteredStreams.length
             ) {
               // Load more channels
               channelChunk++;
               renderChannels();
             }
-            channelIndex += 4;
+            channelIndex = nextIndex;
           }
         }
       }
