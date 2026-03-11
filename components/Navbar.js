@@ -716,11 +716,19 @@ function initNavbar() {
       window.searchQuery = "";
       if (searchInput) searchInput.value = "";
 
-      const page = item.getAttribute("data-page");
+      let page = item.getAttribute("data-page");
+
+      // Check if we are already on the target page to avoid redundant loading
+      const currentPage = localStorage.getItem("currentPage");
+      if (currentPage === page && (page === "moviesPage" || page === "seriesPage" || page === "categoryListPage")) {
+         return; 
+      }
+
+
       disposeLiveTvPlayer();
       resetParentalControlState();
       Router.showPage(page);
-      updateNavbarActive(page);
+      updateNavbarActive(item.getAttribute("data-page"));
       buildDynamicSidebarOptions();
     });
 
@@ -770,6 +778,7 @@ function initNavbar() {
       "settingsPage",
       "exitModal",
       "categoryViewPage",
+      "categoryListPage",
     ];
     if (NAVBAR_INACTIVE_PAGES.includes(currentPage)) {
       return; // Don't process any navbar keydown events on these pages
@@ -1003,87 +1012,33 @@ function initNavbar() {
             return;
           }
 
-          // MoviesPage: prioritize My Fav on initial down from navbar
+          // MoviesPage: Focus View Mode button from navbar
           if (currentPage === "moviesPage" && window.moviesNavigationState) {
             setTimeout(function () {
-              // Move focus from navbar to movies page ONLY after timeout
               localStorage.setItem("navigationFocus", "moviesPage");
-
-              let targetCard = null;
-              let targetCategoryIndex = 0;
-
-              // Iterate through all category lists to find the first one with cards
-              const allCategoryLists =
-                document.querySelectorAll(".movies-card-list");
-              for (let i = 0; i < allCategoryLists.length; i++) {
-                const list = allCategoryLists[i];
-                const firstCard = list.querySelector(".movie-card");
-                if (firstCard) {
-                  targetCard = firstCard;
-                  targetCategoryIndex = parseInt(
-                    list.getAttribute("data-category") || "0",
-                    10,
-                  );
-                  break; // Found the first category with cards
-                }
+              window.moviesNavigationState.currentCategoryIndex = "header-top";
+              window.moviesNavigationState.currentCardIndex = 0;
+              if (typeof window.updateMoviesFocus === "function") {
+                window.updateMoviesFocus();
               }
-
-              if (targetCard) {
-                window.moviesNavigationState.currentCategoryIndex =
-                  targetCategoryIndex;
-                window.moviesNavigationState.currentCardIndex = 0;
-
-                // Persist and update focus using MoviesPage helpers
-                if (typeof window.saveMoviesNavigationState === "function") {
-                  window.saveMoviesNavigationState();
-                }
-                targetCard.focus();
-                if (typeof window.updateMoviesFocus === "function") {
-                  window.updateMoviesFocus();
-                }
+              if (typeof window.saveMoviesNavigationState === "function") {
+                window.saveMoviesNavigationState();
               }
             }, 150);
             return;
           }
 
-          // SeriesPage: prioritize My Fav on initial down from navbar
+          // SeriesPage: Focus View Mode button from navbar
           if (currentPage === "seriesPage" && window.seriesNavigationState) {
             setTimeout(function () {
-              // Move focus from navbar to series page ONLY after timeout
               localStorage.setItem("navigationFocus", "seriesPage");
-
-              let targetCard = null;
-              let targetCategoryIndex = 0;
-
-              // Iterate through all category lists to find the first one with cards
-              const allCategoryLists =
-                document.querySelectorAll(".series-card-list");
-              for (let i = 0; i < allCategoryLists.length; i++) {
-                const list = allCategoryLists[i];
-                const firstCard = list.querySelector(".series-card");
-                if (firstCard) {
-                  targetCard = firstCard;
-                  targetCategoryIndex = parseInt(
-                    list.getAttribute("data-category") || "0",
-                    10,
-                  );
-                  break; // Found the first category with cards
-                }
+              window.seriesNavigationState.currentCategoryIndex = "header-top";
+              window.seriesNavigationState.currentCardIndex = 0;
+              if (typeof window.updateSeriesFocus === "function") {
+                window.updateSeriesFocus();
               }
-
-              if (targetCard) {
-                window.seriesNavigationState.currentCategoryIndex =
-                  targetCategoryIndex;
-                window.seriesNavigationState.currentCardIndex = 0;
-
-                // Persist and update focus using SeriesPage helpers
-                if (typeof window.saveSeriesNavigationState === "function") {
-                  window.saveSeriesNavigationState();
-                }
-                targetCard.focus();
-                if (typeof window.updateSeriesFocus === "function") {
-                  window.updateSeriesFocus();
-                }
+              if (typeof window.saveSeriesNavigationState === "function") {
+                window.saveSeriesNavigationState();
               }
             }, 150);
             return;
@@ -1102,13 +1057,22 @@ function initNavbar() {
           if (window.cleanupSeriesNavigation) {
             window.cleanupSeriesNavigation();
           }
-          const page = navItems[currentIndex - 1].getAttribute("data-page");
+          let page = navItems[currentIndex - 1].getAttribute("data-page");
+
+          if (page === "moviesPage" && localStorage.getItem("movieViewMode") === "category") {
+            localStorage.setItem("categoryListType", "movies");
+            page = "categoryListPage";
+          } else if (page === "seriesPage" && localStorage.getItem("seriesViewMode") === "category") {
+            localStorage.setItem("categoryListType", "series");
+            page = "categoryListPage";
+          }
+
           window.searchQuery = "";
           clearMoviesAndSeriesLocalStorage();
           disposeLiveTvPlayer();
           resetParentalControlState();
           Router.showPage(page);
-          updateNavbarActive(page);
+          updateNavbarActive(navItems[currentIndex - 1].getAttribute("data-page"));
         }
         break;
       case "Escape":

@@ -123,7 +123,8 @@ function renderNavbarVisibility() {
     "accountPage",
     "preLoginPage",
     "videoJsPlayer",
-    "categoryViewPage",
+    "categoryListPage",
+    "categoryViewPage"
   ];
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;

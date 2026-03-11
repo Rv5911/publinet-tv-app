@@ -343,19 +343,12 @@ function handleCategoryViewEnter() {
 
 function goBackFromCategoryView() {
   const type = categoryViewNavigationState.type;
-  const page = type === "movies" ? "moviesPage" : "seriesPage";
+  const returnPage = localStorage.getItem("categoryReturnPage") || (type === "movies" ? "moviesPage" : "seriesPage");
 
-  // Removed focus reset to preserve previous state on the main page.
-  // if (type === "movies") {
-  //   moviesNavigationState.currentCardIndex = 0;
-  // } else {
-  //   seriesNavigationState.currentCardIndex = 0;
-  // }
+  localStorage.setItem("currentPage", returnPage);
+  localStorage.setItem("navigationFocus", returnPage);
 
-  localStorage.setItem("currentPage", page);
-  localStorage.setItem("navigationFocus", page);
-
-  Router.showPage(page);
+  Router.showPage(returnPage);
 }
 
 window.CategoryViewPage = CategoryViewPage;

@@ -58,6 +58,12 @@ const Router = (function () {
       init: CategoryViewPage.init,
       cleanup: CategoryViewPage.cleanup,
     },
+    categoryListPage: {
+      el: document.getElementById("category-list-page"),
+      render: CategoryListPage,
+      init: CategoryListPage.init,
+      cleanup: CategoryListPage.cleanup,
+    },
     exitModal: {
       el: document.getElementById("exit-modal"),
       render: ExitModal,
