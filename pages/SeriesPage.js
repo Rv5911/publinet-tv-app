@@ -1,6 +1,6 @@
 let seriesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: "header",
+  currentCardIndex: 0,
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -653,7 +653,7 @@ function createSeriesHeader() {
     <div class="series-page-header-top">
       <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0">
         <i class="fas fa-th-large"></i>
-        <span>View Mode: ${viewText}</span>
+        <span>Select Categories View Mode</span>
       </div>
     </div>
   `;
@@ -1367,6 +1367,15 @@ function refreshSeriesFavoritesList() {
   }
 }
 
+function seriesCategoryHasSeeMore(categoryIndex) {
+  const category = window.allSeriesCategories[categoryIndex];
+  if (!category) return false;
+  let size = category.id === "popular" ? "large" : "normal";
+  let threshold = size === "large" ? 3 : 6;
+  let totalItems = category.series ? category.series.length : 0;
+  return totalItems > threshold;
+}
+
 function moveSeriesUp() {
   if (seriesNavigationState.currentCategoryIndex === "header-top") {
     const viewModeSelector = document.getElementById("series-view-mode-btn");
@@ -1393,7 +1402,23 @@ function moveSeriesUp() {
       seriesNavigationState.currentCardIndex = 0;
     }
   } else {
-    seriesNavigationState.currentCardIndex = "header";
+    // From card to its category header if it exists
+    if (seriesCategoryHasSeeMore(seriesNavigationState.currentCategoryIndex)) {
+      seriesNavigationState.currentCardIndex = "header";
+    } else {
+      // Skip header and try to go to previous category
+      let nextCategory = findNextSeriesCategoryWithSeries(
+        seriesNavigationState.currentCategoryIndex - 1,
+        -1,
+      );
+      if (nextCategory !== -1) {
+        seriesNavigationState.currentCategoryIndex = nextCategory;
+        seriesNavigationState.currentCardIndex = 0;
+      } else {
+        seriesNavigationState.currentCategoryIndex = "header-top";
+        seriesNavigationState.currentCardIndex = 0;
+      }
+    }
   }
   updateSeriesFocus();
 }
@@ -1403,7 +1428,11 @@ function moveSeriesDown() {
     let nextCategory = findNextSeriesCategoryWithSeries(0, 1);
     if (nextCategory !== -1) {
       seriesNavigationState.currentCategoryIndex = nextCategory;
-      seriesNavigationState.currentCardIndex = "header";
+      if (seriesCategoryHasSeeMore(nextCategory)) {
+        seriesNavigationState.currentCardIndex = "header";
+      } else {
+        seriesNavigationState.currentCardIndex = 0;
+      }
     }
   } else if (seriesNavigationState.currentCardIndex === "header") {
     seriesNavigationState.currentCardIndex = 0;
@@ -1414,7 +1443,11 @@ function moveSeriesDown() {
     );
     if (nextCategory !== -1) {
       seriesNavigationState.currentCategoryIndex = nextCategory;
-      seriesNavigationState.currentCardIndex = "header";
+      if (seriesCategoryHasSeeMore(nextCategory)) {
+        seriesNavigationState.currentCardIndex = "header";
+      } else {
+        seriesNavigationState.currentCardIndex = 0;
+      }
     } else {
       loadMoreSeriesCategories();
     }
@@ -1446,7 +1479,7 @@ function updateSeriesFocus() {
     const btn = document.getElementById("series-view-mode-btn");
     if (btn) {
         btn.classList.add("focused");
-        btn.scrollIntoView({ block: "center", behavior: "smooth" });
+        btn.scrollIntoView({ block: "center" });
     }
     return;
   }
@@ -1457,7 +1490,12 @@ function updateSeriesFocus() {
     );
     if (header) {
       header.classList.add("focused");
-      header.scrollIntoView({ block: "center", behavior: "smooth" });
+      header.scrollIntoView({ block: "center" });
+    } else {
+      // Fallback: if header focus not found, move focus to first card
+      seriesNavigationState.currentCardIndex = 0;
+      updateSeriesFocus();
+      return;
     }
   } else {
     const card = document.querySelector(
@@ -1465,7 +1503,7 @@ function updateSeriesFocus() {
     );
     if (card) {
       card.classList.add("focused");
-      card.scrollIntoView({ block: "center", behavior: "smooth" });
+      card.scrollIntoView({ block: "center" });
 
       const marquee = card.querySelector(".series-title-marquee");
       if (marquee && marquee.scrollWidth > marquee.clientWidth) {

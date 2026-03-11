@@ -11,15 +11,16 @@ function ViewChangeDialog(onSelect, onCancel, currentView) {
   const html = `
     <div id="${dialogId}" class="view-change-overlay">
       <div class="view-change-content">
-        <h2>Select View Mode</h2>
+        <h2>Categories View Mode</h2>
         <div class="view-options">
           <div class="view-option ${currentView === 'poster' ? 'active' : ''}" data-view="poster" id="view-opt-poster">
-            <i class="fas fa-th-large"></i>
-            <span>VOD with Posters</span>
+           <img src="./assets/category-poster.png" alt="poster-icon" loading="lazy" id="category-poster" />
+            <span>Categories with Posters</span>
           </div>
           <div class="view-option ${currentView === 'category' ? 'active' : ''}" data-view="category" id="view-opt-category">
-            <i class="fas fa-list-ul"></i>
-            <span>Category View</span>
+           <img src="./assets/category-all.png" alt="poster-icon" loading="lazy" id="category-all" />
+
+            <span>View All Categories</span>
           </div>
         </div>
       </div>

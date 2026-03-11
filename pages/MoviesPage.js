@@ -1,7 +1,7 @@
 // MoviesPage.js file
 let moviesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: "header",
+  currentCardIndex: 0,
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -661,7 +661,7 @@ function createMoviesHeader() {
     <div class="movies-page-header-top">
       <div class="view-mode-selector" id="movie-view-mode-btn" data-category="header-top" data-index="0">
         <i class="fas fa-th-large"></i>
-        <span>View Mode: ${viewText}</span>
+        <span>Select Categories View Mode</span>
       </div>
     </div>
   `;
@@ -1259,6 +1259,15 @@ function refreshMoviesFavoritesList() {
   // All UI updates are handled by updateMyFavCategoryRealtime()
 }
 
+function moviesCategoryHasSeeMore(categoryIndex) {
+  const category = window.allMoviesCategories[categoryIndex];
+  if (!category) return false;
+  let size = category.id === "popular" ? "large" : "normal";
+  let threshold = size === "large" ? 3 : 6;
+  let totalItems = category.movies ? category.movies.length : 0;
+  return totalItems > threshold;
+}
+
 function moveMoviesUp() {
   if (moviesNavigationState.currentCategoryIndex === "header-top") {
     const viewModeSelector = document.getElementById("movie-view-mode-btn");
@@ -1286,8 +1295,23 @@ function moveMoviesUp() {
       moviesNavigationState.currentCardIndex = 0;
     }
   } else {
-    // From card to its category header
-    moviesNavigationState.currentCardIndex = "header";
+    // From card to its category header if it exists
+    if (moviesCategoryHasSeeMore(moviesNavigationState.currentCategoryIndex)) {
+      moviesNavigationState.currentCardIndex = "header";
+    } else {
+      // Skip header and try to go to previous category
+      let nextCategory = findNextMoviesCategoryWithMovies(
+        moviesNavigationState.currentCategoryIndex - 1,
+        -1,
+      );
+      if (nextCategory !== -1) {
+        moviesNavigationState.currentCategoryIndex = nextCategory;
+        moviesNavigationState.currentCardIndex = 0;
+      } else {
+        moviesNavigationState.currentCategoryIndex = "header-top";
+        moviesNavigationState.currentCardIndex = 0;
+      }
+    }
   }
   updateMoviesFocus();
 }
@@ -1297,7 +1321,11 @@ function moveMoviesDown() {
     let nextCategory = findNextMoviesCategoryWithMovies(0, 1);
     if (nextCategory !== -1) {
       moviesNavigationState.currentCategoryIndex = nextCategory;
-      moviesNavigationState.currentCardIndex = "header";
+      if (moviesCategoryHasSeeMore(nextCategory)) {
+        moviesNavigationState.currentCardIndex = "header";
+      } else {
+        moviesNavigationState.currentCardIndex = 0;
+      }
     }
   } else if (moviesNavigationState.currentCardIndex === "header") {
     moviesNavigationState.currentCardIndex = 0;
@@ -1308,7 +1336,11 @@ function moveMoviesDown() {
     );
     if (nextCategory !== -1) {
       moviesNavigationState.currentCategoryIndex = nextCategory;
-      moviesNavigationState.currentCardIndex = "header";
+      if (moviesCategoryHasSeeMore(nextCategory)) {
+        moviesNavigationState.currentCardIndex = "header";
+      } else {
+        moviesNavigationState.currentCardIndex = 0;
+      }
     } else {
       loadMoreMoviesCategories();
     }
@@ -1341,7 +1373,7 @@ function updateMoviesFocus() {
     const btn = document.getElementById("movie-view-mode-btn");
     if (btn) {
         btn.classList.add("focused");
-        btn.scrollIntoView({ block: "center", behavior: "smooth" });
+        btn.scrollIntoView({ block: "center" });
     }
     return;
   }
@@ -1352,7 +1384,12 @@ function updateMoviesFocus() {
     );
     if (header) {
       header.classList.add("focused");
-      header.scrollIntoView({ block: "center", behavior: "smooth" });
+      header.scrollIntoView({ block: "center" });
+    } else {
+      // Fallback: if header focus not found, move focus to first card
+      moviesNavigationState.currentCardIndex = 0;
+      updateMoviesFocus();
+      return;
     }
   } else {
     const card = document.querySelector(
@@ -1360,7 +1397,7 @@ function updateMoviesFocus() {
     );
     if (card) {
       card.classList.add("focused");
-      card.scrollIntoView({ block: "center", behavior: "smooth" });
+      card.scrollIntoView({ block: "center" });
       
       const marquee = card.querySelector(".movie-title-marquee");
       if (marquee && marquee.scrollWidth > marquee.clientWidth) {
