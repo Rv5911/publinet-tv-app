@@ -17,7 +17,7 @@
     padding: 40px;
     border-radius: 20px;
     text-align: center;
-    border: 1px solid  white;
+    border: 1px solid white;
 }
 
 .view-change-content h2 {
@@ -41,11 +41,10 @@
     align-items: center;
     gap: 20px;
     border: 2px solid transparent;
-    transition: all 0.3s ease;
     color: rgba(255, 255, 255, 0.6);
 }
 
-.view-option:first-child{
+.view-option:first-child {
     margin-right: 50px;
 }
 
@@ -69,16 +68,15 @@
     border-color: white;
     color: white;
     transform: scale(1.08);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
 
-#category-poster{
+#category-poster {
     height: 300px;
     object-fit: contain;
 }
 
-#category-all{
+#category-all {
     height: 300px;
     object-fit: contain;
 }

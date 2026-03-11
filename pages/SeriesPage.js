@@ -652,8 +652,7 @@ function createSeriesHeader() {
   return `
     <div class="series-page-header-top">
       <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0">
-        <i class="fas fa-th-large"></i>
-        <span>Select Categories View Mode</span>
+        <span>Select Categories View</span>
       </div>
     </div>
   `;
@@ -1470,7 +1469,7 @@ function updateSeriesFocus() {
   if (navRoot) {
     if (currentCategoryIndex === "header-top" || currentCategoryIndex === 0) {
       navRoot.style.display = "block";
-    } else if (typeof currentCategoryIndex === "number" && currentCategoryIndex > 2) {
+    } else if (typeof currentCategoryIndex === "number" && currentCategoryIndex >= 1) {
       navRoot.style.display = "none";
     }
   }

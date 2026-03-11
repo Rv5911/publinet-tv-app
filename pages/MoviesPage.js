@@ -660,8 +660,7 @@ function createMoviesHeader() {
   return `
     <div class="movies-page-header-top">
       <div class="view-mode-selector" id="movie-view-mode-btn" data-category="header-top" data-index="0">
-        <i class="fas fa-th-large"></i>
-        <span>Select Categories View Mode</span>
+        <span>Select Categories View</span>
       </div>
     </div>
   `;
@@ -1364,7 +1363,7 @@ function updateMoviesFocus() {
   if (navRoot) {
     if (currentCategoryIndex === "header-top" || currentCategoryIndex === 0) {
       navRoot.style.display = "block";
-    } else if (typeof currentCategoryIndex === "number" && currentCategoryIndex > 2) {
+    } else if (typeof currentCategoryIndex === "number" && currentCategoryIndex >= 1) {
       navRoot.style.display = "none";
     }
   }

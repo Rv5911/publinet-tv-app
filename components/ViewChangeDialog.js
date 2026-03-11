@@ -14,11 +14,11 @@ function ViewChangeDialog(onSelect, onCancel, currentView) {
         <h2>Categories View Mode</h2>
         <div class="view-options">
           <div class="view-option ${currentView === 'poster' ? 'active' : ''}" data-view="poster" id="view-opt-poster">
-           <img src="./assets/category-poster.png" alt="poster-icon" loading="lazy" id="category-poster" />
+           <img src="./assets/category-poster.webp" alt="poster-icon" loading="lazy" id="category-poster" />
             <span>Categories with Posters</span>
           </div>
           <div class="view-option ${currentView === 'category' ? 'active' : ''}" data-view="category" id="view-opt-category">
-           <img src="./assets/category-all.png" alt="poster-icon" loading="lazy" id="category-all" />
+           <img src="./assets/category-all.webp" alt="poster-icon" loading="lazy" id="category-all" />
 
             <span>View All Categories</span>
           </div>
