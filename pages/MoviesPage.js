@@ -660,6 +660,7 @@ function createMoviesHeader() {
   return `
     <div class="movies-page-header-top">
       <div class="view-mode-selector" id="movie-view-mode-btn" data-category="header-top" data-index="0">
+      <i class="fa-solid fa-filter"></i>
         <span>Select Categories View</span>
       </div>
     </div>

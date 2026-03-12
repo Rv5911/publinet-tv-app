@@ -224,11 +224,10 @@
 }
 
 .sort-options {
-  margin-bottom: 15px;
   background-color: rgba(22, 21, 21, 1);
   border-radius: 10px;
-  border: 2px solid var(--dark-gold);
-  padding: 10px 20px;
+  border: 0px solid var(--dark-gold);
+  padding: 0 20px;
   transition: all 0.3s ease;
   overflow: hidden;
   max-height: 0;
@@ -237,9 +236,12 @@
 }
 
 .sort-options:not(.hidden) {
+  margin-bottom: 15px;
   max-height: 500px;
   opacity: 1;
   visibility: visible;
+  border: 2px solid var(--dark-gold);
+  padding: 10px 20px;
 }
 
 .sort-option {

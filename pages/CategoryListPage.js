@@ -10,8 +10,7 @@ let categoryListNavigationState = {
   type: "movies", // "movies" or "series"
   categories: [],
   filteredCategories: [],
-  focusSection: "grid", // "grid" or "header"
-  headerIndex: 0, // 0: search, 1: back
+  focusSection: "grid", // "grid", "search", or "back"
 };
 
 let categoryListDebounce = {
@@ -62,8 +61,6 @@ function CategoryListPage() {
     categoryListNavigationState.focusSection = "grid";
   }
 
-  categoryListNavigationState.headerIndex = 0;
-
   const title = type === "movies" ? "MOVIES CATEGORIES" : "SERIES CATEGORIES";
 
   let html = `
@@ -76,17 +73,13 @@ function CategoryListPage() {
           <h1>${title}</h1>
         </div>
         <div class="header-right">
-          <div class="search-container-cat" id="cat-search-btn">
-            <i class="fas fa-search"></i>
-          </div>
           <div class="back-container-cat" id="cat-back-btn">
-            <i class="fas fa-undo"></i>
-            <span>Go back</span>
+            <i class="fa-solid fa-arrow-left"></i>
           </div>
         </div>
       </div>
       
-      <div class="category-list-search-bar" id="category-search-input-wrapper" style="display: none;">
+      <div class="category-list-search-bar" id="category-search-input-wrapper">
         <div class="search-input-inner">
             <i class="fas fa-search"></i>
             <input type="text" id="category-search-input" placeholder="Type to filter categories..." />
@@ -153,16 +146,40 @@ CategoryListPage.init = function (container) {
     });
 
     searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === "ArrowDown") {
+      if (e.key === "Enter") {
         // Finish search and return to results
         searchInput.blur();
         categoryListNavigationState.focusSection = "grid";
         updateCategoryListFocus();
+        e.preventDefault();
+        e.stopPropagation();
       }
-      if (e.key === "XF86Back" || e.key === "Back" || e.key === "Escape") {
+      if (e.key === "ArrowDown") {
+        if (categoryListNavigationState.totalItems > 0) {
+          searchInput.blur();
+          categoryListNavigationState.focusSection = "grid";
+          updateCategoryListFocus();
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (e.key === "ArrowUp") {
         searchInput.blur();
-        categoryListNavigationState.focusSection = "header";
+        categoryListNavigationState.focusSection = "back";
         updateCategoryListFocus();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (
+        e.key === "XF86Back" ||
+        e.key === "Back" ||
+        e.key === "Escape" ||
+        e.key === "BrowserBack" ||
+        e.key === "10009"
+      ) {
+        goBackFromCategoryList();
+        e.preventDefault();
+        e.stopPropagation();
       }
     });
   }
@@ -176,26 +193,16 @@ CategoryListPage.cleanup = function () {
 
 function handleCategoryListKeyNavigation(e) {
   if (localStorage.getItem("navigationFocus") !== "categoryListPage") return;
-  e.stopImmediatePropagation();
 
-  // If search input is focused, let it handle keys
+  // If search input is currently focused (typing mode), skip global nav
   if (
     document.activeElement &&
     document.activeElement.id === "category-search-input"
   ) {
-    if (
-      e.key === "Escape" ||
-      e.key === "Back" ||
-      e.key === "XF86Back" ||
-      (e.key === "Backspace" && document.activeElement.value === "")
-    ) {
-      document.activeElement.blur();
-      categoryListNavigationState.focusSection = "header";
-      updateCategoryListFocus();
-      e.preventDefault();
-    }
     return;
   }
+
+  e.stopImmediatePropagation();
 
   const now = Date.now();
   if (
@@ -211,28 +218,50 @@ function handleCategoryListKeyNavigation(e) {
   const total = state.totalItems;
   const itemsPerRow = state.itemsPerRow;
 
-  if (state.focusSection === "header") {
+  if (state.focusSection === "back") {
     switch (e.key) {
-      case "ArrowRight":
-        if (state.headerIndex < 1) state.headerIndex++;
-        break;
-      case "ArrowLeft":
-        if (state.headerIndex > 0) state.headerIndex--;
-        break;
       case "ArrowDown":
-        state.focusSection = "grid";
-        state.currentIndex = 0;
+        state.focusSection = "search";
         break;
       case "Enter":
-        if (state.headerIndex === 0) {
-          toggleCategorySearch();
-        } else {
-          goBackFromCategoryList();
-        }
+        goBackFromCategoryList();
         break;
       case "Escape":
       case "Backspace":
       case "XF86Back":
+      case "Back":
+      case "BrowserBack":
+      case "SoftLeft":
+      case "10009":
+        goBackFromCategoryList();
+        break;
+    }
+    updateCategoryListFocus();
+    return;
+  }
+
+  if (state.focusSection === "search") {
+    switch (e.key) {
+      case "ArrowUp":
+        state.focusSection = "back";
+        break;
+      case "ArrowDown":
+        if (state.totalItems > 0) {
+          state.focusSection = "grid";
+          state.currentIndex = 0;
+        }
+        break;
+      case "Enter":
+        const input = document.getElementById("category-search-input");
+        if (input) input.focus();
+        break;
+      case "Escape":
+      case "Backspace":
+      case "XF86Back":
+      case "Back":
+      case "BrowserBack":
+      case "SoftLeft":
+      case "10009":
         goBackFromCategoryList();
         break;
     }
@@ -261,9 +290,8 @@ function handleCategoryListKeyNavigation(e) {
       if (state.currentIndex - itemsPerRow >= 0) {
         state.currentIndex -= itemsPerRow;
       } else {
-        // Move to Header
-        state.focusSection = "header";
-        state.headerIndex = 0;
+        // Move to Search Bar
+        state.focusSection = "search";
       }
       break;
     case "Enter":
@@ -272,7 +300,16 @@ function handleCategoryListKeyNavigation(e) {
     case "Escape":
     case "Backspace":
     case "XF86Back":
-      goBackFromCategoryList();
+    case "Back":
+    case "BrowserBack":
+    case "SoftLeft":
+    case "10009":
+      if (state.currentIndex === 0) {
+        goBackFromCategoryList();
+      } else {
+        state.currentIndex = 0;
+        updateCategoryListFocus();
+      }
       break;
   }
 
@@ -288,23 +325,25 @@ function updateCategoryListFocus() {
   const items = grid.querySelectorAll(".category-item");
   items.forEach((item) => item.classList.remove("focused"));
 
-  const searchBtn = document.getElementById("cat-search-btn");
   const backBtn = document.getElementById("cat-back-btn");
-  if (searchBtn) searchBtn.classList.remove("focused");
-  if (backBtn) backBtn.classList.remove("focused");
+  const searchWrapper = document.getElementById(
+    "category-search-input-wrapper",
+  );
 
-  if (state.focusSection === "header") {
-    if (state.headerIndex === 0) {
-      if (searchBtn) searchBtn.classList.add("focused");
-    } else {
-      if (backBtn) backBtn.classList.add("focused");
-    }
+  if (backBtn) backBtn.classList.remove("focused");
+  if (searchWrapper) searchWrapper.classList.remove("focused");
+
+  if (state.focusSection === "back") {
+    if (backBtn) backBtn.classList.add("focused");
+  } else if (state.focusSection === "search") {
+    if (searchWrapper) searchWrapper.classList.add("focused");
   } else {
     const currentItem = items[state.currentIndex];
     if (currentItem) {
       currentItem.classList.add("focused");
       currentItem.scrollIntoView({
-        block: "center"
+        block: "center",
+        inline: "nearest",
       });
     }
   }
@@ -352,21 +391,6 @@ function openCategoryViewModeDialog() {
     },
     "category",
   );
-}
-
-function toggleCategorySearch() {
-  const searchWrapper = document.getElementById(
-    "category-search-input-wrapper",
-  );
-  const searchInput = document.getElementById("category-search-input");
-
-  if (searchWrapper.style.display === "none") {
-    searchWrapper.style.display = "flex";
-    searchInput.focus();
-  } else {
-    // If already open, just focus it
-    searchInput.focus();
-  }
 }
 
 function goBackFromCategoryList() {

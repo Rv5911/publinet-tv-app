@@ -15,6 +15,7 @@
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 
     padding: 40px;
+
     border-radius: 20px;
     text-align: center;
     border: 1px solid white;
@@ -34,7 +35,6 @@
 .view-option {
     background: rgba(255, 255, 255, 0.05);
     padding: 30px;
-
     border-radius: 15px;
     display: flex;
     flex-direction: column;
@@ -71,12 +71,38 @@
 }
 
 
-#category-poster {
+
+
+.dialog-img{
     height: 300px;
     object-fit: contain;
 }
 
-#category-all {
-    height: 300px;
-    object-fit: contain;
+.img-wrapper{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+
+.img-loader{
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  zoom: 1.5;
+  border: 3px solid white;
+  border-top: 3px solid var(--gold);
+  border-radius: 50%;
+  animation: dialog-spin 1s linear infinite;
+}
+
+
+@keyframes dialog-spin{
+  0%{
+    transform: rotate(0deg);
+  }
+  100%{
+    transform: rotate(360deg);
+  }
 }

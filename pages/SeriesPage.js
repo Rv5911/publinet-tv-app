@@ -652,6 +652,7 @@ function createSeriesHeader() {
   return `
     <div class="series-page-header-top">
       <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0">
+            <i class="fa-solid fa-filter"></i>
         <span>Select Categories View</span>
       </div>
     </div>

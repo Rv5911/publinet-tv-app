@@ -25,7 +25,7 @@ function Navbar() {
       </div>
     </div>
 
-    <div id="sidebar" class="sidebar option-remove">
+    <div id="sidebar" class="sidebar hidden">
       <div class="sidebar-content">
         <ul>
           <li class="sidebar-link" tabindex="0"><img src="/assets/sidebar-settings.png" alt="Logo" class="sidebar-link-logo" />Settings</li>
@@ -40,7 +40,7 @@ function Navbar() {
             </span>
             <span class="arrow-icon"><img src="/assets/down-arrow.png" alt="Logo" /></span>
           </li>
-          <div id="sort-options" class="sort-options option-remove">
+          <div id="sort-options" class="sort-options hidden">
             <ul>
               <li class="sort-option" tabindex="0">
                 <label class="checkbox-container">
@@ -104,11 +104,13 @@ function buildDynamicSidebarOptions() {
 
     // Handle Sort Option Visibility
     const sortItem = sidebar.querySelector(".sidebar-sort");
+    const sortOptionsDiv = document.getElementById("sort-options");
     if (sortItem) {
       const SORT_ENABLED_PAGES = ["moviesPage", "seriesPage", "liveTvPage"];
       if (SORT_ENABLED_PAGES.includes(currentPage)) {
         sortItem.classList.remove("option-remove");
         sortItem.style.display = ""; // Revert to CSS default
+        if (sortOptionsDiv) sortOptionsDiv.classList.remove("option-remove");
 
         // Hide Top Rated for Live TV
         const topRatedOption = sidebar.querySelector(
@@ -129,6 +131,7 @@ function buildDynamicSidebarOptions() {
       } else {
         sortItem.classList.add("option-remove");
         sortItem.style.display = "none";
+        if (sortOptionsDiv) sortOptionsDiv.classList.add("option-remove");
       }
     }
     // Refactored to support multiple dynamic options
@@ -234,7 +237,7 @@ function buildDynamicSidebarOptions() {
       li.className = "sidebar-link dynamic-sidebar-option";
       li.setAttribute("tabindex", "0");
       li.dataset.action = opt.action;
-      li.innerHTML = `<i class="fa ${opt.icon}" style="margin-right: 10px;" aria-hidden="true"></i> <p class="sidebar-link-label" style="margin-left: 20px;">${opt.label}</p>`;
+      li.innerHTML = `<i class="fa ${opt.icon}" style="margin-right: 20px; font-size: 32px; width: 35px; text-align: center;" aria-hidden="true"></i> <span class="sidebar-link-label">${opt.label}</span>`;
 
       if (logoutItem) list.insertBefore(li, logoutItem);
       else list.appendChild(li);
@@ -667,7 +670,9 @@ function initNavbar() {
   // Initialize search query in window object
   window.searchQuery = window.searchQuery || "";
 
-  setSortOption("default");
+  // Initialize sort from storage without firing event
+  const savedSort = localStorage.getItem("sortvalue") || "default";
+  setSortOption(savedSort, true);
 
   updateNavbarActive(localStorage.getItem("currentPage"));
   buildDynamicSidebarOptions();
@@ -753,15 +758,6 @@ function initNavbar() {
     checkbox.addEventListener("change", (e) => {
       if (e.target.checked) {
         setSortOption(e.target.dataset.sort);
-
-        // Dispatch custom event for sort change
-        const sortEvent = new CustomEvent("sortChanged", {
-          detail: {
-            sortType: e.target.dataset.sort,
-            page: localStorage.getItem("currentPage"),
-          },
-        });
-        document.dispatchEvent(sortEvent);
       }
     });
   });
@@ -796,7 +792,12 @@ function initNavbar() {
     ];
 
     if (backKeys.includes(key)) {
-      if (sidebar && !sidebar.classList.contains("option-remove")) {
+      if (isSortOptionsOpen) {
+        e.preventDefault();
+        closeSortMenu();
+        return;
+      }
+      if (sidebar && !sidebar.classList.contains("hidden")) {
         e.preventDefault();
         closeSidebar();
         return;
@@ -869,7 +870,7 @@ function initNavbar() {
       }
     }
 
-    if (sidebar && !sidebar.classList.contains("option-remove")) {
+    if (sidebar && !sidebar.classList.contains("hidden")) {
       if (
         [
           "ArrowUp",
@@ -1078,7 +1079,7 @@ function initNavbar() {
       case "Escape":
       case "Backspace":
       case "XF86Back":
-        if (sidebar && !sidebar.classList.contains("option-remove")) {
+        if (sidebar && !sidebar.classList.contains("hidden")) {
           closeSidebar();
         } else {
           // Handle back navigation from Navbar for Detail Pages
@@ -1180,11 +1181,10 @@ function initNavbar() {
 
   function openSidebar() {
     buildDynamicSidebarOptions();
-    sidebar.classList.remove("option-remove");
-    // Manually set display block
-    sidebar.style.display = "block";
+    sidebar.classList.remove("hidden");
+    // Manually set display block removed to allow animation
     localStorage.setItem("navigationFocus", "sidebar");
-    isSortOptionsOpen = false;
+    closeSortMenu();
     const items = Array.from(
       sidebar.querySelectorAll("li.sidebar-link"),
     ).filter(
@@ -1207,11 +1207,10 @@ function initNavbar() {
   };
 
   function closeSidebar() {
-    sidebar.classList.add("option-remove");
-    // Manually set display none
-    sidebar.style.display = "none";
+    sidebar.classList.add("hidden");
+    // Manually set display none removed to allow animation
     localStorage.setItem("navigationFocus", "navbar");
-    isSortOptionsOpen = false;
+    closeSortMenu();
 
     setTimeout(() => {
       if (profileIcon) {
@@ -1250,7 +1249,7 @@ function initNavbar() {
   }
 
   function toggleSortMenu() {
-    const expanded = !sortOptions.classList.contains("option-remove");
+    const expanded = !sortOptions.classList.contains("hidden");
     if (expanded) {
       closeSortMenu();
     } else {
@@ -1259,22 +1258,30 @@ function initNavbar() {
   }
 
   function openSortMenu() {
-    sortOptions.classList.remove("option-remove");
-    sortOptions.style.display = "block"; // Manually set display block
+    sortOptions.classList.remove("hidden");
+    // Manually set display block removed to allow animation
     arrowIcon.classList.add("rotated");
     isSortOptionsOpen = true;
 
     const sortOptionItems = Array.from(
       sortOptions.querySelectorAll(".sort-option"),
     );
-    if (sortOptionItems.length > 0) {
+    const currentSort = localStorage.getItem("sortvalue") || "default";
+    const currentIndex = sortOptionItems.findIndex((item) => {
+      const cb = item.querySelector(".sort-checkbox");
+      return cb && cb.dataset.sort === currentSort;
+    });
+
+    if (currentIndex !== -1) {
+      updateSortOptionsSelection(sortOptionItems, currentIndex);
+    } else if (sortOptionItems.length > 0) {
       updateSortOptionsSelection(sortOptionItems, 0);
     }
   }
 
   function closeSortMenu() {
-    sortOptions.classList.add("option-remove");
-    sortOptions.style.display = "none"; // Manually set display none
+    sortOptions.classList.add("hidden");
+    // Manually set display none removed to allow animation
     arrowIcon.classList.remove("rotated");
     isSortOptionsOpen = false;
 
@@ -1294,34 +1301,34 @@ function initNavbar() {
     }
   }
 
-  function setSortOption(sortType) {
-    sortCheckboxes.forEach((checkbox) => {
-      checkbox.checked = false;
-    });
-
-    // Check the selected one
-    const selectedCheckbox = document.querySelector(
-      `.sort-checkbox[data-sort="${sortType}"]`,
-    );
-    if (selectedCheckbox) {
-      selectedCheckbox.checked = true;
+  function setSortOption(sortType, skipEvent = false) {
+    const currentSort = localStorage.getItem("sortvalue");
+    if (!skipEvent && currentSort === sortType) {
+       // Only sort if different or forced
+       return; 
     }
+
+    sortCheckboxes.forEach((checkbox) => {
+      checkbox.checked = checkbox.dataset.sort === sortType;
+    });
 
     localStorage.setItem("sortvalue", sortType);
 
-    // Dispatch sort changed event
-    const sortEvent = new CustomEvent("sortChanged", {
-      detail: {
-        sortType: sortType,
-        page: localStorage.getItem("currentPage"),
-      },
-    });
-    document.dispatchEvent(sortEvent);
+    if (!skipEvent) {
+      // Dispatch sort changed event
+      const sortEvent = new CustomEvent("sortChanged", {
+        detail: {
+          sortType: sortType,
+          page: localStorage.getItem("currentPage"),
+        },
+      });
+      document.dispatchEvent(sortEvent);
+      console.log(`Sorting by: ${sortType}`);
+    }
 
-    console.log(`Sorting by: ${sortType}`);
 
     // FIX: Restore navigationFocus to sidebar because page re-render might have stolen it
-    if (sidebar && !sidebar.classList.contains("option-remove")) {
+    if (sidebar && !sidebar.classList.contains("hidden")) {
       localStorage.setItem("navigationFocus", "sidebar");
     }
   }
