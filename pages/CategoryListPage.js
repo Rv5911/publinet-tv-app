@@ -170,14 +170,24 @@ CategoryListPage.init = function (container) {
         e.preventDefault();
         e.stopPropagation();
       }
-      if (
-        e.key === "XF86Back" ||
-        e.key === "Back" ||
-        e.key === "Escape" ||
-        e.key === "BrowserBack" ||
-        e.key === "10009"
-      ) {
-        goBackFromCategoryList();
+      const backKeys = [
+        "XF86Back",
+        "Back",
+        "Escape",
+        "BrowserBack",
+        "Backspace",
+        "10009",
+      ];
+      if (backKeys.includes(e.key)) {
+        if (searchInput.value.length > 0) {
+          // Clear characters one by one
+          searchInput.value = searchInput.value.slice(0, -1);
+          // Trigger input event to update filtered list
+          searchInput.dispatchEvent(new Event("input"));
+        } else {
+          // If empty, go back
+          goBackFromCategoryList();
+        }
         e.preventDefault();
         e.stopPropagation();
       }
