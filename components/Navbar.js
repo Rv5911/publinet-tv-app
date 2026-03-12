@@ -104,13 +104,11 @@ function buildDynamicSidebarOptions() {
 
     // Handle Sort Option Visibility
     const sortItem = sidebar.querySelector(".sidebar-sort");
-    const sortOptionsDiv = document.getElementById("sort-options");
     if (sortItem) {
       const SORT_ENABLED_PAGES = ["moviesPage", "seriesPage", "liveTvPage"];
       if (SORT_ENABLED_PAGES.includes(currentPage)) {
         sortItem.classList.remove("option-remove");
         sortItem.style.display = ""; // Revert to CSS default
-        if (sortOptionsDiv) sortOptionsDiv.classList.remove("option-remove");
 
         // Hide Top Rated for Live TV
         const topRatedOption = sidebar.querySelector(
@@ -131,7 +129,6 @@ function buildDynamicSidebarOptions() {
       } else {
         sortItem.classList.add("option-remove");
         sortItem.style.display = "none";
-        if (sortOptionsDiv) sortOptionsDiv.classList.add("option-remove");
       }
     }
     // Refactored to support multiple dynamic options
@@ -237,7 +234,7 @@ function buildDynamicSidebarOptions() {
       li.className = "sidebar-link dynamic-sidebar-option";
       li.setAttribute("tabindex", "0");
       li.dataset.action = opt.action;
-      li.innerHTML = `<i class="fa ${opt.icon}" style="margin-right: 20px; font-size: 32px; width: 35px; text-align: center;" aria-hidden="true"></i> <span class="sidebar-link-label">${opt.label}</span>`;
+      li.innerHTML = `<i class="fa ${opt.icon}" style="margin-right: 10px;" aria-hidden="true"></i> <p class="sidebar-link-label" style="margin-left: 20px;">${opt.label}</p>`;
 
       if (logoutItem) list.insertBefore(li, logoutItem);
       else list.appendChild(li);
@@ -670,9 +667,7 @@ function initNavbar() {
   // Initialize search query in window object
   window.searchQuery = window.searchQuery || "";
 
-  // Initialize sort from storage without firing event
-  const savedSort = localStorage.getItem("sortvalue") || "default";
-  setSortOption(savedSort, true);
+  setSortOption("default");
 
   updateNavbarActive(localStorage.getItem("currentPage"));
   buildDynamicSidebarOptions();
@@ -725,10 +720,14 @@ function initNavbar() {
 
       // Check if we are already on the target page to avoid redundant loading
       const currentPage = localStorage.getItem("currentPage");
-      if (currentPage === page && (page === "moviesPage" || page === "seriesPage" || page === "categoryListPage")) {
-         return; 
+      if (
+        currentPage === page &&
+        (page === "moviesPage" ||
+          page === "seriesPage" ||
+          page === "categoryListPage")
+      ) {
+        return;
       }
-
 
       disposeLiveTvPlayer();
       resetParentalControlState();
@@ -758,6 +757,15 @@ function initNavbar() {
     checkbox.addEventListener("change", (e) => {
       if (e.target.checked) {
         setSortOption(e.target.dataset.sort);
+
+        // Dispatch custom event for sort change
+        const sortEvent = new CustomEvent("sortChanged", {
+          detail: {
+            sortType: e.target.dataset.sort,
+            page: localStorage.getItem("currentPage"),
+          },
+        });
+        document.dispatchEvent(sortEvent);
       }
     });
   });
@@ -792,11 +800,6 @@ function initNavbar() {
     ];
 
     if (backKeys.includes(key)) {
-      if (isSortOptionsOpen) {
-        e.preventDefault();
-        closeSortMenu();
-        return;
-      }
       if (sidebar && !sidebar.classList.contains("hidden")) {
         e.preventDefault();
         closeSidebar();
@@ -1013,12 +1016,26 @@ function initNavbar() {
             return;
           }
 
-          // MoviesPage: Focus View Mode button from navbar
+          // MoviesPage: Focus first category from navbar
           if (currentPage === "moviesPage" && window.moviesNavigationState) {
             setTimeout(function () {
               localStorage.setItem("navigationFocus", "moviesPage");
-              window.moviesNavigationState.currentCategoryIndex = "header-top";
-              window.moviesNavigationState.currentCardIndex = 0;
+              let nextCat = 0;
+              if (
+                typeof window.findNextMoviesCategoryWithMovies === "function"
+              ) {
+                let foundCat = window.findNextMoviesCategoryWithMovies(0, 1);
+                if (foundCat !== -1) nextCat = foundCat;
+              }
+              window.moviesNavigationState.currentCategoryIndex = nextCat;
+              if (
+                typeof window.moviesCategoryHasSeeMore === "function" &&
+                window.moviesCategoryHasSeeMore(nextCat)
+              ) {
+                window.moviesNavigationState.currentCardIndex = "header";
+              } else {
+                window.moviesNavigationState.currentCardIndex = 0;
+              }
               if (typeof window.updateMoviesFocus === "function") {
                 window.updateMoviesFocus();
               }
@@ -1029,12 +1046,26 @@ function initNavbar() {
             return;
           }
 
-          // SeriesPage: Focus View Mode button from navbar
+          // SeriesPage: Focus first category from navbar
           if (currentPage === "seriesPage" && window.seriesNavigationState) {
             setTimeout(function () {
               localStorage.setItem("navigationFocus", "seriesPage");
-              window.seriesNavigationState.currentCategoryIndex = "header-top";
-              window.seriesNavigationState.currentCardIndex = 0;
+              let nextCat = 0;
+              if (
+                typeof window.findNextSeriesCategoryWithSeries === "function"
+              ) {
+                let foundCat = window.findNextSeriesCategoryWithSeries(0, 1);
+                if (foundCat !== -1) nextCat = foundCat;
+              }
+              window.seriesNavigationState.currentCategoryIndex = nextCat;
+              if (
+                typeof window.seriesCategoryHasSeeMore === "function" &&
+                window.seriesCategoryHasSeeMore(nextCat)
+              ) {
+                window.seriesNavigationState.currentCardIndex = "header";
+              } else {
+                window.seriesNavigationState.currentCardIndex = 0;
+              }
               if (typeof window.updateSeriesFocus === "function") {
                 window.updateSeriesFocus();
               }
@@ -1060,10 +1091,16 @@ function initNavbar() {
           }
           let page = navItems[currentIndex - 1].getAttribute("data-page");
 
-          if (page === "moviesPage" && localStorage.getItem("movieViewMode") === "category") {
+          if (
+            page === "moviesPage" &&
+            localStorage.getItem("movieViewMode") === "category"
+          ) {
             localStorage.setItem("categoryListType", "movies");
             page = "categoryListPage";
-          } else if (page === "seriesPage" && localStorage.getItem("seriesViewMode") === "category") {
+          } else if (
+            page === "seriesPage" &&
+            localStorage.getItem("seriesViewMode") === "category"
+          ) {
             localStorage.setItem("categoryListType", "series");
             page = "categoryListPage";
           }
@@ -1073,7 +1110,9 @@ function initNavbar() {
           disposeLiveTvPlayer();
           resetParentalControlState();
           Router.showPage(page);
-          updateNavbarActive(navItems[currentIndex - 1].getAttribute("data-page"));
+          updateNavbarActive(
+            navItems[currentIndex - 1].getAttribute("data-page"),
+          );
         }
         break;
       case "Escape":
@@ -1182,15 +1221,15 @@ function initNavbar() {
   function openSidebar() {
     buildDynamicSidebarOptions();
     sidebar.classList.remove("hidden");
-    // Manually set display block removed to allow animation
     localStorage.setItem("navigationFocus", "sidebar");
-    closeSortMenu();
+    isSortOptionsOpen = false;
     const items = Array.from(
       sidebar.querySelectorAll("li.sidebar-link"),
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none",
+        item.style.display !== "none" &&
+        !item.classList.contains("hidden"),
     );
     updateSidebarSelection(items, 0);
     const firstItem = items[0];
@@ -1207,10 +1246,10 @@ function initNavbar() {
   };
 
   function closeSidebar() {
-    sidebar.classList.add("hidden");
-    // Manually set display none removed to allow animation
-    localStorage.setItem("navigationFocus", "navbar");
     closeSortMenu();
+    sidebar.classList.add("hidden");
+    localStorage.setItem("navigationFocus", "navbar");
+    isSortOptionsOpen = false;
 
     setTimeout(() => {
       if (profileIcon) {
@@ -1259,29 +1298,19 @@ function initNavbar() {
 
   function openSortMenu() {
     sortOptions.classList.remove("hidden");
-    // Manually set display block removed to allow animation
     arrowIcon.classList.add("rotated");
     isSortOptionsOpen = true;
 
     const sortOptionItems = Array.from(
       sortOptions.querySelectorAll(".sort-option"),
     );
-    const currentSort = localStorage.getItem("sortvalue") || "default";
-    const currentIndex = sortOptionItems.findIndex((item) => {
-      const cb = item.querySelector(".sort-checkbox");
-      return cb && cb.dataset.sort === currentSort;
-    });
-
-    if (currentIndex !== -1) {
-      updateSortOptionsSelection(sortOptionItems, currentIndex);
-    } else if (sortOptionItems.length > 0) {
+    if (sortOptionItems.length > 0) {
       updateSortOptionsSelection(sortOptionItems, 0);
     }
   }
 
   function closeSortMenu() {
     sortOptions.classList.add("hidden");
-    // Manually set display none removed to allow animation
     arrowIcon.classList.remove("rotated");
     isSortOptionsOpen = false;
 
@@ -1294,38 +1323,39 @@ function initNavbar() {
       ).filter(
         (item) =>
           !item.classList.contains("option-remove") &&
-          item.style.display !== "none",
+          item.style.display !== "none" &&
+          !item.classList.contains("hidden"),
       );
       const sortIndex = sidebarItems.indexOf(sortMenuItem);
       updateSidebarSelection(sidebarItems, sortIndex);
     }
   }
 
-  function setSortOption(sortType, skipEvent = false) {
-    const currentSort = localStorage.getItem("sortvalue");
-    if (!skipEvent && currentSort === sortType) {
-       // Only sort if different or forced
-       return; 
-    }
-
+  function setSortOption(sortType) {
     sortCheckboxes.forEach((checkbox) => {
-      checkbox.checked = checkbox.dataset.sort === sortType;
+      checkbox.checked = false;
     });
+
+    // Check the selected one
+    const selectedCheckbox = document.querySelector(
+      `.sort-checkbox[data-sort="${sortType}"]`,
+    );
+    if (selectedCheckbox) {
+      selectedCheckbox.checked = true;
+    }
 
     localStorage.setItem("sortvalue", sortType);
 
-    if (!skipEvent) {
-      // Dispatch sort changed event
-      const sortEvent = new CustomEvent("sortChanged", {
-        detail: {
-          sortType: sortType,
-          page: localStorage.getItem("currentPage"),
-        },
-      });
-      document.dispatchEvent(sortEvent);
-      console.log(`Sorting by: ${sortType}`);
-    }
+    // Dispatch sort changed event
+    const sortEvent = new CustomEvent("sortChanged", {
+      detail: {
+        sortType: sortType,
+        page: localStorage.getItem("currentPage"),
+      },
+    });
+    document.dispatchEvent(sortEvent);
 
+    console.log(`Sorting by: ${sortType}`);
 
     // FIX: Restore navigationFocus to sidebar because page re-render might have stolen it
     if (sidebar && !sidebar.classList.contains("hidden")) {
@@ -1341,7 +1371,8 @@ function initNavbar() {
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none",
+        item.style.display !== "none" &&
+        !item.classList.contains("hidden"),
     );
     if (!items.length) return;
 

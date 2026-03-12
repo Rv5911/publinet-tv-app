@@ -27,7 +27,7 @@ window.onload = function () {
     if (
       sidebar &&
       sidebar.classList &&
-      !sidebar.classList.contains("option-remove") &&
+      !sidebar.classList.contains("hidden") &&
       [
         "ArrowUp",
         "ArrowDown",
@@ -124,7 +124,7 @@ function renderNavbarVisibility() {
     "preLoginPage",
     "videoJsPlayer",
     "categoryListPage",
-    "categoryViewPage"
+    "categoryViewPage",
   ];
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;

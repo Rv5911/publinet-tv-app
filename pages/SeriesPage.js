@@ -410,11 +410,36 @@ function loadSeriesChunk(category, categoryIndex) {
   let cardsHTML = "";
 
   for (let i = loadedCount; i < endIndex; i++) {
-    let seriesData = formatSeriesData(category.series[i]);
+    let seriesStream = category.series[i];
+    if (!seriesStream) continue; // Skip if series stream is undefined
+
+    if (seriesStream.isViewAllBtn) {
+      cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-series-id="view-all-cats">
+                        <h3>View All Categories <i class="fas fa-chevron-right"></i></h3>
+                     </div>`;
+      continue;
+    }
+
+    let seriesData = formatSeriesData(seriesStream);
     if (!seriesData) continue;
 
-    let size = category.id === "popular" ? "large" : "normal";
-    cardsHTML += createSeriesCard(seriesData, size, categoryIndex, i);
+    let size =
+      category.id === "popular" || category.id === "series-recently-added-top"
+        ? "large"
+        : "normal";
+    let extraClass =
+      category.id === "series-recently-added-top"
+        ? "series-recently-added-card"
+        : "";
+
+    let originalCardHTML = createSeriesCard(seriesData, size, categoryIndex, i);
+    if (extraClass) {
+      originalCardHTML = originalCardHTML.replace(
+        'class="series-card series-card-large"',
+        `class="series-card series-card-large ${extraClass}"`,
+      );
+    }
+    cardsHTML += originalCardHTML;
   }
 
   setSeriesLoadedChunkCount(categoryIndex, endIndex);
@@ -511,12 +536,15 @@ function loadMoreSeriesCategories(targetIndex = -1) {
 
   seriesChunkLoadingState.isLoading = true;
 
-  let chunkSize = targetIndex !== -1 ? Math.max(targetIndex - currentLoaded + 1, seriesChunkLoadingState.categoryChunkSize) : seriesChunkLoadingState.categoryChunkSize;
+  let chunkSize =
+    targetIndex !== -1
+      ? Math.max(
+          targetIndex - currentLoaded + 1,
+          seriesChunkLoadingState.categoryChunkSize,
+        )
+      : seriesChunkLoadingState.categoryChunkSize;
 
-  let nextChunk = Math.min(
-    currentLoaded + chunkSize,
-    allCategories.length,
-  );
+  let nextChunk = Math.min(currentLoaded + chunkSize, allCategories.length);
 
   let safetyTimeout = setTimeout(function () {
     if (seriesChunkLoadingState.isLoading) {
@@ -648,10 +676,10 @@ function createSeriesCategorySection(category, categoryIndex) {
 function createSeriesHeader() {
   const currentView = "poster"; // Default to poster view
   const viewText = "VOD with Posters";
-  
+
   return `
-    <div class="series-page-header-top">
-      <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0">
+    <div class="series-page-header-top" style="display: none;">
+      <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0" style="display: none;">
             <i class="fa-solid fa-filter"></i>
         <span>Select Categories View</span>
       </div>
@@ -736,11 +764,10 @@ function handleSeriesSimpleEnter() {
       () => {
         localStorage.setItem("navigationFocus", "seriesPage");
       },
-      "poster" // Default view is now always poster
+      "poster", // Default view is now always poster
     );
     return;
   }
-
 
   let categoryIndex = seriesNavigationState.currentCategoryIndex;
   let cardIndex = seriesNavigationState.currentCardIndex;
@@ -763,6 +790,13 @@ function handleSeriesSimpleEnter() {
   );
 
   if (currentCard) {
+    if (currentCard.classList.contains("series-view-all-cats-btn")) {
+      localStorage.setItem("categoryListType", "series");
+      localStorage.setItem("currentPage", "categoryListPage");
+      localStorage.setItem("navigationFocus", "categoryListPage");
+      Router.showPage("categoryListPage");
+      return;
+    }
     let seriesId = currentCard.getAttribute("data-series-id");
 
     const isAdult = currentCard.getAttribute("data-is-adult") === "true";
@@ -1398,8 +1432,15 @@ function moveSeriesUp() {
       seriesNavigationState.currentCategoryIndex = nextCategory;
       seriesNavigationState.currentCardIndex = 0;
     } else {
-      seriesNavigationState.currentCategoryIndex = "header-top";
-      seriesNavigationState.currentCardIndex = 0;
+      const prevFocused = document.querySelector(
+        ".series-page-container .focused",
+      );
+      if (prevFocused) prevFocused.classList.remove("focused");
+      localStorage.setItem("navigationFocus", "navbar");
+      if (typeof window.setNavbarFocus === "function") {
+        window.setNavbarFocus("seriesPage");
+      }
+      return;
     }
   } else {
     // From card to its category header if it exists
@@ -1415,8 +1456,15 @@ function moveSeriesUp() {
         seriesNavigationState.currentCategoryIndex = nextCategory;
         seriesNavigationState.currentCardIndex = 0;
       } else {
-        seriesNavigationState.currentCategoryIndex = "header-top";
-        seriesNavigationState.currentCardIndex = 0;
+        const prevFocused = document.querySelector(
+          ".series-page-container .focused",
+        );
+        if (prevFocused) prevFocused.classList.remove("focused");
+        localStorage.setItem("navigationFocus", "navbar");
+        if (typeof window.setNavbarFocus === "function") {
+          window.setNavbarFocus("seriesPage");
+        }
+        return;
       }
     }
   }
@@ -1470,7 +1518,10 @@ function updateSeriesFocus() {
   if (navRoot) {
     if (currentCategoryIndex === "header-top" || currentCategoryIndex === 0) {
       navRoot.style.display = "block";
-    } else if (typeof currentCategoryIndex === "number" && currentCategoryIndex >= 1) {
+    } else if (
+      typeof currentCategoryIndex === "number" &&
+      currentCategoryIndex >= 1
+    ) {
       navRoot.style.display = "none";
     }
   }
@@ -1478,15 +1529,15 @@ function updateSeriesFocus() {
   if (currentCategoryIndex === "header-top") {
     const btn = document.getElementById("series-view-mode-btn");
     if (btn) {
-        btn.classList.add("focused");
-        btn.scrollIntoView({ block: "center" });
+      btn.classList.add("focused");
+      btn.scrollIntoView({ block: "center" });
     }
     return;
   }
 
   if (currentCardIndex === "header") {
     const header = document.querySelector(
-      `.series-view-more[data-category="${currentCategoryIndex}"]`
+      `.series-view-more[data-category="${currentCategoryIndex}"]`,
     );
     if (header) {
       header.classList.add("focused");
@@ -1499,11 +1550,11 @@ function updateSeriesFocus() {
     }
   } else {
     const card = document.querySelector(
-      `.series-card[data-category="${currentCategoryIndex}"][data-index="${currentCardIndex}"]`
+      `.series-card[data-category="${currentCategoryIndex}"][data-index="${currentCardIndex}"]`,
     );
     if (card) {
       card.classList.add("focused");
-      card.scrollIntoView({ block: "center" });
+      card.scrollIntoView({ block: "center", inline: "center" });
 
       const marquee = card.querySelector(".series-title-marquee");
       if (marquee && marquee.scrollWidth > marquee.clientWidth) {
@@ -1516,7 +1567,7 @@ function updateSeriesFocus() {
         const nextCards = loadSeriesChunk(category, currentCategoryIndex);
         if (nextCards) {
           const list = document.querySelector(
-            `.series-card-list[data-category="${currentCategoryIndex}"]`
+            `.series-card-list[data-category="${currentCategoryIndex}"]`,
           );
           if (list) list.insertAdjacentHTML("beforeend", nextCards);
         }
@@ -1685,8 +1736,6 @@ function moveSeriesLeft() {
     seriesNavigationState.currentCardIndex;
 }
 
-
-
 function loadMoreSeriesForCategory(categoryIndex) {
   if (seriesChunkLoadingState.isLoading) return;
 
@@ -1806,7 +1855,6 @@ function removeAllSeriesFocus() {
   clearSeriesFocusFast("marquee-active");
   currentFocusedSeriesElement = null;
 }
-
 
 function activateSeriesMarquee(card) {
   if (!card) return;
@@ -2162,8 +2210,37 @@ function SeriesPage() {
     // Pass current sort option to getAPISeriesCategories
     let apiCategories = getAPISeriesCategories(currentSort);
 
-    // ALWAYS show these three categories at the top, in this specific order
-    let fixedTopCategories = [
+    let recentlyAddedToTop = window.allSeriesStreams
+      ? [...window.allSeriesStreams].sort(
+          (a, b) => parseInt(b.added || 0) - parseInt(a.added || 0),
+        )
+      : [];
+
+    recentlyAddedToTop = filterSeriesByQuery(recentlyAddedToTop).slice(0, 4);
+
+    if (!getSeriesSearchQuery()) {
+      recentlyAddedToTop.push({
+        isViewAllBtn: true,
+        series_id: "view-all-cats",
+        name: "View All Categories",
+      });
+    }
+
+    const isSearching = getSeriesSearchQuery();
+    let fixedTopCategories = [];
+
+    // Only show "Recently Added" cards when not searching
+    if (!isSearching) {
+      fixedTopCategories.push({
+        title: "",
+        series: recentlyAddedToTop,
+        id: "series-recently-added-top",
+        containerClass: "series-recently-added-top-container",
+      });
+    }
+
+    // Add other top categories
+    fixedTopCategories = fixedTopCategories.concat([
       {
         title: "My Fav",
         series: favouriteSeries,
@@ -2182,7 +2259,7 @@ function SeriesPage() {
         id: "recent",
         containerClass: "recently-watched-container",
       },
-    ];
+    ]);
 
     // Remove any fixed categories that have no series (except My Fav which can be empty)
     let initialCategories = fixedTopCategories.filter((category) => {
@@ -2264,9 +2341,14 @@ function SeriesPage() {
 
     html += "</div>";
 
-    let container = document.querySelector("#series-page-loader");
+    let container =
+      document.querySelector("#series-page-loader") ||
+      document.querySelector(".series-page-container");
     if (container) {
       container.outerHTML = html;
+    } else {
+      const pageEl = document.getElementById("series-page");
+      if (pageEl) pageEl.innerHTML = html;
     }
 
     restoreSeriesNavigationState();
