@@ -26,7 +26,7 @@ let seriesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 12,
+  horizontalChunkSize: 3,
   isLoading: false,
 };
 
@@ -413,12 +413,13 @@ function loadSeriesChunk(category, categoryIndex) {
     let seriesStream = category.series[i];
     if (!seriesStream) continue; // Skip if series stream is undefined
 
-    if (seriesStream.isViewAllBtn) {
-      cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-series-id="view-all-cats">
-                        <h3><i class="fa-solid fa-bars"></i>View All Series Categories</h3>
-                     </div>`;
-      continue;
-    }
+    // Skip isViewAllBtn items - the View All button is added separately below
+    // if (seriesStream.isViewAllBtn) {
+    //   cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-series-id="view-all-cats">
+    //                     <h3><i class="fa-solid fa-bars"></i>View All Series Categories</h3>
+    //                  </div>`;
+    //   continue;
+    // }
 
     let seriesData = formatSeriesData(seriesStream);
     if (!seriesData) continue;
@@ -440,6 +441,20 @@ function loadSeriesChunk(category, categoryIndex) {
       );
     }
     cardsHTML += originalCardHTML;
+  }
+
+  // Add View All button only for the first/top category (categoryIndex 0)
+  // Show menu icon by default, show full text on focus
+  if (categoryIndex === 0 && loadedCount === 0 && totalSeries > 3) {
+    cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-series-id="view-all-cats">
+                      <div class="view-all-content">
+                        <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
+                        <h3 class="view-all-text">View All Series Categories</h3>
+                      </div>
+                   </div>`;
+    // Set loaded count to total to prevent loading more cards
+    setSeriesLoadedChunkCount(categoryIndex, totalSeries);
+    return cardsHTML;
   }
 
   setSeriesLoadedChunkCount(categoryIndex, endIndex);
@@ -2216,7 +2231,7 @@ function SeriesPage() {
         )
       : [];
 
-    recentlyAddedToTop = filterSeriesByQuery(recentlyAddedToTop).slice(0, 4);
+    recentlyAddedToTop = filterSeriesByQuery(recentlyAddedToTop).slice(0, 3);
 
     if (!getSeriesSearchQuery()) {
       recentlyAddedToTop.push({

@@ -27,7 +27,7 @@ let moviesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 12,
+  horizontalChunkSize: 3,
   isLoading: false,
 };
 
@@ -422,12 +422,13 @@ function loadMoviesChunk(category, categoryIndex) {
     let movieStream = category.movies[i];
     if (!movieStream) continue; // Skip if movie stream is undefined
 
-    if (movieStream.isViewAllBtn) {
-      cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-stream-id="view-all-cats">
-                        <h3><i class="fa-solid fa-bars"></i> View All Movies Categories </h3>
-                     </div>`;
-      continue;
-    }
+    // Skip isViewAllBtn items - the View All button is added separately below
+    // if (movieStream.isViewAllBtn) {
+    //   cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-stream-id="view-all-cats">
+    //                     <h3><i class="fa-solid fa-bars"></i> View All Movies Categories </h3>
+    //                  </div>`;
+    //   continue;
+    // }
 
     let movieData = formatMovieData(movieStream);
     if (!movieData) continue;
@@ -447,6 +448,20 @@ function loadMoviesChunk(category, categoryIndex) {
       );
     }
     cardsHTML += originalCardHTML;
+  }
+
+  // Add View All button only for the first/top category (categoryIndex 0)
+  // Show menu icon by default, show full text on focus
+  if (categoryIndex === 0 && loadedCount === 0 && totalMovies > 3) {
+    cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-stream-id="view-all-cats">
+                      <div class="view-all-content">
+                        <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
+                        <h3 class="view-all-text">View All Movies Categories</h3>
+                      </div>
+                   </div>`;
+    // Set loaded count to total to prevent loading more cards
+    setMoviesLoadedChunkCount(categoryIndex, totalMovies);
+    return cardsHTML;
   }
 
   setMoviesLoadedChunkCount(categoryIndex, endIndex);
@@ -2106,7 +2121,7 @@ function MoviesPage() {
         )
       : [];
 
-    recentlyAddedToTop = filterStreamsByQuery(recentlyAddedToTop).slice(0, 4);
+    recentlyAddedToTop = filterStreamsByQuery(recentlyAddedToTop).slice(0, 3);
 
     if (!getMoviesSearchQuery()) {
       recentlyAddedToTop.push({

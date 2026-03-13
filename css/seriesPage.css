@@ -734,23 +734,44 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0px !important;
-  background: rgba(0, 0, 0, 0.6);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.3);
   border: 2px solid rgba(255, 255, 255, 0.2) !important;
   cursor: pointer;
   text-align: center;
-  height: 60px !important;
-  width: auto !important;
+  width: auto;
   align-self: center;
   align-items: center;
-  margin: 0 20px;
+    padding-left: 10px;
+    padding-right: 10px;
   flex: 0 0 auto;
 }
 
 .series-view-all-cats-btn.focused {
-  background: var(--dark-gold) !important;
-  border-color: white !important;
-  transform: scale(1.05) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 3px solid white !important;
+}
+
+.series-all-cats-btn.focused .series-all-cats-btn{
+  width: auto !important;
+}
+
+.series-view-all-cats-btn.focused .view-all-icon {
+  width: auto !important;
+  padding: 10px 15px !important;
+}
+
+.view-all-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.series-view-all-cats-btn.focused .view-all-content {
+  background: var(--gold) ;
+
+  padding: 8px 15px;
+  border-radius: 8px;
 }
 
 .series-view-all-cats-btn h3 {
@@ -764,13 +785,14 @@
 }
 
 .series-view-all-cats-btn.focused h3 {
-  color: #000;
+  color: black;
 }
 
 .series-view-all-cats-btn i {
   margin-right: 8px;
   margin-left: 8px;
-  font-size: 1rem;
+  font-size: 2rem;
+  zoom: 1.4;
   opacity: 0.8;
 }
 
@@ -781,4 +803,40 @@
 .series-view-all-cats-btn::after,
 .series-view-all-cats-btn::before {
   display: none !important;
+}
+
+/* View All Icon */
+.series-view-all-cats-btn .view-all-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  /* background: rgba(255, 255, 255, 0.2); */
+  margin-right: 0;
+}
+
+.series-view-all-cats-btn .view-all-icon i {
+  font-size: 1.5rem;
+  color: #fff;
+  margin: 0 !important;
+}
+
+.series-view-all-cats-btn .view-all-text {
+  display: none;
+  margin: 0;
+  padding-left: 10px;
+}
+
+/* .series-view-all-cats-btn.focused .view-all-icon {
+  background: rgba(0, 0, 0, 0.3);
+} */
+
+.series-view-all-cats-btn.focused .view-all-icon i {
+  color: #000;
+}
+
+.series-view-all-cats-btn.focused .view-all-text {
+  display: block;
 }
