@@ -415,7 +415,7 @@ function loadSeriesChunk(category, categoryIndex) {
 
     if (seriesStream.isViewAllBtn) {
       cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-series-id="view-all-cats">
-                        <h3>View All Categories <i class="fas fa-chevron-right"></i></h3>
+                        <h3><i class="fa-solid fa-bars"></i>View All Series Categories</h3>
                      </div>`;
       continue;
     }
@@ -2222,7 +2222,7 @@ function SeriesPage() {
       recentlyAddedToTop.push({
         isViewAllBtn: true,
         series_id: "view-all-cats",
-        name: "View All Categories",
+        name: "View All Series Categories",
       });
     }
 

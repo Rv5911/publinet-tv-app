@@ -1246,10 +1246,29 @@ function initNavbar() {
   };
 
   function closeSidebar() {
-    closeSortMenu();
+    // Close sort menu first (but don't focus on it - we just want to hide it)
+    sortOptions.classList.add("hidden");
+    arrowIcon.classList.remove("rotated");
+    isSortOptionsOpen = false;
+
+    // Clear focus and active class from ALL sidebar items before closing
+    const allSidebarLinks = sidebar.querySelectorAll(".sidebar-link");
+    allSidebarLinks.forEach((item) => {
+      item.classList.remove("active");
+      item.blur();
+      const logo = item.querySelector(".sidebar-link-logo");
+      if (logo) logo.classList.remove("sidebar-link-logo-focused");
+    });
+
+    // Clear active class from sort options too
+    const allSortOptions = sortOptions.querySelectorAll(".sort-option");
+    allSortOptions.forEach((item) => {
+      item.classList.remove("active");
+      item.blur();
+    });
+
     sidebar.classList.add("hidden");
     localStorage.setItem("navigationFocus", "navbar");
-    isSortOptionsOpen = false;
 
     setTimeout(() => {
       if (profileIcon) {
@@ -1485,13 +1504,23 @@ function initNavbar() {
 
     switch (e.key) {
       case "ArrowDown":
-        activeIndex = (activeIndex + 1) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
+        // If at last item, close the sort dropdown
+        if (activeIndex === sortOptionItems.length - 1) {
+          closeSortMenu();
+        } else {
+          activeIndex = (activeIndex + 1) % sortOptionItems.length;
+          updateSortOptionsSelection(sortOptionItems, activeIndex);
+        }
         break;
       case "ArrowUp":
-        activeIndex =
-          (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
+        // If at first item, close the sort dropdown
+        if (activeIndex === 0) {
+          closeSortMenu();
+        } else {
+          activeIndex =
+            (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
+          updateSortOptionsSelection(sortOptionItems, activeIndex);
+        }
         break;
       case "Enter":
         const activeSortItem = sortOptionItems[activeIndex];
@@ -1500,8 +1529,8 @@ function initNavbar() {
           checkbox.checked = true;
           setSortOption(checkbox.dataset.sort);
 
-          // Close sort menu after selection
-          closeSortMenu();
+          // Don't close the sort menu after selection - keep it open
+          // The user can press Escape or navigate away to close it
         }
         break;
       case "Escape":

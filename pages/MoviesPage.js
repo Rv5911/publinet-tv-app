@@ -424,7 +424,7 @@ function loadMoviesChunk(category, categoryIndex) {
 
     if (movieStream.isViewAllBtn) {
       cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-stream-id="view-all-cats">
-                        <h3>View All Categories <i class="fas fa-chevron-right"></i></h3>
+                        <h3><i class="fa-solid fa-bars"></i> View All Movies Categories </h3>
                      </div>`;
       continue;
     }
@@ -2112,7 +2112,7 @@ function MoviesPage() {
       recentlyAddedToTop.push({
         isViewAllBtn: true,
         stream_id: "view-all-cats",
-        name: "View All Categories",
+        name: "View All Movies Categories",
       });
     }
 

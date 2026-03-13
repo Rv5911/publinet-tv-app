@@ -663,6 +663,7 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
 
@@ -733,17 +734,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    rgba(80, 80, 80, 0.8),
-    rgba(40, 40, 40, 0.8)
-  );
+  border-radius: 0px !important;
+  background: rgba(0, 0, 0, 0.6);
   border: 2px solid rgba(255, 255, 255, 0.2) !important;
   cursor: pointer;
   text-align: center;
   height: 60px !important;
-  width: 280px !important;
+  width: auto !important;
   align-self: center;
+  align-items: center;
   margin: 0 20px;
   flex: 0 0 auto;
 }
@@ -758,7 +757,9 @@
   color: #fff;
   font-size: 1.3rem;
   margin: 0;
+  margin-right: 10px;
   font-weight: 500;
+  white-space: nowrap;
   letter-spacing: 0.5px;
 }
 
@@ -767,6 +768,7 @@
 }
 
 .series-view-all-cats-btn i {
+  margin-right: 8px;
   margin-left: 8px;
   font-size: 1rem;
   opacity: 0.8;

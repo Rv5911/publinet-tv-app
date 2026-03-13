@@ -1,7 +1,3 @@
-/**
- * CategoryViewPage.js
- * Shows all items (Movies or Series) for a specific category in a grid layout.
- */
 
 let categoryViewNavigationState = {
   currentCardIndex: 0,

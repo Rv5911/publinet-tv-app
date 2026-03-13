@@ -7,6 +7,7 @@
     position: relative;
     overflow: hidden;
     padding: 30px 60px;
+    animation: fadeInOut 1s ease-in-out;
     box-sizing: border-box;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
@@ -48,7 +49,7 @@
     align-items: center;
 }
 
-.search-container-cat{
+.search-container-cat {
     margin-right: 25px !important;
 }
 
