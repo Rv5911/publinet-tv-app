@@ -87,14 +87,14 @@ function LoginPage() {
     function clearFocusStyles() {
       document
         .querySelectorAll(
-          ".login-input-focused, .login-button-focused, .list-button-focused, .eye-icon-focused"
+          ".login-input-focused, .login-button-focused, .list-button-focused, .eye-icon-focused",
         )
         .forEach(function (el) {
           el.classList.remove(
             "login-input-focused",
             "login-button-focused",
             "list-button-focused",
-            "eye-icon-focused"
+            "eye-icon-focused",
           );
         });
     }
@@ -224,7 +224,7 @@ function LoginPage() {
             if (playlistsData.length === 0) {
               Toaster.showToast(
                 "error",
-                "No playlists available. Please add a playlist!"
+                "No playlists available. Please add a playlist!",
               );
               e.preventDefault();
               return;

@@ -51,7 +51,7 @@ function updateLoadingPercentage(targetPercentage, message = "") {
     return;
   }
 
-  const duration = 300;
+  const duration = 600;
   const startTime = Date.now();
   const startPercentage = currentPercentage;
 

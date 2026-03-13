@@ -1,7 +1,7 @@
 // MoviesPage.js file
 let moviesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: "header",
+  currentCardIndex: 0,
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -27,7 +27,7 @@ let moviesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 12,
+  horizontalChunkSize: 3,
   isLoading: false,
 };
 
@@ -422,11 +422,46 @@ function loadMoviesChunk(category, categoryIndex) {
     let movieStream = category.movies[i];
     if (!movieStream) continue; // Skip if movie stream is undefined
 
+    // Skip isViewAllBtn items - the View All button is added separately below
+    // if (movieStream.isViewAllBtn) {
+    //   cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-stream-id="view-all-cats">
+    //                     <h3><i class="fa-solid fa-bars"></i> View All Movies Categories </h3>
+    //                  </div>`;
+    //   continue;
+    // }
+
     let movieData = formatMovieData(movieStream);
     if (!movieData) continue;
 
-    let size = category.id === "popular" ? "large" : "normal";
-    cardsHTML += createMovieCard(movieData, size, categoryIndex, i);
+    let size =
+      category.id === "popular" || category.id === "recently-added-top"
+        ? "large"
+        : "normal";
+    let extraClass =
+      category.id === "recently-added-top" ? "recently-added-card" : "";
+
+    let originalCardHTML = createMovieCard(movieData, size, categoryIndex, i);
+    if (extraClass) {
+      originalCardHTML = originalCardHTML.replace(
+        'class="movie-card movie-card-large"',
+        `class="movie-card movie-card-large ${extraClass}"`,
+      );
+    }
+    cardsHTML += originalCardHTML;
+  }
+
+  // Add View All button only for the first/top category (categoryIndex 0)
+  // Show menu icon by default, show full text on focus
+  if (categoryIndex === 0 && loadedCount === 0 && totalMovies > 3) {
+    cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-stream-id="view-all-cats">
+                      <div class="view-all-content">
+                        <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
+                        <h3 class="view-all-text">View All Movies Categories</h3>
+                      </div>
+                   </div>`;
+    // Set loaded count to total to prevent loading more cards
+    setMoviesLoadedChunkCount(categoryIndex, totalMovies);
+    return cardsHTML;
   }
 
   setMoviesLoadedChunkCount(categoryIndex, endIndex);
@@ -482,7 +517,7 @@ function findNextMoviesCategoryWithMovies(startIndex, direction) {
   return -1;
 }
 
-function loadMoreMoviesCategories() {
+function loadMoreMoviesCategories(targetIndex = -1) {
   if (moviesChunkLoadingState.isLoading) return;
 
   let allCategories = window.allMoviesCategories || [];
@@ -494,7 +529,7 @@ function loadMoreMoviesCategories() {
     .some(function (cat) {
       return cat && cat.movies && cat.movies.length > 0;
     });
-  if (!remainingHasItems) {
+  if (!remainingHasItems && targetIndex === -1) {
     let container = document.querySelector(".movies-page-container");
     if (container) {
       let categoriesLoading = container.querySelector(
@@ -521,10 +556,15 @@ function loadMoreMoviesCategories() {
 
   moviesChunkLoadingState.isLoading = true;
 
-  let nextChunk = Math.min(
-    currentLoaded + moviesChunkLoadingState.categoryChunkSize,
-    allCategories.length,
-  );
+  let chunkSize =
+    targetIndex !== -1
+      ? Math.max(
+          targetIndex - currentLoaded + 1,
+          moviesChunkLoadingState.categoryChunkSize,
+        )
+      : moviesChunkLoadingState.categoryChunkSize;
+
+  let nextChunk = Math.min(currentLoaded + chunkSize, allCategories.length);
 
   let safetyTimeout = setTimeout(function () {
     if (moviesChunkLoadingState.isLoading) {
@@ -626,9 +666,10 @@ function createMoviesCategorySection(category, categoryIndex) {
   html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
 
-  if (totalItems > 0) {
+  let threshold = size === "large" ? 3 : 6;
+  if (totalItems > threshold) {
     html += `<div class="movies-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
-              <span>View More (${totalItems})</span>
+              <span>See More (${totalItems})</span>
               <i class="fas fa-chevron-right"></i>
             </div>`;
   }
@@ -648,6 +689,20 @@ function createMoviesCategorySection(category, categoryIndex) {
   html += "</div>";
 
   return html;
+}
+
+function createMoviesHeader() {
+  const currentView = "poster"; // Default to poster view
+  const viewText = "VOD with Posters";
+
+  return `
+    <div class="movies-page-header-top" style="display: none;">
+      <div class="view-mode-selector" id="movie-view-mode-btn" data-category="header-top" data-index="0" style="display: none;">
+      <i class="fa-solid fa-filter"></i>
+        <span>Select Categories View</span>
+      </div>
+    </div>
+  `;
 }
 
 function createMoviesNoDataMessage(categoryTitle) {
@@ -709,12 +764,38 @@ function handleMoviesEnterKey(e) {
 }
 
 function handleMoviesSimpleEnter() {
-  if (!moviesCategoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
+  if (moviesNavigationState.currentCategoryIndex === "header-top") {
+    ViewChangeDialog(
+      (newView) => {
+        // No longer saving movieViewMode to localStorage
+        if (newView === "category") {
+          localStorage.setItem("categoryListType", "movies");
+          localStorage.setItem("currentPage", "categoryListPage");
+          localStorage.setItem("navigationFocus", "categoryListPage");
+          Router.showPage("categoryListPage");
+        } else {
+          Router.showPage("moviesPage");
+        }
+      },
+      () => {
+        localStorage.setItem("navigationFocus", "moviesPage");
+      },
+      "poster", // Default view is now always poster
+    );
     return;
   }
 
   let categoryIndex = moviesNavigationState.currentCategoryIndex;
   let cardIndex = moviesNavigationState.currentCardIndex;
+
+  if (cardIndex === "header") {
+    handleViewMoreClick("movies", categoryIndex);
+    return;
+  }
+
+  if (!moviesCategoryHasMovies(categoryIndex)) {
+    return;
+  }
 
   let currentCard = document.querySelector(
     '.movie-card[data-category="' +
@@ -725,6 +806,13 @@ function handleMoviesSimpleEnter() {
   );
 
   if (currentCard) {
+    if (currentCard.classList.contains("view-all-cats-btn")) {
+      localStorage.setItem("categoryListType", "movies");
+      localStorage.setItem("currentPage", "categoryListPage");
+      localStorage.setItem("navigationFocus", "categoryListPage");
+      Router.showPage("categoryListPage");
+      return;
+    }
     let streamId = currentCard.getAttribute("data-stream-id");
 
     const isAdult = currentCard.getAttribute("data-is-adult") === "true";
@@ -750,20 +838,10 @@ function handleMoviesSimpleEnter() {
           "moviesPage",
         );
         return;
-      } else {
-        proceedToMovieDetail(categoryIndex, cardIndex, streamId);
-        return;
       }
     }
 
     proceedToMovieDetail(categoryIndex, cardIndex, streamId);
-  } else {
-    let viewMoreBtn = document.querySelector(
-      '.movies-view-more[data-category="' + categoryIndex + '"].focused',
-    );
-    if (viewMoreBtn) {
-      handleViewMoreClick("movies", categoryIndex);
-    }
   }
 }
 
@@ -783,6 +861,7 @@ function handleViewMoreClick(type, categoryIndex) {
 
     localStorage.setItem("currentPage", "categoryViewPage");
     localStorage.setItem("navigationFocus", "categoryViewPage");
+    localStorage.setItem("categoryReturnPage", "moviesPage");
 
     Router.showPage("categoryViewPage");
   }
@@ -1224,6 +1303,183 @@ function refreshMoviesFavoritesList() {
   // All UI updates are handled by updateMyFavCategoryRealtime()
 }
 
+function moviesCategoryHasSeeMore(categoryIndex) {
+  const category = window.allMoviesCategories[categoryIndex];
+  if (!category) return false;
+  let size = category.id === "popular" ? "large" : "normal";
+  let threshold = size === "large" ? 3 : 6;
+  let totalItems = category.movies ? category.movies.length : 0;
+  return totalItems > threshold;
+}
+
+function moveMoviesUp() {
+  if (moviesNavigationState.currentCategoryIndex === "header-top") {
+    const viewModeSelector = document.getElementById("movie-view-mode-btn");
+    if (viewModeSelector) {
+      viewModeSelector.classList.remove("focused");
+    }
+    localStorage.setItem("navigationFocus", "navbar");
+    if (typeof window.setNavbarFocus === "function") {
+      window.setNavbarFocus("moviesPage");
+    }
+    return;
+  }
+
+  if (moviesNavigationState.currentCardIndex === "header") {
+    let nextCategory = findNextMoviesCategoryWithMovies(
+      moviesNavigationState.currentCategoryIndex - 1,
+      -1,
+    );
+    if (nextCategory !== -1) {
+      moviesNavigationState.currentCategoryIndex = nextCategory;
+      moviesNavigationState.currentCardIndex = 0;
+    } else {
+      const prevFocused = document.querySelector(
+        ".movies-page-container .focused",
+      );
+      if (prevFocused) prevFocused.classList.remove("focused");
+      localStorage.setItem("navigationFocus", "navbar");
+      if (typeof window.setNavbarFocus === "function") {
+        window.setNavbarFocus("moviesPage");
+      }
+      return;
+    }
+  } else {
+    // From card to its category header if it exists
+    if (moviesCategoryHasSeeMore(moviesNavigationState.currentCategoryIndex)) {
+      moviesNavigationState.currentCardIndex = "header";
+    } else {
+      // Skip header and try to go to previous category
+      let nextCategory = findNextMoviesCategoryWithMovies(
+        moviesNavigationState.currentCategoryIndex - 1,
+        -1,
+      );
+      if (nextCategory !== -1) {
+        moviesNavigationState.currentCategoryIndex = nextCategory;
+        moviesNavigationState.currentCardIndex = 0;
+      } else {
+        const prevFocused = document.querySelector(
+          ".movies-page-container .focused",
+        );
+        if (prevFocused) prevFocused.classList.remove("focused");
+        localStorage.setItem("navigationFocus", "navbar");
+        if (typeof window.setNavbarFocus === "function") {
+          window.setNavbarFocus("moviesPage");
+        }
+        return;
+      }
+    }
+  }
+  updateMoviesFocus();
+}
+
+function moveMoviesDown() {
+  if (moviesNavigationState.currentCategoryIndex === "header-top") {
+    let nextCategory = findNextMoviesCategoryWithMovies(0, 1);
+    if (nextCategory !== -1) {
+      moviesNavigationState.currentCategoryIndex = nextCategory;
+      if (moviesCategoryHasSeeMore(nextCategory)) {
+        moviesNavigationState.currentCardIndex = "header";
+      } else {
+        moviesNavigationState.currentCardIndex = 0;
+      }
+    }
+  } else if (moviesNavigationState.currentCardIndex === "header") {
+    moviesNavigationState.currentCardIndex = 0;
+  } else {
+    let nextCategory = findNextMoviesCategoryWithMovies(
+      moviesNavigationState.currentCategoryIndex + 1,
+      1,
+    );
+    if (nextCategory !== -1) {
+      moviesNavigationState.currentCategoryIndex = nextCategory;
+      if (moviesCategoryHasSeeMore(nextCategory)) {
+        moviesNavigationState.currentCardIndex = "header";
+      } else {
+        moviesNavigationState.currentCardIndex = 0;
+      }
+    } else {
+      loadMoreMoviesCategories();
+    }
+  }
+  updateMoviesFocus();
+}
+
+function updateMoviesFocus() {
+  const { currentCategoryIndex, currentCardIndex } = moviesNavigationState;
+
+  // Clear previous focus
+  const prevFocused = document.querySelector(".movies-page-container .focused");
+  if (prevFocused) {
+    prevFocused.classList.remove("focused");
+    const marquee = prevFocused.querySelector(".movie-title-marquee");
+    if (marquee) marquee.classList.remove("marquee-active");
+  }
+
+  // Handle Navbar Visibility
+  const navRoot = document.getElementById("navbar-root");
+  if (navRoot) {
+    if (currentCategoryIndex === "header-top" || currentCategoryIndex === 0) {
+      navRoot.style.display = "block";
+    } else if (
+      typeof currentCategoryIndex === "number" &&
+      currentCategoryIndex >= 1
+    ) {
+      navRoot.style.display = "none";
+    }
+  }
+
+  if (currentCategoryIndex === "header-top") {
+    const btn = document.getElementById("movie-view-mode-btn");
+    if (btn) {
+      btn.classList.add("focused");
+      btn.scrollIntoView({ block: "center" });
+    }
+    return;
+  }
+
+  if (currentCardIndex === "header") {
+    const header = document.querySelector(
+      `.movies-view-more[data-category="${currentCategoryIndex}"]`,
+    );
+    if (header) {
+      header.classList.add("focused");
+      header.scrollIntoView({ block: "center" });
+    } else {
+      // Fallback: if header focus not found, move focus to first card
+      moviesNavigationState.currentCardIndex = 0;
+      updateMoviesFocus();
+      return;
+    }
+  } else {
+    const card = document.querySelector(
+      `.movie-card[data-category="${currentCategoryIndex}"][data-index="${currentCardIndex}"]`,
+    );
+    if (card) {
+      card.classList.add("focused");
+      card.scrollIntoView({ block: "center", inline: "center" });
+
+      const marquee = card.querySelector(".movie-title-marquee");
+      if (marquee && marquee.scrollWidth > marquee.clientWidth) {
+        marquee.classList.add("marquee-active");
+      }
+
+      // Chunk loading logic
+      const category = window.allMoviesCategories[currentCategoryIndex];
+      const loadedCount = getMoviesLoadedChunkCount(currentCategoryIndex);
+      if (currentCardIndex >= loadedCount - 2) {
+        const nextCards = loadMoviesChunk(category, currentCategoryIndex);
+        if (nextCards) {
+          const list = document.querySelector(
+            `.movies-card-list[data-category="${currentCategoryIndex}"]`,
+          );
+          if (list) list.insertAdjacentHTML("beforeend", nextCards);
+        }
+      }
+    }
+  }
+}
+
 function handleMoviesKeyNavigation(e) {
   let currentPage = localStorage.getItem("currentPage");
   let navigationFocus = localStorage.getItem("navigationFocus");
@@ -1297,7 +1553,9 @@ function handleMoviesKeyNavigation(e) {
       break;
   }
 
-  updateMoviesFocus();
+  if (localStorage.getItem("navigationFocus") === "moviesPage") {
+    updateMoviesFocus();
+  }
   saveMoviesNavigationState();
 }
 
@@ -1381,90 +1639,6 @@ function moveMoviesLeft() {
     moviesNavigationState.currentCategoryIndex;
   moviesNavigationState.lastFocusedCard =
     moviesNavigationState.currentCardIndex;
-}
-
-function moveMoviesDown() {
-  let allCategories = window.allMoviesCategories || [];
-  if (allCategories.length === 0) return;
-
-  let currentIndex = moviesNavigationState.currentCategoryIndex;
-  let currentCardIndex = moviesNavigationState.currentCardIndex;
-
-  // Navigation flow: previous category cards → view-more button → current category cards → next category view-more
-  if (currentCardIndex === "header") {
-    // Currently on view-more button, go down to the card row of the same category
-    moviesNavigationState.currentCardIndex = 0;
-  } else {
-    // Currently on card row, go to view-more button of next category
-    let nextCategoryIndex = findNextMoviesCategoryWithMovies(
-      currentIndex + 1,
-      1,
-    );
-    if (nextCategoryIndex !== -1) {
-      moviesNavigationState.currentCategoryIndex = nextCategoryIndex;
-      moviesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
-
-      if (nextCategoryIndex > 2) {
-        const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) navbarEl.style.display = "none";
-      }
-
-      let loadedCategoriesCount = moviesChunkLoadingState.loadedCategories;
-      if (
-        moviesNavigationState.currentCategoryIndex >=
-        loadedCategoriesCount - 2
-      ) {
-        loadMoreMoviesCategories();
-      }
-    } else {
-      // End of everything
-      loadMoreMoviesCategories();
-    }
-  }
-}
-
-function moveMoviesUp() {
-  let currentIndex = moviesNavigationState.currentCategoryIndex;
-  let currentCardIndex = moviesNavigationState.currentCardIndex;
-
-  if (currentCardIndex === "header") {
-    // Current in header, go to card row of previous category
-    let prevCategoryIndex = findNextMoviesCategoryWithMovies(
-      currentIndex - 1,
-      -1,
-    );
-    if (prevCategoryIndex !== -1) {
-      moviesNavigationState.currentCategoryIndex = prevCategoryIndex;
-      moviesNavigationState.currentCardIndex = 0; // Or last focused? User said "focus first of card" usually implies starting fresh
-    } else {
-      // Jump to Navbar
-      try {
-        const moviesContainer = document.querySelector(
-          ".movies-page-container",
-        );
-        if (moviesContainer) moviesContainer.scrollTop = 0;
-        const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) navbarEl.style.display = "block";
-      } catch (e) {}
-
-      removeAllMoviesFocus();
-      saveMoviesNavigationState();
-      localStorage.setItem("navigationFocus", "navbar");
-
-      setTimeout(() => {
-        const moviesNavItem = document.querySelector(
-          '.nav-item[data-page="moviesPage"]',
-        );
-        if (moviesNavItem) {
-          moviesNavItem.focus();
-          moviesNavItem.classList.add("active");
-        }
-      }, 50);
-    }
-  } else {
-    // Current in row, go to header of same category
-    moviesNavigationState.currentCardIndex = "header";
-  }
 }
 
 function loadMoreMoviesForCategory(categoryIndex) {
@@ -1585,84 +1759,6 @@ function removeAllMoviesFocus() {
   clearMoviesFocusFast("focused");
   clearMoviesFocusFast("marquee-active");
   currentFocusedMovieElement = null;
-}
-
-function updateMoviesFocus() {
-  if (localStorage.getItem("navigationFocus") === "moviesPage") {
-    if (moviesCategoryHasMovies(moviesNavigationState.currentCategoryIndex)) {
-      // Use cached container if available
-      if (!moviesContainerElement) {
-        moviesContainerElement = document.querySelector(
-          ".movies-page-container",
-        );
-      }
-
-      let selector =
-        '.movie-card[data-category="' +
-        moviesNavigationState.currentCategoryIndex +
-        '"][data-index="' +
-        moviesNavigationState.currentCardIndex +
-        '"]';
-
-      if (moviesNavigationState.currentCardIndex === "header") {
-        selector =
-          '.movies-view-more[data-category="' +
-          moviesNavigationState.currentCategoryIndex +
-          '"]';
-      }
-
-      const currentCard = document.querySelector(selector);
-
-      if (currentCard) {
-        // Fast class management
-        if (
-          currentFocusedMovieElement &&
-          currentFocusedMovieElement !== currentCard
-        ) {
-          currentFocusedMovieElement.classList.remove("focused");
-          const oldTitle = currentFocusedMovieElement.querySelector(
-            ".movie-title-marquee",
-          );
-          if (oldTitle) oldTitle.classList.remove("marquee-active");
-        }
-
-        currentCard.classList.add("focused");
-        currentFocusedMovieElement = currentCard;
-        scrollToMoviesElement(currentCard);
-
-        // Show navbar when focused on first category (any card in category 0)
-        if (!navRootElement) {
-          navRootElement = document.querySelector("#navbar-root");
-        }
-        if (navRootElement) {
-          navRootElement.style.display =
-            moviesNavigationState.currentCategoryIndex === 0 ? "block" : "none";
-        }
-
-        // Conditional Marquee
-        const title = currentCard.querySelector(".movie-title-marquee");
-        if (title) {
-          title.classList.remove("marquee-active");
-          const scrollWidth = title.scrollWidth;
-          const clientWidth = title.clientWidth;
-          if (scrollWidth > clientWidth) {
-            const scrollDist = scrollWidth - clientWidth;
-            title.setAttribute("data-marquee", title.textContent);
-            title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-            title.style.setProperty("--duration", `${scrollWidth / 50}s`);
-            title.classList.add("marquee-active");
-          }
-        }
-
-        moviesNavigationState.lastFocusedCategory =
-          moviesNavigationState.currentCategoryIndex;
-        moviesNavigationState.lastFocusedCard =
-          moviesNavigationState.currentCardIndex;
-
-        activateMoviesMarquee(currentCard);
-      }
-    }
-  }
 }
 
 function activateMoviesMarquee(card) {
@@ -2019,8 +2115,37 @@ function MoviesPage() {
     // Pass current sort option to getAPICategories
     let apiCategories = getAPICategories(currentSort);
 
-    // ALWAYS show these three categories at the top, in this specific order
-    let fixedTopCategories = [
+    let recentlyAddedToTop = window.allMoviesStreams
+      ? [...window.allMoviesStreams].sort(
+          (a, b) => parseInt(b.added || 0) - parseInt(a.added || 0),
+        )
+      : [];
+
+    recentlyAddedToTop = filterStreamsByQuery(recentlyAddedToTop).slice(0, 3);
+
+    if (!getMoviesSearchQuery()) {
+      recentlyAddedToTop.push({
+        isViewAllBtn: true,
+        stream_id: "view-all-cats",
+        name: "View All Movies Categories",
+      });
+    }
+
+    const isSearching = getMoviesSearchQuery();
+    let fixedTopCategories = [];
+
+    // Only show "Recently Added" cards when not searching
+    if (!isSearching) {
+      fixedTopCategories.push({
+        title: "",
+        movies: recentlyAddedToTop,
+        id: "recently-added-top",
+        containerClass: "movies-recently-added-top-container",
+      });
+    }
+
+    // Add other top categories
+    fixedTopCategories = fixedTopCategories.concat([
       {
         title: "My Fav",
         movies: favouriteMovies,
@@ -2039,7 +2164,7 @@ function MoviesPage() {
         id: "recent",
         containerClass: "recently-watched-container",
       },
-    ];
+    ]);
 
     // Remove any fixed categories that have no movies (except My Fav which can be empty)
     let initialCategories = fixedTopCategories.filter((category) => {
@@ -2056,7 +2181,21 @@ function MoviesPage() {
       apiCategories.slice(3),
     );
 
-    moviesChunkLoadingState.loadedCategories = initialCategories.length;
+    const searchQuery = getMoviesSearchQuery();
+    if (searchQuery) {
+      // During search, load more categories initially to ensure screen is full (infinite logic still applies)
+      moviesChunkLoadingState.loadedCategories = Math.min(
+        10,
+        window.allMoviesCategories.length,
+      );
+      initialCategories = window.allMoviesCategories.slice(
+        0,
+        moviesChunkLoadingState.loadedCategories,
+      );
+    } else {
+      moviesChunkLoadingState.loadedCategories = initialCategories.length;
+    }
+
     moviesChunkLoadingState.loadedChunks = {};
     moviesChunkLoadingState.isLoading = false;
 
@@ -2078,6 +2217,7 @@ function MoviesPage() {
     }
 
     let html = '<div class="movies-page-container">';
+    html += createMoviesHeader();
 
     for (let i = 0; i < initialCategories.length; i++) {
       let category = initialCategories[i];
@@ -2106,9 +2246,14 @@ function MoviesPage() {
 
     html += "</div>";
 
-    let container = document.querySelector("#movies-page-loader");
+    let container =
+      document.querySelector("#movies-page-loader") ||
+      document.querySelector(".movies-page-container");
     if (container) {
       container.outerHTML = html;
+    } else {
+      const pageEl = document.getElementById("movies-page");
+      if (pageEl) pageEl.innerHTML = html;
     }
 
     restoreMoviesNavigationState();

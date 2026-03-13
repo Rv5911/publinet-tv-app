@@ -214,6 +214,10 @@ function LivePage() {
       window.livePlayer = null;
     }
 
+    window.removeEventListener(
+      "navigation-focus-change",
+      handleNavigationFocusChange,
+    );
     window.cleanupLivePage = null;
   };
 
@@ -996,7 +1000,7 @@ function LivePage() {
             const scrollDist = scrollWidth - clientWidth;
             name.setAttribute("data-marquee", name.textContent);
             name.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-            name.style.setProperty("--duration", `${scrollWidth / 150}s`);
+            name.style.setProperty("--duration", `${scrollWidth / 50}s`);
             name.classList.add("marquee-active");
           }
         }
@@ -1164,7 +1168,7 @@ function LivePage() {
               const scrollDist = scrollWidth - clientWidth;
               name.setAttribute("data-marquee", name.textContent);
               name.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-              name.style.setProperty("--duration", `${scrollWidth / 150}s`);
+              name.style.setProperty("--duration", `${scrollWidth / 50}s`);
               name.classList.add("marquee-active");
             }
           }
@@ -1655,7 +1659,7 @@ function LivePage() {
   const handleKeydown = (e) => {
     // Check if sidebar is open
     const sidebar = document.getElementById("sidebar");
-    if (sidebar && !sidebar.classList.contains("option-remove")) {
+    if (sidebar && !sidebar.classList.contains("hidden")) {
       return; // Let Navbar handle the event
     }
 
@@ -1673,6 +1677,20 @@ function LivePage() {
       navigationFocus !== "channelSearch"
     ) {
       return; // Don't process keydown events until user navigates into the page
+    }
+
+    // Don't process keydown events if focus is on an input or textarea
+    if (
+      e.target &&
+      (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+    ) {
+      // Allow specific keys like backspace or arrows within inputs if needed
+      // But generally we should return to let the default behavior happen
+      if (["Enter", "Escape"].includes(e.key)) {
+        // We might still want to handle Enter/Escape to blur or perform search
+      } else {
+        return;
+      }
     }
 
     // Cross-browser fullscreen detection
@@ -2042,17 +2060,22 @@ function LivePage() {
           buttonFocusIndex = 0;
         } else if (buttonFocusIndex >= 0) {
           buttonFocusIndex = -1;
-          if (channelIndex + 4 < filteredStreams.length) {
+          const nextRowStart = (Math.floor(channelIndex / 4) + 1) * 4;
+          if (nextRowStart < filteredStreams.length) {
+            const nextIndex = Math.min(
+              channelIndex + 4,
+              filteredStreams.length - 1,
+            );
             const loadedCount = channelChunk * channelPageSize;
             if (
-              channelIndex + 4 >= loadedCount &&
+              nextIndex >= loadedCount &&
               loadedCount < filteredStreams.length
             ) {
               // Load more channels
               channelChunk++;
               renderChannels();
             }
-            channelIndex += 4;
+            channelIndex = nextIndex;
           }
         }
       }

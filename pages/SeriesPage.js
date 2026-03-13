@@ -1,6 +1,6 @@
 let seriesNavigationState = {
   currentCategoryIndex: 0,
-  currentCardIndex: "header",
+  currentCardIndex: 0,
   lastFocusedCategory: 0,
   lastFocusedCard: 0,
 };
@@ -26,7 +26,7 @@ let seriesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 12,
+  horizontalChunkSize: 3,
   isLoading: false,
 };
 
@@ -410,11 +410,51 @@ function loadSeriesChunk(category, categoryIndex) {
   let cardsHTML = "";
 
   for (let i = loadedCount; i < endIndex; i++) {
-    let seriesData = formatSeriesData(category.series[i]);
+    let seriesStream = category.series[i];
+    if (!seriesStream) continue; // Skip if series stream is undefined
+
+    // Skip isViewAllBtn items - the View All button is added separately below
+    // if (seriesStream.isViewAllBtn) {
+    //   cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="${i}" data-series-id="view-all-cats">
+    //                     <h3><i class="fa-solid fa-bars"></i>View All Series Categories</h3>
+    //                  </div>`;
+    //   continue;
+    // }
+
+    let seriesData = formatSeriesData(seriesStream);
     if (!seriesData) continue;
 
-    let size = category.id === "popular" ? "large" : "normal";
-    cardsHTML += createSeriesCard(seriesData, size, categoryIndex, i);
+    let size =
+      category.id === "popular" || category.id === "series-recently-added-top"
+        ? "large"
+        : "normal";
+    let extraClass =
+      category.id === "series-recently-added-top"
+        ? "series-recently-added-card"
+        : "";
+
+    let originalCardHTML = createSeriesCard(seriesData, size, categoryIndex, i);
+    if (extraClass) {
+      originalCardHTML = originalCardHTML.replace(
+        'class="series-card series-card-large"',
+        `class="series-card series-card-large ${extraClass}"`,
+      );
+    }
+    cardsHTML += originalCardHTML;
+  }
+
+  // Add View All button only for the first/top category (categoryIndex 0)
+  // Show menu icon by default, show full text on focus
+  if (categoryIndex === 0 && loadedCount === 0 && totalSeries > 3) {
+    cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-series-id="view-all-cats">
+                      <div class="view-all-content">
+                        <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
+                        <h3 class="view-all-text">View All Series Categories</h3>
+                      </div>
+                   </div>`;
+    // Set loaded count to total to prevent loading more cards
+    setSeriesLoadedChunkCount(categoryIndex, totalSeries);
+    return cardsHTML;
   }
 
   setSeriesLoadedChunkCount(categoryIndex, endIndex);
@@ -472,7 +512,7 @@ function findNextSeriesCategoryWithSeries(startIndex, direction) {
   return -1;
 }
 
-function loadMoreSeriesCategories() {
+function loadMoreSeriesCategories(targetIndex = -1) {
   if (seriesChunkLoadingState.isLoading) return;
 
   let allCategories = window.allSeriesCategories || [];
@@ -484,7 +524,7 @@ function loadMoreSeriesCategories() {
     .some(function (cat) {
       return cat && cat.series && cat.series.length > 0;
     });
-  if (!remainingHasItems) {
+  if (!remainingHasItems && targetIndex === -1) {
     let container = document.querySelector(".series-page-container");
     if (container) {
       let categoriesLoading = container.querySelector(
@@ -511,10 +551,15 @@ function loadMoreSeriesCategories() {
 
   seriesChunkLoadingState.isLoading = true;
 
-  let nextChunk = Math.min(
-    currentLoaded + seriesChunkLoadingState.categoryChunkSize,
-    allCategories.length,
-  );
+  let chunkSize =
+    targetIndex !== -1
+      ? Math.max(
+          targetIndex - currentLoaded + 1,
+          seriesChunkLoadingState.categoryChunkSize,
+        )
+      : seriesChunkLoadingState.categoryChunkSize;
+
+  let nextChunk = Math.min(currentLoaded + chunkSize, allCategories.length);
 
   let safetyTimeout = setTimeout(function () {
     if (seriesChunkLoadingState.isLoading) {
@@ -618,9 +663,10 @@ function createSeriesCategorySection(category, categoryIndex) {
   html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
 
-  if (totalItems > 0) {
+  let threshold = size === "large" ? 3 : 6;
+  if (totalItems > threshold) {
     html += `<div class="series-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
-              <span>View More (${totalItems})</span>
+              <span>See More (${totalItems})</span>
               <i class="fas fa-chevron-right"></i>
             </div>`;
   }
@@ -640,6 +686,20 @@ function createSeriesCategorySection(category, categoryIndex) {
   html += "</div>";
 
   return html;
+}
+
+function createSeriesHeader() {
+  const currentView = "poster"; // Default to poster view
+  const viewText = "VOD with Posters";
+
+  return `
+    <div class="series-page-header-top" style="display: none;">
+      <div class="view-mode-selector" id="series-view-mode-btn" data-category="header-top" data-index="0" style="display: none;">
+            <i class="fa-solid fa-filter"></i>
+        <span>Select Categories View</span>
+      </div>
+    </div>
+  `;
 }
 
 function createSeriesNoDataMessage(categoryTitle) {
@@ -703,12 +763,38 @@ function handleSeriesEnterKey(e) {
 }
 
 function handleSeriesSimpleEnter() {
-  if (!seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
+  if (seriesNavigationState.currentCategoryIndex === "header-top") {
+    ViewChangeDialog(
+      (newView) => {
+        // No longer saving seriesViewMode to localStorage
+        if (newView === "category") {
+          localStorage.setItem("categoryListType", "series");
+          localStorage.setItem("currentPage", "categoryListPage");
+          localStorage.setItem("navigationFocus", "categoryListPage");
+          Router.showPage("categoryListPage");
+        } else {
+          Router.showPage("seriesPage");
+        }
+      },
+      () => {
+        localStorage.setItem("navigationFocus", "seriesPage");
+      },
+      "poster", // Default view is now always poster
+    );
     return;
   }
 
   let categoryIndex = seriesNavigationState.currentCategoryIndex;
   let cardIndex = seriesNavigationState.currentCardIndex;
+
+  if (cardIndex === "header") {
+    handleViewMoreClick("series", categoryIndex);
+    return;
+  }
+
+  if (!seriesCategoryHasSeries(categoryIndex)) {
+    return;
+  }
 
   let currentCard = document.querySelector(
     '.series-card[data-category="' +
@@ -719,6 +805,13 @@ function handleSeriesSimpleEnter() {
   );
 
   if (currentCard) {
+    if (currentCard.classList.contains("series-view-all-cats-btn")) {
+      localStorage.setItem("categoryListType", "series");
+      localStorage.setItem("currentPage", "categoryListPage");
+      localStorage.setItem("navigationFocus", "categoryListPage");
+      Router.showPage("categoryListPage");
+      return;
+    }
     let seriesId = currentCard.getAttribute("data-series-id");
 
     const isAdult = currentCard.getAttribute("data-is-adult") === "true";
@@ -744,20 +837,10 @@ function handleSeriesSimpleEnter() {
           "seriesPage",
         );
         return;
-      } else {
-        proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
-        return;
       }
     }
 
     proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
-  } else {
-    let viewMoreBtn = document.querySelector(
-      '.series-view-more[data-category="' + categoryIndex + '"].focused',
-    );
-    if (viewMoreBtn) {
-      handleViewMoreClick("series", categoryIndex);
-    }
   }
 }
 
@@ -803,6 +886,7 @@ function handleViewMoreClick(type, categoryIndex) {
 
     localStorage.setItem("currentPage", "categoryViewPage");
     localStorage.setItem("navigationFocus", "categoryViewPage");
+    localStorage.setItem("categoryReturnPage", "seriesPage");
 
     Router.showPage("categoryViewPage");
   }
@@ -1332,6 +1416,181 @@ function refreshSeriesFavoritesList() {
   }
 }
 
+function seriesCategoryHasSeeMore(categoryIndex) {
+  const category = window.allSeriesCategories[categoryIndex];
+  if (!category) return false;
+  let size = category.id === "popular" ? "large" : "normal";
+  let threshold = size === "large" ? 3 : 6;
+  let totalItems = category.series ? category.series.length : 0;
+  return totalItems > threshold;
+}
+
+function moveSeriesUp() {
+  if (seriesNavigationState.currentCategoryIndex === "header-top") {
+    const viewModeSelector = document.getElementById("series-view-mode-btn");
+    if (viewModeSelector) {
+      viewModeSelector.classList.remove("focused");
+    }
+    localStorage.setItem("navigationFocus", "navbar");
+    if (typeof window.setNavbarFocus === "function") {
+      window.setNavbarFocus("seriesPage");
+    }
+    return;
+  }
+
+  if (seriesNavigationState.currentCardIndex === "header") {
+    let nextCategory = findNextSeriesCategoryWithSeries(
+      seriesNavigationState.currentCategoryIndex - 1,
+      -1,
+    );
+    if (nextCategory !== -1) {
+      seriesNavigationState.currentCategoryIndex = nextCategory;
+      seriesNavigationState.currentCardIndex = 0;
+    } else {
+      const prevFocused = document.querySelector(
+        ".series-page-container .focused",
+      );
+      if (prevFocused) prevFocused.classList.remove("focused");
+      localStorage.setItem("navigationFocus", "navbar");
+      if (typeof window.setNavbarFocus === "function") {
+        window.setNavbarFocus("seriesPage");
+      }
+      return;
+    }
+  } else {
+    // From card to its category header if it exists
+    if (seriesCategoryHasSeeMore(seriesNavigationState.currentCategoryIndex)) {
+      seriesNavigationState.currentCardIndex = "header";
+    } else {
+      // Skip header and try to go to previous category
+      let nextCategory = findNextSeriesCategoryWithSeries(
+        seriesNavigationState.currentCategoryIndex - 1,
+        -1,
+      );
+      if (nextCategory !== -1) {
+        seriesNavigationState.currentCategoryIndex = nextCategory;
+        seriesNavigationState.currentCardIndex = 0;
+      } else {
+        const prevFocused = document.querySelector(
+          ".series-page-container .focused",
+        );
+        if (prevFocused) prevFocused.classList.remove("focused");
+        localStorage.setItem("navigationFocus", "navbar");
+        if (typeof window.setNavbarFocus === "function") {
+          window.setNavbarFocus("seriesPage");
+        }
+        return;
+      }
+    }
+  }
+  updateSeriesFocus();
+}
+
+function moveSeriesDown() {
+  if (seriesNavigationState.currentCategoryIndex === "header-top") {
+    let nextCategory = findNextSeriesCategoryWithSeries(0, 1);
+    if (nextCategory !== -1) {
+      seriesNavigationState.currentCategoryIndex = nextCategory;
+      if (seriesCategoryHasSeeMore(nextCategory)) {
+        seriesNavigationState.currentCardIndex = "header";
+      } else {
+        seriesNavigationState.currentCardIndex = 0;
+      }
+    }
+  } else if (seriesNavigationState.currentCardIndex === "header") {
+    seriesNavigationState.currentCardIndex = 0;
+  } else {
+    let nextCategory = findNextSeriesCategoryWithSeries(
+      seriesNavigationState.currentCategoryIndex + 1,
+      1,
+    );
+    if (nextCategory !== -1) {
+      seriesNavigationState.currentCategoryIndex = nextCategory;
+      if (seriesCategoryHasSeeMore(nextCategory)) {
+        seriesNavigationState.currentCardIndex = "header";
+      } else {
+        seriesNavigationState.currentCardIndex = 0;
+      }
+    } else {
+      loadMoreSeriesCategories();
+    }
+  }
+  updateSeriesFocus();
+}
+
+function updateSeriesFocus() {
+  const { currentCategoryIndex, currentCardIndex } = seriesNavigationState;
+
+  const prevFocused = document.querySelector(".series-page-container .focused");
+  if (prevFocused) {
+    prevFocused.classList.remove("focused");
+    const marquee = prevFocused.querySelector(".series-title-marquee");
+    if (marquee) marquee.classList.remove("marquee-active");
+  }
+
+  // Handle Navbar Visibility
+  const navRoot = document.getElementById("navbar-root");
+  if (navRoot) {
+    if (currentCategoryIndex === "header-top" || currentCategoryIndex === 0) {
+      navRoot.style.display = "block";
+    } else if (
+      typeof currentCategoryIndex === "number" &&
+      currentCategoryIndex >= 1
+    ) {
+      navRoot.style.display = "none";
+    }
+  }
+
+  if (currentCategoryIndex === "header-top") {
+    const btn = document.getElementById("series-view-mode-btn");
+    if (btn) {
+      btn.classList.add("focused");
+      btn.scrollIntoView({ block: "center" });
+    }
+    return;
+  }
+
+  if (currentCardIndex === "header") {
+    const header = document.querySelector(
+      `.series-view-more[data-category="${currentCategoryIndex}"]`,
+    );
+    if (header) {
+      header.classList.add("focused");
+      header.scrollIntoView({ block: "center" });
+    } else {
+      // Fallback: if header focus not found, move focus to first card
+      seriesNavigationState.currentCardIndex = 0;
+      updateSeriesFocus();
+      return;
+    }
+  } else {
+    const card = document.querySelector(
+      `.series-card[data-category="${currentCategoryIndex}"][data-index="${currentCardIndex}"]`,
+    );
+    if (card) {
+      card.classList.add("focused");
+      card.scrollIntoView({ block: "center", inline: "center" });
+
+      const marquee = card.querySelector(".series-title-marquee");
+      if (marquee && marquee.scrollWidth > marquee.clientWidth) {
+        marquee.classList.add("marquee-active");
+      }
+
+      const category = window.allSeriesCategories[currentCategoryIndex];
+      const loadedCount = getSeriesLoadedChunkCount(currentCategoryIndex);
+      if (currentCardIndex >= loadedCount - 2) {
+        const nextCards = loadSeriesChunk(category, currentCategoryIndex);
+        if (nextCards) {
+          const list = document.querySelector(
+            `.series-card-list[data-category="${currentCategoryIndex}"]`,
+          );
+          if (list) list.insertAdjacentHTML("beforeend", nextCards);
+        }
+      }
+    }
+  }
+}
+
 function handleSeriesKeyNavigation(e) {
   let currentPage = localStorage.getItem("currentPage");
   let navigationFocus = localStorage.getItem("navigationFocus");
@@ -1405,7 +1664,9 @@ function handleSeriesKeyNavigation(e) {
       break;
   }
 
-  updateSeriesFocus();
+  if (localStorage.getItem("navigationFocus") === "seriesPage") {
+    updateSeriesFocus();
+  }
   saveSeriesNavigationState();
 }
 
@@ -1488,82 +1749,6 @@ function moveSeriesLeft() {
     seriesNavigationState.currentCategoryIndex;
   seriesNavigationState.lastFocusedCard =
     seriesNavigationState.currentCardIndex;
-}
-
-function moveSeriesDown() {
-  let allCategories = window.allSeriesCategories || [];
-  if (allCategories.length === 0) return;
-
-  let currentIndex = seriesNavigationState.currentCategoryIndex;
-  let currentCardIndex = seriesNavigationState.currentCardIndex;
-
-  // Navigation flow: previous category cards → view-more button → current category cards → next category view-more
-  if (currentCardIndex === "header") {
-    // Currently on view-more button, go down to the card row of the same category
-    seriesNavigationState.currentCardIndex = 0;
-  } else {
-    // Currently on card row, go to view-more button of next category
-    let nextCategoryIndex = findNextSeriesCategoryWithSeries(
-      currentIndex + 1,
-      1,
-    );
-    if (nextCategoryIndex !== -1) {
-      seriesNavigationState.currentCategoryIndex = nextCategoryIndex;
-      seriesNavigationState.currentCardIndex = "header"; // Focus on view-more button first
-
-      if (nextCategoryIndex > 2) {
-        const navbarEl = document.querySelector("#navbar-root");
-        if (navbarEl) navbarEl.style.display = "none";
-      }
-
-      let loadedCategoriesCount = seriesChunkLoadingState.loadedCategories;
-      if (
-        seriesNavigationState.currentCategoryIndex >=
-        loadedCategoriesCount - 2
-      ) {
-        loadMoreSeriesCategories();
-      }
-    } else {
-      loadMoreSeriesCategories();
-    }
-  }
-}
-
-function moveSeriesUp() {
-  let currentIndex = seriesNavigationState.currentCategoryIndex;
-  let currentCardIndex = seriesNavigationState.currentCardIndex;
-
-  if (currentCardIndex === "header") {
-    let prevCategoryIndex = findNextSeriesCategoryWithSeries(
-      currentIndex - 1,
-      -1,
-    );
-    if (prevCategoryIndex !== -1) {
-      seriesNavigationState.currentCategoryIndex = prevCategoryIndex;
-      seriesNavigationState.currentCardIndex = 0;
-    } else {
-      const seriesContainer = document.querySelector(".series-page-container");
-      if (seriesContainer) seriesContainer.scrollTop = 0;
-      const navbarEl = document.querySelector("#navbar-root");
-      if (navbarEl) navbarEl.style.display = "block";
-
-      removeAllSeriesFocus();
-      saveSeriesNavigationState();
-      localStorage.setItem("navigationFocus", "navbar");
-
-      setTimeout(() => {
-        const seriesNavItem = document.querySelector(
-          '.nav-item[data-page="seriesPage"]',
-        );
-        if (seriesNavItem) {
-          seriesNavItem.focus();
-          seriesNavItem.classList.add("active");
-        }
-      }, 50);
-    }
-  } else {
-    seriesNavigationState.currentCardIndex = "header";
-  }
 }
 
 function loadMoreSeriesForCategory(categoryIndex) {
@@ -1684,84 +1869,6 @@ function removeAllSeriesFocus() {
   clearSeriesFocusFast("focused");
   clearSeriesFocusFast("marquee-active");
   currentFocusedSeriesElement = null;
-}
-
-function updateSeriesFocus() {
-  if (localStorage.getItem("navigationFocus") === "seriesPage") {
-    if (seriesCategoryHasSeries(seriesNavigationState.currentCategoryIndex)) {
-      // Use cached container if available
-      if (!seriesContainerElement) {
-        seriesContainerElement = document.querySelector(
-          ".series-page-container",
-        );
-      }
-
-      let selector =
-        '.series-card[data-category="' +
-        seriesNavigationState.currentCategoryIndex +
-        '"][data-index="' +
-        seriesNavigationState.currentCardIndex +
-        '"]';
-
-      if (seriesNavigationState.currentCardIndex === "header") {
-        selector =
-          '.series-view-more[data-category="' +
-          seriesNavigationState.currentCategoryIndex +
-          '"]';
-      }
-
-      const currentCard = document.querySelector(selector);
-
-      if (currentCard) {
-        // Fast class management
-        if (
-          currentFocusedSeriesElement &&
-          currentFocusedSeriesElement !== currentCard
-        ) {
-          currentFocusedSeriesElement.classList.remove("focused");
-          const oldTitle = currentFocusedSeriesElement.querySelector(
-            ".series-title-marquee",
-          );
-          if (oldTitle) oldTitle.classList.remove("marquee-active");
-        }
-
-        currentCard.classList.add("focused");
-        currentFocusedSeriesElement = currentCard;
-        scrollToSeriesElement(currentCard);
-
-        // Show navbar when focused on first category (any card in category 0)
-        if (!seriesNavRootElement) {
-          seriesNavRootElement = document.querySelector("#navbar-root");
-        }
-        if (seriesNavRootElement) {
-          seriesNavRootElement.style.display =
-            seriesNavigationState.currentCategoryIndex === 0 ? "block" : "none";
-        }
-
-        // Conditional Marquee
-        const title = currentCard.querySelector(".series-title-marquee");
-        if (title) {
-          title.classList.remove("marquee-active");
-          const scrollWidth = title.scrollWidth;
-          const clientWidth = title.clientWidth;
-          if (scrollWidth > clientWidth) {
-            const scrollDist = scrollWidth - clientWidth;
-            title.setAttribute("data-marquee", title.textContent);
-            title.style.setProperty("--scroll-dist", `-${scrollDist}px`);
-            title.style.setProperty("--duration", `${scrollWidth / 50}s`);
-            title.classList.add("marquee-active");
-          }
-        }
-
-        seriesNavigationState.lastFocusedCategory =
-          seriesNavigationState.currentCategoryIndex;
-        seriesNavigationState.lastFocusedCard =
-          seriesNavigationState.currentCardIndex;
-
-        activateSeriesMarquee(currentCard);
-      }
-    }
-  }
 }
 
 function activateSeriesMarquee(card) {
@@ -2118,8 +2225,37 @@ function SeriesPage() {
     // Pass current sort option to getAPISeriesCategories
     let apiCategories = getAPISeriesCategories(currentSort);
 
-    // ALWAYS show these three categories at the top, in this specific order
-    let fixedTopCategories = [
+    let recentlyAddedToTop = window.allSeriesStreams
+      ? [...window.allSeriesStreams].sort(
+          (a, b) => parseInt(b.added || 0) - parseInt(a.added || 0),
+        )
+      : [];
+
+    recentlyAddedToTop = filterSeriesByQuery(recentlyAddedToTop).slice(0, 3);
+
+    if (!getSeriesSearchQuery()) {
+      recentlyAddedToTop.push({
+        isViewAllBtn: true,
+        series_id: "view-all-cats",
+        name: "View All Series Categories",
+      });
+    }
+
+    const isSearching = getSeriesSearchQuery();
+    let fixedTopCategories = [];
+
+    // Only show "Recently Added" cards when not searching
+    if (!isSearching) {
+      fixedTopCategories.push({
+        title: "",
+        series: recentlyAddedToTop,
+        id: "series-recently-added-top",
+        containerClass: "series-recently-added-top-container",
+      });
+    }
+
+    // Add other top categories
+    fixedTopCategories = fixedTopCategories.concat([
       {
         title: "My Fav",
         series: favouriteSeries,
@@ -2138,7 +2274,7 @@ function SeriesPage() {
         id: "recent",
         containerClass: "recently-watched-container",
       },
-    ];
+    ]);
 
     // Remove any fixed categories that have no series (except My Fav which can be empty)
     let initialCategories = fixedTopCategories.filter((category) => {
@@ -2155,7 +2291,21 @@ function SeriesPage() {
       apiCategories.slice(3),
     );
 
-    seriesChunkLoadingState.loadedCategories = initialCategories.length;
+    const searchQuery = getSeriesSearchQuery();
+    if (searchQuery) {
+      // During search, load more categories initially to ensure screen is full (infinite logic still applies)
+      seriesChunkLoadingState.loadedCategories = Math.min(
+        10,
+        window.allSeriesCategories.length,
+      );
+      initialCategories = window.allSeriesCategories.slice(
+        0,
+        seriesChunkLoadingState.loadedCategories,
+      );
+    } else {
+      seriesChunkLoadingState.loadedCategories = initialCategories.length;
+    }
+
     seriesChunkLoadingState.loadedChunks = {};
     seriesChunkLoadingState.isLoading = false;
 
@@ -2177,6 +2327,7 @@ function SeriesPage() {
     }
 
     let html = '<div class="series-page-container">';
+    html += createSeriesHeader();
 
     for (let i = 0; i < initialCategories.length; i++) {
       let category = initialCategories[i];
@@ -2205,9 +2356,14 @@ function SeriesPage() {
 
     html += "</div>";
 
-    let container = document.querySelector("#series-page-loader");
+    let container =
+      document.querySelector("#series-page-loader") ||
+      document.querySelector(".series-page-container");
     if (container) {
       container.outerHTML = html;
+    } else {
+      const pageEl = document.getElementById("series-page");
+      if (pageEl) pageEl.innerHTML = html;
     }
 
     restoreSeriesNavigationState();

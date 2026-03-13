@@ -25,7 +25,7 @@ function Navbar() {
       </div>
     </div>
 
-    <div id="sidebar" class="sidebar option-remove">
+    <div id="sidebar" class="sidebar hidden">
       <div class="sidebar-content">
         <ul>
           <li class="sidebar-link" tabindex="0"><img src="/assets/sidebar-settings.png" alt="Logo" class="sidebar-link-logo" />Settings</li>
@@ -40,7 +40,7 @@ function Navbar() {
             </span>
             <span class="arrow-icon"><img src="/assets/down-arrow.png" alt="Logo" /></span>
           </li>
-          <div id="sort-options" class="sort-options option-remove">
+          <div id="sort-options" class="sort-options hidden">
             <ul>
               <li class="sort-option" tabindex="0">
                 <label class="checkbox-container">
@@ -716,11 +716,23 @@ function initNavbar() {
       window.searchQuery = "";
       if (searchInput) searchInput.value = "";
 
-      const page = item.getAttribute("data-page");
+      let page = item.getAttribute("data-page");
+
+      // Check if we are already on the target page to avoid redundant loading
+      const currentPage = localStorage.getItem("currentPage");
+      if (
+        currentPage === page &&
+        (page === "moviesPage" ||
+          page === "seriesPage" ||
+          page === "categoryListPage")
+      ) {
+        return;
+      }
+
       disposeLiveTvPlayer();
       resetParentalControlState();
       Router.showPage(page);
-      updateNavbarActive(page);
+      updateNavbarActive(item.getAttribute("data-page"));
       buildDynamicSidebarOptions();
     });
 
@@ -770,6 +782,7 @@ function initNavbar() {
       "settingsPage",
       "exitModal",
       "categoryViewPage",
+      "categoryListPage",
     ];
     if (NAVBAR_INACTIVE_PAGES.includes(currentPage)) {
       return; // Don't process any navbar keydown events on these pages
@@ -787,7 +800,7 @@ function initNavbar() {
     ];
 
     if (backKeys.includes(key)) {
-      if (sidebar && !sidebar.classList.contains("option-remove")) {
+      if (sidebar && !sidebar.classList.contains("hidden")) {
         e.preventDefault();
         closeSidebar();
         return;
@@ -860,7 +873,7 @@ function initNavbar() {
       }
     }
 
-    if (sidebar && !sidebar.classList.contains("option-remove")) {
+    if (sidebar && !sidebar.classList.contains("hidden")) {
       if (
         [
           "ArrowUp",
@@ -1003,87 +1016,61 @@ function initNavbar() {
             return;
           }
 
-          // MoviesPage: prioritize My Fav on initial down from navbar
+          // MoviesPage: Focus first category from navbar
           if (currentPage === "moviesPage" && window.moviesNavigationState) {
             setTimeout(function () {
-              // Move focus from navbar to movies page ONLY after timeout
               localStorage.setItem("navigationFocus", "moviesPage");
-
-              let targetCard = null;
-              let targetCategoryIndex = 0;
-
-              // Iterate through all category lists to find the first one with cards
-              const allCategoryLists =
-                document.querySelectorAll(".movies-card-list");
-              for (let i = 0; i < allCategoryLists.length; i++) {
-                const list = allCategoryLists[i];
-                const firstCard = list.querySelector(".movie-card");
-                if (firstCard) {
-                  targetCard = firstCard;
-                  targetCategoryIndex = parseInt(
-                    list.getAttribute("data-category") || "0",
-                    10,
-                  );
-                  break; // Found the first category with cards
-                }
+              let nextCat = 0;
+              if (
+                typeof window.findNextMoviesCategoryWithMovies === "function"
+              ) {
+                let foundCat = window.findNextMoviesCategoryWithMovies(0, 1);
+                if (foundCat !== -1) nextCat = foundCat;
               }
-
-              if (targetCard) {
-                window.moviesNavigationState.currentCategoryIndex =
-                  targetCategoryIndex;
+              window.moviesNavigationState.currentCategoryIndex = nextCat;
+              if (
+                typeof window.moviesCategoryHasSeeMore === "function" &&
+                window.moviesCategoryHasSeeMore(nextCat)
+              ) {
+                window.moviesNavigationState.currentCardIndex = "header";
+              } else {
                 window.moviesNavigationState.currentCardIndex = 0;
-
-                // Persist and update focus using MoviesPage helpers
-                if (typeof window.saveMoviesNavigationState === "function") {
-                  window.saveMoviesNavigationState();
-                }
-                targetCard.focus();
-                if (typeof window.updateMoviesFocus === "function") {
-                  window.updateMoviesFocus();
-                }
+              }
+              if (typeof window.updateMoviesFocus === "function") {
+                window.updateMoviesFocus();
+              }
+              if (typeof window.saveMoviesNavigationState === "function") {
+                window.saveMoviesNavigationState();
               }
             }, 150);
             return;
           }
 
-          // SeriesPage: prioritize My Fav on initial down from navbar
+          // SeriesPage: Focus first category from navbar
           if (currentPage === "seriesPage" && window.seriesNavigationState) {
             setTimeout(function () {
-              // Move focus from navbar to series page ONLY after timeout
               localStorage.setItem("navigationFocus", "seriesPage");
-
-              let targetCard = null;
-              let targetCategoryIndex = 0;
-
-              // Iterate through all category lists to find the first one with cards
-              const allCategoryLists =
-                document.querySelectorAll(".series-card-list");
-              for (let i = 0; i < allCategoryLists.length; i++) {
-                const list = allCategoryLists[i];
-                const firstCard = list.querySelector(".series-card");
-                if (firstCard) {
-                  targetCard = firstCard;
-                  targetCategoryIndex = parseInt(
-                    list.getAttribute("data-category") || "0",
-                    10,
-                  );
-                  break; // Found the first category with cards
-                }
+              let nextCat = 0;
+              if (
+                typeof window.findNextSeriesCategoryWithSeries === "function"
+              ) {
+                let foundCat = window.findNextSeriesCategoryWithSeries(0, 1);
+                if (foundCat !== -1) nextCat = foundCat;
               }
-
-              if (targetCard) {
-                window.seriesNavigationState.currentCategoryIndex =
-                  targetCategoryIndex;
+              window.seriesNavigationState.currentCategoryIndex = nextCat;
+              if (
+                typeof window.seriesCategoryHasSeeMore === "function" &&
+                window.seriesCategoryHasSeeMore(nextCat)
+              ) {
+                window.seriesNavigationState.currentCardIndex = "header";
+              } else {
                 window.seriesNavigationState.currentCardIndex = 0;
-
-                // Persist and update focus using SeriesPage helpers
-                if (typeof window.saveSeriesNavigationState === "function") {
-                  window.saveSeriesNavigationState();
-                }
-                targetCard.focus();
-                if (typeof window.updateSeriesFocus === "function") {
-                  window.updateSeriesFocus();
-                }
+              }
+              if (typeof window.updateSeriesFocus === "function") {
+                window.updateSeriesFocus();
+              }
+              if (typeof window.saveSeriesNavigationState === "function") {
+                window.saveSeriesNavigationState();
               }
             }, 150);
             return;
@@ -1102,19 +1089,36 @@ function initNavbar() {
           if (window.cleanupSeriesNavigation) {
             window.cleanupSeriesNavigation();
           }
-          const page = navItems[currentIndex - 1].getAttribute("data-page");
+          let page = navItems[currentIndex - 1].getAttribute("data-page");
+
+          if (
+            page === "moviesPage" &&
+            localStorage.getItem("movieViewMode") === "category"
+          ) {
+            localStorage.setItem("categoryListType", "movies");
+            page = "categoryListPage";
+          } else if (
+            page === "seriesPage" &&
+            localStorage.getItem("seriesViewMode") === "category"
+          ) {
+            localStorage.setItem("categoryListType", "series");
+            page = "categoryListPage";
+          }
+
           window.searchQuery = "";
           clearMoviesAndSeriesLocalStorage();
           disposeLiveTvPlayer();
           resetParentalControlState();
           Router.showPage(page);
-          updateNavbarActive(page);
+          updateNavbarActive(
+            navItems[currentIndex - 1].getAttribute("data-page"),
+          );
         }
         break;
       case "Escape":
       case "Backspace":
       case "XF86Back":
-        if (sidebar && !sidebar.classList.contains("option-remove")) {
+        if (sidebar && !sidebar.classList.contains("hidden")) {
           closeSidebar();
         } else {
           // Handle back navigation from Navbar for Detail Pages
@@ -1216,9 +1220,7 @@ function initNavbar() {
 
   function openSidebar() {
     buildDynamicSidebarOptions();
-    sidebar.classList.remove("option-remove");
-    // Manually set display block
-    sidebar.style.display = "block";
+    sidebar.classList.remove("hidden");
     localStorage.setItem("navigationFocus", "sidebar");
     isSortOptionsOpen = false;
     const items = Array.from(
@@ -1226,7 +1228,8 @@ function initNavbar() {
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none",
+        item.style.display !== "none" &&
+        !item.classList.contains("hidden"),
     );
     updateSidebarSelection(items, 0);
     const firstItem = items[0];
@@ -1243,11 +1246,29 @@ function initNavbar() {
   };
 
   function closeSidebar() {
-    sidebar.classList.add("option-remove");
-    // Manually set display none
-    sidebar.style.display = "none";
-    localStorage.setItem("navigationFocus", "navbar");
+    // Close sort menu first (but don't focus on it - we just want to hide it)
+    sortOptions.classList.add("hidden");
+    arrowIcon.classList.remove("rotated");
     isSortOptionsOpen = false;
+
+    // Clear focus and active class from ALL sidebar items before closing
+    const allSidebarLinks = sidebar.querySelectorAll(".sidebar-link");
+    allSidebarLinks.forEach((item) => {
+      item.classList.remove("active");
+      item.blur();
+      const logo = item.querySelector(".sidebar-link-logo");
+      if (logo) logo.classList.remove("sidebar-link-logo-focused");
+    });
+
+    // Clear active class from sort options too
+    const allSortOptions = sortOptions.querySelectorAll(".sort-option");
+    allSortOptions.forEach((item) => {
+      item.classList.remove("active");
+      item.blur();
+    });
+
+    sidebar.classList.add("hidden");
+    localStorage.setItem("navigationFocus", "navbar");
 
     setTimeout(() => {
       if (profileIcon) {
@@ -1286,7 +1307,7 @@ function initNavbar() {
   }
 
   function toggleSortMenu() {
-    const expanded = !sortOptions.classList.contains("option-remove");
+    const expanded = !sortOptions.classList.contains("hidden");
     if (expanded) {
       closeSortMenu();
     } else {
@@ -1295,8 +1316,7 @@ function initNavbar() {
   }
 
   function openSortMenu() {
-    sortOptions.classList.remove("option-remove");
-    sortOptions.style.display = "block"; // Manually set display block
+    sortOptions.classList.remove("hidden");
     arrowIcon.classList.add("rotated");
     isSortOptionsOpen = true;
 
@@ -1309,8 +1329,7 @@ function initNavbar() {
   }
 
   function closeSortMenu() {
-    sortOptions.classList.add("option-remove");
-    sortOptions.style.display = "none"; // Manually set display none
+    sortOptions.classList.add("hidden");
     arrowIcon.classList.remove("rotated");
     isSortOptionsOpen = false;
 
@@ -1323,7 +1342,8 @@ function initNavbar() {
       ).filter(
         (item) =>
           !item.classList.contains("option-remove") &&
-          item.style.display !== "none",
+          item.style.display !== "none" &&
+          !item.classList.contains("hidden"),
       );
       const sortIndex = sidebarItems.indexOf(sortMenuItem);
       updateSidebarSelection(sidebarItems, sortIndex);
@@ -1357,7 +1377,7 @@ function initNavbar() {
     console.log(`Sorting by: ${sortType}`);
 
     // FIX: Restore navigationFocus to sidebar because page re-render might have stolen it
-    if (sidebar && !sidebar.classList.contains("option-remove")) {
+    if (sidebar && !sidebar.classList.contains("hidden")) {
       localStorage.setItem("navigationFocus", "sidebar");
     }
   }
@@ -1370,7 +1390,8 @@ function initNavbar() {
     ).filter(
       (item) =>
         !item.classList.contains("option-remove") &&
-        item.style.display !== "none",
+        item.style.display !== "none" &&
+        !item.classList.contains("hidden"),
     );
     if (!items.length) return;
 
@@ -1483,13 +1504,23 @@ function initNavbar() {
 
     switch (e.key) {
       case "ArrowDown":
-        activeIndex = (activeIndex + 1) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
+        // If at last item, close the sort dropdown
+        if (activeIndex === sortOptionItems.length - 1) {
+          closeSortMenu();
+        } else {
+          activeIndex = (activeIndex + 1) % sortOptionItems.length;
+          updateSortOptionsSelection(sortOptionItems, activeIndex);
+        }
         break;
       case "ArrowUp":
-        activeIndex =
-          (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
-        updateSortOptionsSelection(sortOptionItems, activeIndex);
+        // If at first item, close the sort dropdown
+        if (activeIndex === 0) {
+          closeSortMenu();
+        } else {
+          activeIndex =
+            (activeIndex - 1 + sortOptionItems.length) % sortOptionItems.length;
+          updateSortOptionsSelection(sortOptionItems, activeIndex);
+        }
         break;
       case "Enter":
         const activeSortItem = sortOptionItems[activeIndex];
@@ -1498,8 +1529,8 @@ function initNavbar() {
           checkbox.checked = true;
           setSortOption(checkbox.dataset.sort);
 
-          // Close sort menu after selection
-          closeSortMenu();
+          // Don't close the sort menu after selection - keep it open
+          // The user can press Escape or navigate away to close it
         }
         break;
       case "Escape":
