@@ -26,7 +26,7 @@ let seriesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 3,
+  horizontalChunkSize: 7,
   isLoading: false,
 };
 
@@ -57,7 +57,7 @@ function clearSeriesFocusFast(className) {
 }
 
 function normalizeTextSeries(s) {
-  return (s || "").toLowerCase();
+  return (s || "").toString().toLowerCase().trim();
 }
 
 function deduplicateStreamsByName(streams) {
@@ -401,7 +401,7 @@ function loadSeriesChunk(category, categoryIndex) {
   if (!category || !category.series || category.series.length === 0) return "";
 
   let loadedCount = getSeriesLoadedChunkCount(categoryIndex);
-  let chunkSize = seriesChunkLoadingState.horizontalChunkSize;
+  let chunkSize = (categoryIndex === 0 && !getSeriesSearchQuery()) ? 3 : seriesChunkLoadingState.horizontalChunkSize;
   let totalSeries = category.series.length;
 
   if (loadedCount >= totalSeries) return "";
@@ -445,7 +445,7 @@ function loadSeriesChunk(category, categoryIndex) {
 
   // Add View All button only for the first/top category (categoryIndex 0)
   // Show menu icon by default, show full text on focus
-  if (categoryIndex === 0 && loadedCount === 0 && totalSeries > 3) {
+  if (categoryIndex === 0 && loadedCount === 0 && totalSeries > 3 && !getSeriesSearchQuery()) {
     cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-series-id="view-all-cats">
                       <div class="view-all-content">
                         <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
@@ -663,7 +663,7 @@ function createSeriesCategorySection(category, categoryIndex) {
   html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
 
-  let threshold = size === "large" ? 3 : 6;
+  let threshold = (categoryIndex === 0 && !getSeriesSearchQuery()) ? 4 : (size === "large" ? 4 : 7);
   if (totalItems > threshold) {
     html += `<div class="series-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
               <span>See More (${totalItems})</span>
@@ -1419,8 +1419,12 @@ function refreshSeriesFavoritesList() {
 function seriesCategoryHasSeeMore(categoryIndex) {
   const category = window.allSeriesCategories[categoryIndex];
   if (!category) return false;
+
+  // Hide See More for the first category if it contains the "View All" button
+  if (categoryIndex === 0 && !getSeriesSearchQuery()) return false;
+
   let size = category.id === "popular" ? "large" : "normal";
-  let threshold = size === "large" ? 3 : 6;
+  let threshold = size === "large" ? 4 : 7;
   let totalItems = category.series ? category.series.length : 0;
   return totalItems > threshold;
 }
@@ -2241,68 +2245,84 @@ function SeriesPage() {
       });
     }
 
-    const isSearching = getSeriesSearchQuery();
+    const isSearching = !!searchQuery;
+    let initialCategories = [];
     let fixedTopCategories = [];
 
-    // Only show "Recently Added" cards when not searching
-    if (!isSearching) {
+    if (isSearching) {
+      // Filter categories to only those that have series matching the search query
+      apiCategories = apiCategories.filter(cat => cat.series && cat.series.length > 0);
+      
+      // Also filter fixed categories
+      fixedTopCategories = [
+        {
+          title: "My Fav",
+          series: favouriteSeries,
+          id: "fav",
+          containerClass: "series-fav-container",
+        },
+        {
+          title: "Popular Series",
+          series: popularSeries,
+          id: "popular",
+          containerClass: "series-popular-container",
+        },
+        {
+          title: "Recently Watched",
+          series: recentSeriesArray,
+          id: "recent",
+          containerClass: "recently-watched-container",
+        },
+      ].filter(cat => cat.series && cat.series.length > 0);
+
+      initialCategories = fixedTopCategories.concat(apiCategories);
+      
+      window.allSeriesCategories = initialCategories;
+      seriesChunkLoadingState.loadedCategories = window.allSeriesCategories.length;
+    } else {
+      // Normal flow: only show "Recently Added" cards when not searching
       fixedTopCategories.push({
         title: "",
         series: recentlyAddedToTop,
         id: "series-recently-added-top",
         containerClass: "series-recently-added-top-container",
       });
-    }
 
-    // Add other top categories
-    fixedTopCategories = fixedTopCategories.concat([
-      {
-        title: "My Fav",
-        series: favouriteSeries,
-        id: "fav",
-        containerClass: "series-fav-container",
-      },
-      {
-        title: "Popular Series",
-        series: popularSeries,
-        id: "popular",
-        containerClass: "series-popular-container",
-      },
-      {
-        title: "Recently Watched",
-        series: recentSeriesArray,
-        id: "recent",
-        containerClass: "recently-watched-container",
-      },
-    ]);
+      // Add other top categories
+      let topCategories = [
+        {
+          title: "My Fav",
+          series: favouriteSeries,
+          id: "fav",
+          containerClass: "series-fav-container",
+        },
+        {
+          title: "Popular Series",
+          series: popularSeries,
+          id: "popular",
+          containerClass: "series-popular-container",
+        },
+        {
+          title: "Recently Watched",
+          series: recentSeriesArray,
+          id: "recent",
+          containerClass: "series-recently-watched-container",
+        },
+      ];
 
-    // Remove any fixed categories that have no series (except My Fav which can be empty)
-    let initialCategories = fixedTopCategories.filter((category) => {
-      // if (category.id === "fav") return true; // Always show My Fav even if empty
-      return category.series && category.series.length > 0;
-    });
+      initialCategories = fixedTopCategories.concat(topCategories).filter(category => {
+          return category.series && category.series.length > 0;
+      });
 
-    // Add the first few API categories after the fixed ones
-    let apiCategoriesToLoad = apiCategories.slice(0, 3);
-    initialCategories = initialCategories.concat(apiCategoriesToLoad);
+      // Add the first few API categories after the fixed ones
+      let apiCategoriesToLoad = apiCategories.slice(0, 3);
+      initialCategories = initialCategories.concat(apiCategoriesToLoad);
 
-    // Set up the complete categories list (fixed top + all API categories)
-    window.allSeriesCategories = initialCategories.concat(
-      apiCategories.slice(3),
-    );
-
-    const searchQuery = getSeriesSearchQuery();
-    if (searchQuery) {
-      // During search, load more categories initially to ensure screen is full (infinite logic still applies)
-      seriesChunkLoadingState.loadedCategories = Math.min(
-        10,
-        window.allSeriesCategories.length,
+      // Set up the complete categories list (fixed top + all API categories)
+      window.allSeriesCategories = initialCategories.concat(
+        apiCategories.slice(3),
       );
-      initialCategories = window.allSeriesCategories.slice(
-        0,
-        seriesChunkLoadingState.loadedCategories,
-      );
-    } else {
+
       seriesChunkLoadingState.loadedCategories = initialCategories.length;
     }
 

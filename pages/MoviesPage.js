@@ -27,7 +27,7 @@ let moviesChunkLoadingState = {
   loadedCategories: 0,
   categoryChunkSize: 4,
   loadedChunks: {},
-  horizontalChunkSize: 3,
+  horizontalChunkSize: 7,
   isLoading: false,
 };
 
@@ -58,7 +58,7 @@ function clearMoviesFocusFast(className) {
 }
 
 function normalizeText(s) {
-  return (s || "").toLowerCase();
+  return (s || "").toString().toLowerCase().trim();
 }
 
 function deduplicateStreamsByName(streams) {
@@ -410,7 +410,7 @@ function loadMoviesChunk(category, categoryIndex) {
   if (!category || !category.movies || category.movies.length === 0) return "";
 
   let loadedCount = getMoviesLoadedChunkCount(categoryIndex);
-  let chunkSize = moviesChunkLoadingState.horizontalChunkSize;
+  let chunkSize = (categoryIndex === 0 && !getMoviesSearchQuery()) ? 3 : moviesChunkLoadingState.horizontalChunkSize;
   let totalMovies = category.movies.length;
 
   if (loadedCount >= totalMovies) return "";
@@ -452,7 +452,7 @@ function loadMoviesChunk(category, categoryIndex) {
 
   // Add View All button only for the first/top category (categoryIndex 0)
   // Show menu icon by default, show full text on focus
-  if (categoryIndex === 0 && loadedCount === 0 && totalMovies > 3) {
+  if (categoryIndex === 0 && loadedCount === 0 && totalMovies > 3 && !getMoviesSearchQuery()) {
     cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-stream-id="view-all-cats">
                       <div class="view-all-content">
                         <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
@@ -666,7 +666,7 @@ function createMoviesCategorySection(category, categoryIndex) {
   html += '<div class="category-header">';
   html += "<h1>" + category.title + "</h1>";
 
-  let threshold = size === "large" ? 3 : 6;
+  let threshold = (categoryIndex === 0 && !getMoviesSearchQuery()) ? 4 : (size === "large" ? 4 : 7);
   if (totalItems > threshold) {
     html += `<div class="movies-view-more" data-category="${categoryIndex}" data-index="header" data-total="${totalItems}">
               <span>See More (${totalItems})</span>
@@ -1306,8 +1306,12 @@ function refreshMoviesFavoritesList() {
 function moviesCategoryHasSeeMore(categoryIndex) {
   const category = window.allMoviesCategories[categoryIndex];
   if (!category) return false;
+
+  // Hide See More for the first category if it contains the "View All" button
+  if (categoryIndex === 0 && !getMoviesSearchQuery()) return false;
+
   let size = category.id === "popular" ? "large" : "normal";
-  let threshold = size === "large" ? 3 : 6;
+  let threshold = size === "large" ? 4 : 7;
   let totalItems = category.movies ? category.movies.length : 0;
   return totalItems > threshold;
 }
@@ -2131,68 +2135,82 @@ function MoviesPage() {
       });
     }
 
-    const isSearching = getMoviesSearchQuery();
-    let fixedTopCategories = [];
+    const isSearching = !!searchQuery;
+    let initialCategories = [];
+    if (isSearching) {
+      // Filter API categories
+      apiCategories = apiCategories.filter(cat => cat.movies && cat.movies.length > 0);
+      
+      // Define and filter fixed categories
+      let fixedTopCategories = [
+        {
+          title: "My Fav",
+          movies: favouriteMovies,
+          id: "fav",
+          containerClass: "movies-fav-container",
+        },
+        {
+          title: "Popular Movies",
+          movies: popularMovies,
+          id: "popular",
+          containerClass: "movies-popular-container",
+        },
+        {
+          title: "Recently Watched",
+          movies: recentMoviesArray,
+          id: "recent",
+          containerClass: "recently-watched-container",
+        },
+      ].filter(cat => cat.movies && cat.movies.length > 0);
 
-    // Only show "Recently Added" cards when not searching
-    if (!isSearching) {
+      initialCategories = fixedTopCategories.concat(apiCategories);
+      window.allMoviesCategories = initialCategories;
+      moviesChunkLoadingState.loadedCategories = window.allMoviesCategories.length;
+    } else {
+      // Normal flow
+      let fixedTopCategories = [];
       fixedTopCategories.push({
         title: "",
         movies: recentlyAddedToTop,
         id: "recently-added-top",
         containerClass: "movies-recently-added-top-container",
       });
-    }
 
-    // Add other top categories
-    fixedTopCategories = fixedTopCategories.concat([
-      {
-        title: "My Fav",
-        movies: favouriteMovies,
-        id: "fav",
-        containerClass: "movies-fav-container",
-      },
-      {
-        title: "Popular Movies",
-        movies: popularMovies,
-        id: "popular",
-        containerClass: "movies-popular-container",
-      },
-      {
-        title: "Recently Watched",
-        movies: recentMoviesArray,
-        id: "recent",
-        containerClass: "recently-watched-container",
-      },
-    ]);
+      // Add other top categories
+      let topCategories = [
+        {
+          title: "My Fav",
+          movies: favouriteMovies,
+          id: "fav",
+          containerClass: "movies-fav-container",
+        },
+        {
+          title: "Popular Movies",
+          movies: popularMovies,
+          id: "popular",
+          containerClass: "movies-popular-container",
+        },
+        {
+          title: "Recently Watched",
+          movies: recentMoviesArray,
+          id: "recent",
+          containerClass: "recently-watched-container",
+        },
+      ];
 
-    // Remove any fixed categories that have no movies (except My Fav which can be empty)
-    let initialCategories = fixedTopCategories.filter((category) => {
-      // if (category.id === "fav") return true; // Always show My Fav even if empty
-      return category.movies && category.movies.length > 0;
-    });
+      initialCategories = fixedTopCategories.concat(topCategories).filter(category => {
+          return category.movies && category.movies.length > 0;
+      });
 
-    // Add the first few API categories after the fixed ones
-    let apiCategoriesToLoad = apiCategories.slice(0, 3);
-    initialCategories = initialCategories.concat(apiCategoriesToLoad);
+      // Add the first few API categories after the fixed ones
+      let apiCategoriesToLoad = apiCategories.slice(0, 3);
+      initialCategories = initialCategories.concat(apiCategoriesToLoad);
 
-    // Set up the complete categories list (fixed top + all API categories)
-    window.allMoviesCategories = initialCategories.concat(
-      apiCategories.slice(3),
-    );
-
-    const searchQuery = getMoviesSearchQuery();
-    if (searchQuery) {
-      // During search, load more categories initially to ensure screen is full (infinite logic still applies)
-      moviesChunkLoadingState.loadedCategories = Math.min(
-        10,
-        window.allMoviesCategories.length,
+      // Set up the complete categories list (fixed top + all API categories)
+      window.allMoviesCategories = initialCategories.concat(
+        apiCategories.slice(3),
       );
-      initialCategories = window.allMoviesCategories.slice(
-        0,
-        moviesChunkLoadingState.loadedCategories,
-      );
-    } else {
+
       moviesChunkLoadingState.loadedCategories = initialCategories.length;
     }
 
