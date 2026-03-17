@@ -108,6 +108,10 @@
     pointer-events: none;
 }
 
+.home-card.focused:first-child {
+    margin-left: 10px;
+}
+
 .home-card.focused {
     border: 2px solid var(--dark-gold);
     transform: scale(1.05);

@@ -148,7 +148,7 @@ function getRecentlyWatchedSeries() {
     for (let i = 0; i < playlists.length; i++) {
       if (playlists[i].playlistUsername === username) {
         let recent = playlists[i].continueWatchingSeries || [];
-        return recent
+        return deduplicateStreamsByName(recent)
           .slice(0, 15)
           .map(formatSeriesData)
           .filter((s) => s !== null);
@@ -444,8 +444,9 @@ function loadSeriesChunk(category, categoryIndex) {
   }
 
   // Add View All button only for the first/top category (categoryIndex 0)
-  // Show menu icon by default, show full text on focus
+  // Wrap cards in scrollable div, keep menu icon outside for always-visible layout
   if (categoryIndex === 0 && loadedCount === 0 && totalSeries > 3 && !getSeriesSearchQuery()) {
+    cardsHTML = `<div class="view-all-cards-scroll">${cardsHTML}</div>`;
     cardsHTML += `<div class="series-card series-view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-series-id="view-all-cats">
                       <div class="view-all-content">
                         <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
@@ -672,10 +673,11 @@ function createSeriesCategorySection(category, categoryIndex) {
   }
   html += "</div>";
 
+  let viewAllRowClass = (categoryIndex === 0 && !getSeriesSearchQuery()) ? ' view-all-row' : '';
   html +=
     '<div class="series-card-list ' +
     category.id +
-    '-list" data-category="' +
+    '-list' + viewAllRowClass + '" data-category="' +
     categoryIndex +
     '">';
 
@@ -1575,6 +1577,17 @@ function updateSeriesFocus() {
       card.classList.add("focused");
       card.scrollIntoView({ block: "center", inline: "center" });
 
+      // When view-all-cats-btn is focused, scroll the cards container fully to the end
+      if (card.classList.contains("series-view-all-cats-btn")) {
+        const scrollContainer = card.closest(".series-card-list.view-all-row");
+        if (scrollContainer) {
+          const cardsScroll = scrollContainer.querySelector(".view-all-cards-scroll");
+          if (cardsScroll) {
+            cardsScroll.scrollLeft = cardsScroll.scrollWidth;
+          }
+        }
+      }
+
       const marquee = card.querySelector(".series-title-marquee");
       if (marquee && marquee.scrollWidth > marquee.clientWidth) {
         marquee.classList.add("marquee-active");
@@ -2198,15 +2211,19 @@ function SeriesPage() {
 
     let favouriteSeries =
       window.allSeriesStreams && currentPlaylistFavIds
-        ? filterSeriesByQuery(
-            window.allSeriesStreams.filter((s) =>
-              currentPlaylistFavIds.includes(s.series_id),
+        ? deduplicateStreamsByName(
+            filterSeriesByQuery(
+              window.allSeriesStreams.filter((s) =>
+                currentPlaylistFavIds.includes(s.series_id),
+              ),
             ),
           )
         : [];
     let popularSeries = window.allSeriesStreams
-      ? filterSeriesByQuery(
-          window.allSeriesStreams.filter((s) => s.rating_5based > 4),
+      ? deduplicateStreamsByName(
+          filterSeriesByQuery(
+            window.allSeriesStreams.filter((s) => s.rating_5based > 4),
+          )
         ).slice(0, 10)
       : [];
 
@@ -2219,9 +2236,11 @@ function SeriesPage() {
 
     let recentSeriesArray =
       window.allSeriesStreams && recentlyWatchedSeriesIds
-        ? filterSeriesByQuery(
-            window.allSeriesStreams.filter((m) =>
-              recentlyWatchedSeriesIds.includes(m.series_id.toString()),
+        ? deduplicateStreamsByName(
+            filterSeriesByQuery(
+              window.allSeriesStreams.filter((m) =>
+                recentlyWatchedSeriesIds.includes(m.series_id.toString()),
+              ),
             ),
           )
         : [];
@@ -2235,7 +2254,7 @@ function SeriesPage() {
         )
       : [];
 
-    recentlyAddedToTop = filterSeriesByQuery(recentlyAddedToTop).slice(0, 3);
+    recentlyAddedToTop = deduplicateStreamsByName(filterSeriesByQuery(recentlyAddedToTop)).slice(0, 3);
 
     if (!getSeriesSearchQuery()) {
       recentlyAddedToTop.push({

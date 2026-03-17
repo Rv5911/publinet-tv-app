@@ -144,7 +144,7 @@ function getRecentlyWatchedMovies() {
     for (let i = 0; i < playlists.length; i++) {
       if (playlists[i].playlistUsername === username) {
         let recent = playlists[i].continueWatchingMovies || [];
-        return recent
+        return deduplicateStreamsByName(recent)
           .slice(0, 15)
           .map(formatMovieData)
           .filter((m) => m !== null);
@@ -451,8 +451,9 @@ function loadMoviesChunk(category, categoryIndex) {
   }
 
   // Add View All button only for the first/top category (categoryIndex 0)
-  // Show menu icon by default, show full text on focus
+  // Wrap cards in scrollable div, keep menu icon outside for always-visible layout
   if (categoryIndex === 0 && loadedCount === 0 && totalMovies > 3 && !getMoviesSearchQuery()) {
+    cardsHTML = `<div class="view-all-cards-scroll">${cardsHTML}</div>`;
     cardsHTML += `<div class="movie-card view-all-cats-btn" data-category="${categoryIndex}" data-index="3" data-stream-id="view-all-cats">
                       <div class="view-all-content">
                         <div class="view-all-icon"><i class="fa-solid fa-bars"></i></div>
@@ -675,10 +676,11 @@ function createMoviesCategorySection(category, categoryIndex) {
   }
   html += "</div>";
 
+  let viewAllRowClass = (categoryIndex === 0 && !getMoviesSearchQuery()) ? ' view-all-row' : '';
   html +=
     '<div class="movies-card-list ' +
     category.id +
-    '-list" data-category="' +
+    '-list' + viewAllRowClass + '" data-category="' +
     categoryIndex +
     '">';
 
@@ -1463,6 +1465,17 @@ function updateMoviesFocus() {
       card.classList.add("focused");
       card.scrollIntoView({ block: "center", inline: "center" });
 
+      // When view-all-cats-btn is focused, scroll the cards container fully to the end
+      if (card.classList.contains("view-all-cats-btn")) {
+        const scrollContainer = card.closest(".movies-card-list.view-all-row");
+        if (scrollContainer) {
+          const cardsScroll = scrollContainer.querySelector(".view-all-cards-scroll");
+          if (cardsScroll) {
+            cardsScroll.scrollLeft = cardsScroll.scrollWidth;
+          }
+        }
+      }
+
       const marquee = card.querySelector(".movie-title-marquee");
       if (marquee && marquee.scrollWidth > marquee.clientWidth) {
         marquee.classList.add("marquee-active");
@@ -2087,16 +2100,20 @@ function MoviesPage() {
 
     let favouriteMovies =
       window.allMoviesStreams && currentPlaylistFavIds
-        ? filterStreamsByQuery(
-            window.allMoviesStreams.filter(
-              (m) => m && currentPlaylistFavIds.includes(m.stream_id),
+        ? deduplicateStreamsByName(
+            filterStreamsByQuery(
+              window.allMoviesStreams.filter(
+                (m) => m && currentPlaylistFavIds.includes(m.stream_id),
+              ),
             ),
           )
         : [];
 
     let popularMovies = window.allMoviesStreams
-      ? filterStreamsByQuery(
-          window.allMoviesStreams.filter((m) => m && m.rating_5based > 4),
+      ? deduplicateStreamsByName(
+          filterStreamsByQuery(
+            window.allMoviesStreams.filter((m) => m && m.rating_5based > 4),
+          )
         ).slice(0, 10)
       : [];
 
@@ -2109,9 +2126,11 @@ function MoviesPage() {
 
     let recentMoviesArray =
       window.allMoviesStreams && recentlyWatchedMoviesIds
-        ? filterStreamsByQuery(
-            window.allMoviesStreams.filter((m) =>
-              recentlyWatchedMoviesIds.includes(m.stream_id.toString()),
+        ? deduplicateStreamsByName(
+            filterStreamsByQuery(
+              window.allMoviesStreams.filter((m) =>
+                recentlyWatchedMoviesIds.includes(m.stream_id.toString()),
+              ),
             ),
           )
         : [];
@@ -2125,7 +2144,7 @@ function MoviesPage() {
         )
       : [];
 
-    recentlyAddedToTop = filterStreamsByQuery(recentlyAddedToTop).slice(0, 3);
+    recentlyAddedToTop = deduplicateStreamsByName(filterStreamsByQuery(recentlyAddedToTop)).slice(0, 3);
 
     if (!getMoviesSearchQuery()) {
       recentlyAddedToTop.push({
