@@ -1924,6 +1924,9 @@ function LivePage() {
         }
       }
     } else if (focusedSection === "channelSearch") {
+      // Blur the channel search input before navigating
+      const chanInput = document.getElementById("lp-chan-search-input");
+      if (chanInput) chanInput.blur();
       // From Channel Search
       const videoWrapper = document.querySelector(".lp-video-wrapper");
       const hasVideo =
@@ -1944,8 +1947,6 @@ function LivePage() {
           '.nav-item[data-page="liveTvPage"]',
         );
         if (navItem) navItem.focus();
-        const chanInput = document.getElementById("lp-chan-search-input");
-        if (chanInput) chanInput.blur();
       } else {
         // Video is playing
         focusedSection = "player";
@@ -1992,6 +1993,9 @@ function LivePage() {
       resetControlsTimer(); // If visible and moving, keep them visible
     }
     if (focusedSection === "sidebarSearch") {
+      // Blur the category search input before navigating
+      const catInput = document.getElementById("lp-cat-search-input");
+      if (catInput) catInput.blur();
       focusedSection = "sidebar";
       sidebarIndex = 0;
     } else if (focusedSection === "sidebar") {
@@ -2045,6 +2049,9 @@ function LivePage() {
         epgIndex = -1;
       }
     } else if (focusedSection === "channelSearch") {
+      // Blur the channel search input before navigating
+      const chanInput = document.getElementById("lp-chan-search-input");
+      if (chanInput) chanInput.blur();
       focusedSection = "channels";
       channelIndex = 0;
       buttonFocusIndex = -1;
@@ -2106,6 +2113,9 @@ function LivePage() {
         playerSubFocus = 0;
       }
     } else if (focusedSection === "channelSearch") {
+      // Blur the channel search input before navigating
+      const chanInput = document.getElementById("lp-chan-search-input");
+      if (chanInput) chanInput.blur();
       focusedSection = "sidebar";
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex > 0) {
@@ -2131,6 +2141,11 @@ function LivePage() {
       resetControlsTimer(); // If visible and moving, keep them visible
     }
     if (focusedSection === "sidebar" || focusedSection === "sidebarSearch") {
+      // Blur the category search input if in search mode
+      if (focusedSection === "sidebarSearch") {
+        const catInput = document.getElementById("lp-cat-search-input");
+        if (catInput) catInput.blur();
+      }
       // BLOCK navigation to channels if the category is locked
       const cats = getFilteredCategories();
       const currentCat = cats[sidebarIndex];
@@ -2565,6 +2580,24 @@ function LivePage() {
         focusedSection = "sidebarSearch";
         updateFocus();
       });
+      catInput.addEventListener("keydown", (e) => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          catInput.blur();
+          if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+            focusedSection = "sidebar";
+            sidebarIndex = 0;
+          } else if (e.key === "ArrowUp") {
+            focusedSection = "player";
+            playerSubFocus = 0;
+          } else if (e.key === "ArrowLeft") {
+            focusedSection = "sidebar";
+            sidebarIndex = 0;
+          }
+          updateFocus();
+        }
+      });
     }
 
     const chanInput = document.getElementById("lp-chan-search-input");
@@ -2578,6 +2611,27 @@ function LivePage() {
         localStorage.setItem("navigationFocus", "liveTvPage");
         focusedSection = "channelSearch";
         updateFocus();
+      });
+      // Handle arrow keys to blur input and navigate
+      chanInput.addEventListener("keydown", (e) => {
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          chanInput.blur();
+          // Update focusedSection immediately to prevent double navigation in document handler
+          if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+            focusedSection = "channels";
+            channelIndex = 0;
+            buttonFocusIndex = -1;
+          } else if (e.key === "ArrowUp") {
+            focusedSection = "player";
+            playerSubFocus = 1;
+          } else if (e.key === "ArrowLeft") {
+            focusedSection = "sidebar";
+            sidebarIndex = 0;
+          }
+          updateFocus();
+        }
       });
     }
   };
