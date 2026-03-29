@@ -61,7 +61,7 @@ function updateLoadingPercentage(targetPercentage, message = "") {
 
     const easeOutQuart = 1 - Math.pow(1 - progress, 4);
     const currentValue = Math.round(
-      startPercentage + (targetPercentage - startPercentage) * easeOutQuart
+      startPercentage + (targetPercentage - startPercentage) * easeOutQuart,
     );
 
     currentLoadingValue = currentValue;
@@ -93,7 +93,7 @@ async function loginApi(
   password,
   playlistName,
   fromPlaylist = false,
-  playlistUrl = ""
+  playlistUrl = "",
 ) {
   const defaultDns = "http://mega2025.site:8080/";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
@@ -109,7 +109,7 @@ async function loginApi(
     const duplicate = existingPlaylists.find(
       (p) =>
         p.playlistName.toLowerCase().trim() ===
-        playlistName.toLowerCase().trim()
+        playlistName.toLowerCase().trim(),
     );
 
     if (duplicate) {
@@ -132,6 +132,11 @@ async function loginApi(
     loadingOverlay.classList.add("hidden");
     resetLoadingPercentage();
     Toaster.showToast("error", "Login Aborted!");
+    if (localStorage.getItem("currentPage") == "preLoginPage") {
+      localStorage.removeItem("isLogin");
+      localStorage.setItem("currentPage", "login");
+      Router.showPage("login");
+    }
   });
 
   try {
@@ -164,7 +169,7 @@ async function loginApi(
 
             localStorage.setItem(
               "selectedPlaylist",
-              JSON.stringify(newPlaylist)
+              JSON.stringify(newPlaylist),
             );
             const newCurrentPlaylistData = {
               ...data,
@@ -172,7 +177,7 @@ async function loginApi(
             };
             localStorage.setItem(
               "currentPlaylistData",
-              JSON.stringify(newCurrentPlaylistData)
+              JSON.stringify(newCurrentPlaylistData),
             );
 
             updateLoadingPercentage(30, "Loading movies data...");
@@ -230,7 +235,7 @@ async function loginApi(
               existingPlaylists.push(newPlaylist);
               localStorage.setItem(
                 "playlistsData",
-                JSON.stringify(existingPlaylists)
+                JSON.stringify(existingPlaylists),
               );
             }
 
@@ -254,10 +259,11 @@ async function loginApi(
         if (loginCancelled) return null;
 
         console.log("❌ Failed to load playlist:", playlistUrl, error);
+        
         throw new Error(
-          `Invalid Playlist URL ${
+          `Invalid Credentials ${
             lastStatusCode ? `(Status: ${lastStatusCode})` : ""
-          }`
+          }`,
         );
       }
     }
@@ -282,7 +288,7 @@ async function loginApi(
         if (!response.ok) {
           lastStatusCode = response.status;
           console.log(
-            `❌ Failed DNS: ${dnsToCheck[i]} (Status: ${response.status})`
+            `❌ Failed DNS: ${dnsToCheck[i]} (Status: ${response.status})`,
           );
           continue;
         }
@@ -302,7 +308,7 @@ async function loginApi(
 
             localStorage.setItem(
               "selectedPlaylist",
-              JSON.stringify(newPlaylist)
+              JSON.stringify(newPlaylist),
             );
             const newCurrentPlaylistData = {
               ...data,
@@ -310,7 +316,7 @@ async function loginApi(
             };
             localStorage.setItem(
               "currentPlaylistData",
-              JSON.stringify(newCurrentPlaylistData)
+              JSON.stringify(newCurrentPlaylistData),
             );
 
             updateLoadingPercentage(35, "Loading movies data...");
@@ -366,7 +372,7 @@ async function loginApi(
               existingPlaylists.push(newPlaylist);
               localStorage.setItem(
                 "playlistsData",
-                JSON.stringify(existingPlaylists)
+                JSON.stringify(existingPlaylists),
               );
             }
 
@@ -398,7 +404,7 @@ async function loginApi(
       throw new Error(
         `Invalid Credentials${
           lastStatusCode ? ` (Status: ${lastStatusCode})` : ""
-        }`
+        }`,
       );
     }
   } catch (error) {
@@ -406,6 +412,10 @@ async function loginApi(
 
     console.log("❌ Login failed:", error);
     updateLoadingPercentage(100, "Login failed");
+        if (localStorage.getItem("currentPage") == "listPage") {
+      localStorage.setItem("currentPage", "listPage");
+      Router.showPage("listPage");
+    }
 
     // Check if it's an "Invalid Playlist Data" error
     const isInvalidPlaylistError =
@@ -432,7 +442,7 @@ async function loginApi(
 
         Toaster.showToast(
           "error",
-          "Invalid Playlist Data. Please login again."
+          "Invalid Playlist Data. Please login again.",
         );
       } else {
         // Show normal error toast
@@ -449,7 +459,7 @@ async function getMoviesCategories() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_vod_categories`
+        `${selectedPlaylist.playlistUrl}&action=get_vod_categories`,
       );
       if (!response.ok) throw new Error("Failed to fetch categories");
       return await response.json();
@@ -466,7 +476,7 @@ async function getAllVodMovies() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_vod_streams`
+        `${selectedPlaylist.playlistUrl}&action=get_vod_streams`,
       );
       if (!response.ok) throw new Error("Failed to fetch movies");
       return await response.json();
@@ -482,7 +492,7 @@ async function getMovieDetail(movieId) {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_vod_info&vod_id=${movieId}`
+        `${selectedPlaylist.playlistUrl}&action=get_vod_info&vod_id=${movieId}`,
       );
       if (!response.ok) throw new Error("Failed to fetch movies");
       return await response.json();
@@ -499,7 +509,7 @@ async function getAllVodSeries() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_series`
+        `${selectedPlaylist.playlistUrl}&action=get_series`,
       );
       if (!response.ok) throw new Error("Failed to fetch get_series");
       return await response.json();
@@ -515,7 +525,7 @@ async function getSeriesCategories() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_series_categories`
+        `${selectedPlaylist.playlistUrl}&action=get_series_categories`,
       );
       if (!response.ok)
         throw new Error("Failed to get_series_categories categories");
@@ -532,7 +542,7 @@ async function getSeriesDetail(seriesId) {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_series_info&series_id=${seriesId}`
+        `${selectedPlaylist.playlistUrl}&action=get_series_info&series_id=${seriesId}`,
       );
       if (!response.ok) throw new Error("Failed to get_series_detail item");
       return await response.json();
@@ -549,7 +559,7 @@ async function getAllLiveStreams() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_live_streams`
+        `${selectedPlaylist.playlistUrl}&action=get_live_streams`,
       );
       if (!response.ok) throw new Error("Failed to fetch get_live_streams");
       return await response.json();
@@ -565,7 +575,7 @@ async function getLiveCategories() {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_live_categories`
+        `${selectedPlaylist.playlistUrl}&action=get_live_categories`,
       );
       if (!response.ok)
         throw new Error("Failed to get_live_categories categories");
@@ -581,8 +591,8 @@ async function getSeriesTmbdId(seriesName) {
   try {
     const response = await fetch(
       `https://api.themoviedb.org/3/search/tv?api_key=${localStorage.getItem(
-        "tmbdId"
-      )}&query=${seriesName}`
+        "tmbdId",
+      )}&query=${seriesName}`,
     );
 
     if (!response.ok) throw new Error("Failed to fetch getSeriesTmbdId");
@@ -596,8 +606,8 @@ async function getSeriesCast(seriesId) {
   try {
     const response = await fetch(
       `https://api.themoviedb.org/3/tv/${seriesId}/credits?api_key=${localStorage.getItem(
-        "tmbdId"
-      )}`
+        "tmbdId",
+      )}`,
     );
     if (!response.ok) throw new Error("Failed to fetch getSeriesCasts");
     return await response.json();
@@ -610,8 +620,8 @@ async function getMovieCast(movies_tmbd_id) {
   try {
     const repsonse = await fetch(
       `https://api.themoviedb.org/3/movie/${movies_tmbd_id}/credits?api_key=${localStorage.getItem(
-        "tmbdId"
-      )}`
+        "tmbdId",
+      )}`,
     );
 
     if (!repsonse.ok) throw new Error("Failed to fetch getMovieCast");
@@ -626,7 +636,7 @@ async function getLiveStreamEpg(liveStreamId) {
   try {
     if (selectedPlaylist) {
       const response = await fetch(
-        `${selectedPlaylist.playlistUrl}&action=get_short_epg&stream_id=${liveStreamId}`
+        `${selectedPlaylist.playlistUrl}&action=get_short_epg&stream_id=${liveStreamId}`,
       );
       if (!response.ok) throw new Error("Failed to fetch getLiveStreamEpg");
       return await response.json();
