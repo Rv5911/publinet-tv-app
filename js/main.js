@@ -6,12 +6,12 @@ window.onload = function () {
   window.allLiveStreams = [];
   window.liveCategories = [];
 
-  if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
-    const keys = tizen.tvinputdevice.getSupportedKeys();
-    keys.forEach((key) => {
-      tizen.tvinputdevice.registerKey(key.name);
-    });
-  }
+  // if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
+  //   const keys = tizen.tvinputdevice.getSupportedKeys();
+  //   keys.forEach((key) => {
+  //     tizen.tvinputdevice.registerKey(key.name);
+  //   });
+  // }
 
   document.addEventListener("keydown", (e) => {
     if (localStorage.getItem("currentPage") !== "dashboard") {
