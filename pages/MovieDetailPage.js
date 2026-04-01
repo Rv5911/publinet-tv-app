@@ -384,7 +384,9 @@ async function MovieDetailPage() {
             Router.showPage("videoJsPlayer");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
-          } else alert("No trailer available");
+          } else {
+            console.log("Trailer not available");
+          }
         }
 
         if (focused === favBtn) {
@@ -414,7 +416,7 @@ async function MovieDetailPage() {
               );
             }
           } else {
-            alert(res.message || "Unable to update favorites");
+            console.log( "Unable to update favorites")
           }
         }
       }

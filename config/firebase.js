@@ -22,7 +22,7 @@ window.logAllDnsEntries = function () {
 
     })
     .catch(function (error) {
-      alert("Error getting DNS entries: " + error.message);
+      console.log("Error getting DNS entries: " + error.message);
     });
 };
 
@@ -37,6 +37,6 @@ window.getTmbdId = function () {
 
     })
     .catch(function (error) {
-      alert("Error getting TMDBID entries: " + error.message);
+      console.log("Error getting TMDBID entries: " + error.message);
     });
 };

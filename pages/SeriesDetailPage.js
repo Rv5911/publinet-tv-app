@@ -1195,7 +1195,8 @@ async function SeriesDetailPage() {
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
           } else {
-            alert("No trailer available");
+            
+            console.log(" No Tralier Found")
           }
         } else if (focused === favBtn) {
           const result = toggleFavoriteItem(

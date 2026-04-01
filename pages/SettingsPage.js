@@ -112,7 +112,7 @@ function SettingsPage() {
         container.innerHTML = ParentalControl();
         setupSubPageCleanup();
       } else if (item.classList.contains("clear-app-cache")) {
-        alert("Clear App Cache selected");
+        console.log("Clear App Cache")
       }
     }
 
