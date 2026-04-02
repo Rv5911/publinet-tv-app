@@ -41,6 +41,7 @@ function VideoJsPlayer(poster = "") {
 
     let player = null;
     let overlayTimeout;
+    let controlsTimer = null; // 🔴 NEW: For 5s auto-hide
     let errorActive = false;
     let currentTimeEl = null;
     let durationEl = null;
@@ -315,8 +316,8 @@ function VideoJsPlayer(poster = "") {
             targetOverlay.classList.remove("hidden");
 
             clearTimeout(overlayTimeout);
-            // Don't auto-hide pause overlay
-            if (type !== "pause") {
+            // Don't auto-hide pause overlay OR focused play overlay
+            if (type !== "pause" && !isPlayPauseFocused) {
                 overlayTimeout = setTimeout(() => {
                     targetOverlay.classList.add("hidden");
                 }, 1000);
@@ -334,6 +335,12 @@ function VideoJsPlayer(poster = "") {
             isPlayPauseFocused = true;
             isSeekBarFocused = false;
             isAspectRatioFocused = false;
+
+            // Ensure play/pause overlay is visible when focused
+            playOverlay.classList.remove("hidden");
+            // Also ensure controls are visible when focused
+            const controlsBar = document.querySelector(".custom-video-controls");
+            if (controlsBar) controlsBar.classList.remove("hidden");
 
             // Add focused class to play overlay
             playOverlay.classList.add("focused");
@@ -399,6 +406,50 @@ function VideoJsPlayer(poster = "") {
         if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
     }
 
+    // 🔴 NEW: Functions for auto-hiding controls
+    function hideAllControls() {
+        const controlsBar = document.querySelector(".custom-video-controls");
+        const titleBar = document.querySelector(".video-title-bar");
+        const playOverlay = document.querySelector(".video-action-overlay.center");
+
+        if (controlsBar) controlsBar.classList.add("hidden");
+        if (titleBar) titleBar.style.display = "none";
+        if (playOverlay) playOverlay.classList.add("hidden");
+
+        // Remove visual focus classes BUT KEEP state variables (isSeekBarFocused, etc.)
+        const seekBar = document.getElementById("customSeek");
+        const aspectRatioButton = document.getElementById("aspectRatioButton");
+        if (seekBar) seekBar.classList.remove("focused");
+        if (playOverlay) playOverlay.classList.remove("focused");
+        if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
+    }
+
+    function showAllControls() {
+        const controlsBar = document.querySelector(".custom-video-controls");
+        const titleBar = document.querySelector(".video-title-bar");
+        const playOverlay = document.querySelector(".video-action-overlay.center");
+
+        if (controlsBar) controlsBar.classList.remove("hidden");
+        if (titleBar) titleBar.style.display = "flex";
+        if (playOverlay) playOverlay.classList.remove("hidden");
+    }
+
+    function resetControlsTimer() {
+        if (controlsTimer) {
+            clearTimeout(controlsTimer);
+            controlsTimer = null;
+        }
+
+        // Don't auto-hide if player isn't playing or in error
+        if (!player || player.paused() || errorActive) return;
+
+        controlsTimer = setTimeout(() => {
+            if (player && !player.paused() && !errorActive) {
+                hideAllControls();
+            }
+        }, 5000);
+    }
+
     function initPlayer(attempt = 0) {
         const videoElement = document.getElementById("videojs-player-tag");
         if (!videoElement) {
@@ -459,6 +510,14 @@ function VideoJsPlayer(poster = "") {
         }
 
         player = videojs(videoElement, options);
+
+        player.ready(() => {
+            if (player.paused() && !userManuallyPaused && !errorActive) {
+                player.play().catch((err) => {
+                    console.log("Initial auto-play failed, will retry on canplay:", err);
+                });
+            }
+        });
 
         player.on("seeking", () => {
             console.log("Seeking started...");
@@ -637,8 +696,18 @@ function VideoJsPlayer(poster = "") {
         player.on("canplay", () => {
             if (!errorActive) {
                 loadingEl.classList.add("hidden");
-                // If we're paused after loading completes, show pause overlay again
-                if (player.paused() && !isSeekBarDragging) {
+                // 🔴 UPDATED: Auto-play if not manually paused and not dragging seek bar
+                if (
+                    player.paused() &&
+                    !isSeekBarDragging &&
+                    !userManuallyPaused &&
+                    !errorActive
+                ) {
+                    player.play().catch((err) => {
+                        console.log("Auto-play on canplay failed:", err);
+                    });
+                } else if (player.paused() && !isSeekBarDragging) {
+                    // Show pause overlay if user manually paused or is seeking
                     showOverlay("pause");
                 }
             }
@@ -674,11 +743,11 @@ function VideoJsPlayer(poster = "") {
 
         player.on("playing", () => {
             if (!errorActive) {
-                hasStartedPlayingOnce = true; // Mark that video has started playing
+                hasStartedPlayingOnce = true;
                 loadingEl.classList.add("hidden");
-                controlsBar.classList.add("hidden");
-                titleBar.style.display = "none";
-
+                // Reset timer when playing starts
+                resetControlsTimer();
+                
                 // Only show play overlay if we're not seeking
                 if (!isSeekBarDragging && !player.seeking()) {
                     showOverlay("play");
@@ -1241,6 +1310,11 @@ function VideoJsPlayer(poster = "") {
             const key = e.keyCode || e.which;
             const keyChar = e.key;
 
+            // Reset auto-hide timer on any key press
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.key)) {
+                resetControlsTimer();
+            }
+
             // Tizen Volume Controls with keyboard (w/s/m)
             if (typeof window.tizen !== "undefined" && window.tizen.tvaudiocontrol) {
                 if (keyChar === "w") {
@@ -1341,6 +1415,21 @@ function VideoJsPlayer(poster = "") {
                     goBack();
                 }
                 return;
+            }
+
+            // 🔴 If arrow keys are pressed and controls are hidden, show them and reset timer
+            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.key)) {
+                const controlsBarWrapper = document.querySelector(".custom-video-controls");
+                if (controlsBarWrapper && controlsBarWrapper.classList.contains("hidden")) {
+                    showAllControls();
+                    // Restore focus to wherever it was, or default to play/pause
+                    if (isSeekBarFocused) focusSeekBar();
+                    else if (isAspectRatioFocused) focusAspectRatio();
+                    else focusPlayPause();
+                }
+                resetControlsTimer();
+                // 🔴 NOTE: We removed the 'return' here so the first key press 
+                // BOTH shows the UI and performs the action (like seeking)
             }
 
             // 🔴 UPDATED: Aspect ratio button navigation logic

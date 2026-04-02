@@ -214,6 +214,16 @@ function LivePage() {
       window.livePlayer = null;
     }
 
+    if (window._controlsTimer) {
+      clearTimeout(window._controlsTimer);
+      window._controlsTimer = null;
+    }
+
+    if (window._volDisplayTimeout) {
+      clearTimeout(window._volDisplayTimeout);
+      window._volDisplayTimeout = null;
+    }
+
     window.removeEventListener(
       "navigation-focus-change",
       handleNavigationFocusChange,
@@ -1194,15 +1204,6 @@ function LivePage() {
       // Stop Player Logic
       const videoWrapper = document.querySelector(".lp-video-wrapper");
       if (videoWrapper) {
-        if (
-          typeof LiveVideoJsComponent !== "undefined" &&
-          typeof LiveVideoJsComponent.cleanup === "function"
-        ) {
-          try {
-            LiveVideoJsComponent.cleanup();
-          } catch (err) {}
-        }
-
         if (window.livePlayer) {
           try {
             window.livePlayer.dispose();
@@ -1288,12 +1289,6 @@ function LivePage() {
       const currentStreamId = videoEl ? videoEl.dataset.streamId : null;
 
       if (currentStreamId !== String(stream.stream_id)) {
-        if (typeof LiveVideoJsComponent.cleanup === "function") {
-          try {
-            LiveVideoJsComponent.cleanup();
-          } catch (err) {}
-        }
-
         if (window.livePlayer) {
           try {
             window.livePlayer.dispose();
@@ -1301,23 +1296,8 @@ function LivePage() {
           window.livePlayer = null;
         }
 
-        const currentPlaylist = getCurrentPlaylist();
-        const isTs =
-          (currentPlaylist.streamFormat
-            ? currentPlaylist.streamFormat
-            : ""
-          ).toLowerCase() === "ts";
-
-        if (isTs && typeof FlowLivePlayerComponent === "function") {
+        if (typeof FlowLivePlayerComponent === "function") {
           videoWrapper.innerHTML = FlowLivePlayerComponent(
-            stream.stream_id,
-            liveVideoUrl,
-            stream.stream_icon,
-            "100%",
-            stream.name || "",
-          );
-        } else if (typeof LiveVideoJsComponent === "function") {
-          videoWrapper.innerHTML = LiveVideoJsComponent(
             stream.stream_id,
             liveVideoUrl,
             stream.stream_icon,

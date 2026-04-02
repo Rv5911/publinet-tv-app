@@ -1280,6 +1280,7 @@ function initNavbar() {
 
   function handleLogOut() {
     // Clear HomeCarousel cache
+              disposeLiveTvPlayer();
     window.homeCarouselCachedSliderData = null;
     window.homeCarouselCachedPlaylistName = null;
 
@@ -1374,7 +1375,7 @@ function initNavbar() {
     });
     document.dispatchEvent(sortEvent);
 
-    console.log(`Sorting by: ${sortType}`);
+    // console.log(`Sorting by: ${sortType}`);
 
     // FIX: Restore navigationFocus to sidebar because page re-render might have stolen it
     if (sidebar && !sidebar.classList.contains("hidden")) {

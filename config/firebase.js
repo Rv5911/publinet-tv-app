@@ -31,7 +31,7 @@ window.getTmbdId = function () {
     .then(function (snapshot) {
       snapshot.forEach(function (doc) {
         const tmbdId=doc.data().tmbd_api_key? doc.data().tmbd_api_key : ""
-        console.log("TMDBID Entry:", doc.id, "=>", tmbdId);
+        // console.log("TMDBID Entry:", doc.id, "=>", tmbdId);
         localStorage.setItem("tmbdId", tmbdId);
       });
 

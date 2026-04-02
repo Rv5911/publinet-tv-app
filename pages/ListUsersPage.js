@@ -48,7 +48,7 @@ function ListUsersPage() {
       cards.forEach((card) => {
         const img = card.querySelector("img");
         card.classList.remove("playlist-card-focused");
-        img.src = "/assets/playlist-icon.png";
+        img.src = "./assets/playlist-icon.png";
         img.style.backgroundColor = "";
       });
 
@@ -56,7 +56,7 @@ function ListUsersPage() {
         const card = rows[currentRow][currentCol];
         card.classList.add("playlist-card-focused");
         const img = card.querySelector("img");
-        img.src = "/assets/playlist-icon-active.png";
+        img.src = "./assets/playlist-icon-active.png";
         img.style.backgroundColor = "var(--gold)";
 
         if (currentRow === 0) {
@@ -336,7 +336,7 @@ function ListUsersPage() {
     .map(
       (user) => `
       <div class="playlist-card">
-        <img src="/assets/playlist-icon.png" alt="Logo" class="list-top-logo" />
+        <img src="./assets/playlist-icon.png" alt="Logo" class="list-top-logo" />
         <div class="playlist-card-content">
           <p class="playlist-card-title">${user ? user.playlistName : "N/A"}</p>
           <p class="playlist-card-username">${
@@ -352,7 +352,7 @@ function ListUsersPage() {
     <div class="list-users-container">
  
       <div class="list-users-navbar">
-        <img src="/assets/main-logo.png" alt="Logo" class="list-logo" />
+        <img src="./assets/main-logo.png" alt="Logo" class="list-logo" />
         <p>List Users</p>
         <button>Add User</button>
       </div>

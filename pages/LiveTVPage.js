@@ -177,17 +177,6 @@ function LiveTvPage() {
             const currentStreamId = videoEl ? videoEl.dataset.streamId : null;
             if (currentStreamId !== streamId) {
                 // Clean up existing player before creating new one
-                if (typeof LiveVideoJsComponent.cleanup === "function") {
-                    try {
-                        LiveVideoJsComponent.cleanup();
-                    } catch (err) {
-                        console.warn(
-                            "LiveVideoJsComponent cleanup error during channel change:",
-                            err
-                        );
-                    }
-                }
-
                 // Fallback cleanup for window.livePlayer
                 if (window.livePlayer) {
                     try {
@@ -210,23 +199,13 @@ function LiveTvPage() {
                 )[0];
 
                 console.log(currentPlaylist, "currentPlaylistcurrentPlaylist");
-                const isTs =
-                    (currentPlaylist.streamFormat || "").toLowerCase() === "ts";
-                videoWrapper.innerHTML = isTs ?
-                    FlowLivePlayerComponent(
-                        card.dataset.streamId,
-                        liveVideoUrl,
-                        card.dataset.logo,
-                        "30vh",
-                        card.dataset.name || ""
-                    ) :
-                    LiveVideoJsComponent(
-                        card.dataset.streamId,
-                        liveVideoUrl,
-                        card.dataset.logo,
-                        "30vh",
-                        card.dataset.name || ""
-                    );
+                videoWrapper.innerHTML = FlowLivePlayerComponent(
+                    card.dataset.streamId,
+                    liveVideoUrl,
+                    card.dataset.logo,
+                    "30vh",
+                    card.dataset.name || ""
+                );
             } else {
                 // Same stream, just ensure player is visible and playing
                 if (window.livePlayer && typeof window.livePlayer.play === "function") {
@@ -4477,14 +4456,6 @@ function LiveTvPage() {
             removeVolumeHandlers();
 
             // Call LiveVideoJsComponent cleanup if it exists
-            if (typeof LiveVideoJsComponent.cleanup === "function") {
-                try {
-                    LiveVideoJsComponent.cleanup();
-                } catch (err) {
-                    console.warn("LiveVideoJsComponent cleanup error:", err);
-                }
-            }
-
             // Fallback cleanup for window.livePlayer
             if (window.livePlayer) {
                 try {

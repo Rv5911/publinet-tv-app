@@ -23,6 +23,10 @@ function FlowLivePlayerComponent(
     currentPlaylist && currentPlaylist.timeFormat
       ? currentPlaylist.timeFormat
       : "12hrs";
+  const streamFormat =
+    currentPlaylist && currentPlaylist.streamFormat
+      ? currentPlaylist.streamFormat.toLowerCase()
+      : "m3u8";
 
   let epgData = [];
   if (streamId) {
@@ -213,8 +217,8 @@ function FlowLivePlayerComponent(
 
     showLoader();
 
-    const hlsUrl = srcUrl.replace(/\.ts(\?.*)?$/i, function (m, q) {
-      return `.m3u8${q || ""}`;
+    const hlsUrl = srcUrl.replace(/\.(ts|m3u8)(\?.*)?$/i, function (m, ext, q) {
+      return `.${streamFormat}${q || ""}`;
     });
     const fpContainer = document.getElementById(id);
 
@@ -304,7 +308,24 @@ function FlowLivePlayerComponent(
         dispose: function () {
           try {
             fp.unload();
+            fp.off(); // Remove all flowplayer internal listeners
           } catch {}
+          
+          // Remove volume and keydown handlers
+          if (window._flowLiveTvVolumeHandler) {
+            document.removeEventListener("keydown", window._flowLiveTvVolumeHandler);
+            window._flowLiveTvVolumeHandler = null;
+          }
+          
+          // Remove fullscreen listener
+          document.removeEventListener("fullscreenchange", handleFullscreenChange);
+          document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+          
+          // Remove aspect ratio listener
+          const aspectRatioButton = document.getElementById("flow-aspect-ratio");
+          if (aspectRatioButton) {
+            aspectRatioButton.removeEventListener("click", handleAspectRatioChange);
+          }
         },
       };
 
@@ -411,6 +432,7 @@ function FlowLivePlayerComponent(
       };
       fp.on("fullscreen", handleFullscreenChange);
       document.addEventListener("fullscreenchange", handleFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
       handleFullscreenChange();
 
       const retryBtn = document.querySelector(".retry-btn");
@@ -511,9 +533,9 @@ function FlowLivePlayerComponent(
       <div id="${id}" class="flowplayer" style="height:100%; width:100%;">
         <video class="flowplayer-video-player">
           <source type="application/x-mpegURL" src="${srcUrl.replace(
-            /\.ts(\?.*)?$/i,
-            function (m, q) {
-              return `.m3u8${q || ""}`;
+            /\.(ts|m3u8)(\?.*)?$/i,
+            function (m, ext, q) {
+              return `.${streamFormat}${q || ""}`;
             }
           )}">
         </video>
