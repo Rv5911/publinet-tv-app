@@ -338,12 +338,13 @@ function VideoJsPlayer(poster = "") {
 
             // Ensure play/pause overlay is visible when focused
             playOverlay.classList.remove("hidden");
-            // Also ensure controls are visible when focused
-            const controlsBar = document.querySelector(".custom-video-controls");
-            if (controlsBar) controlsBar.classList.remove("hidden");
-
-            // Add focused class to play overlay
             playOverlay.classList.add("focused");
+
+            // Restore all controls and title bar when focusing center icon
+            const controlsBar = document.querySelector(".custom-video-controls");
+            const titleBar = document.querySelector(".video-title-bar");
+            if (controlsBar) controlsBar.classList.remove("hidden");
+            if (titleBar) titleBar.style.display = "flex";
 
             // Remove focused class from seek bar and aspect ratio button
             if (seekBar) seekBar.classList.remove("focused");
@@ -357,16 +358,20 @@ function VideoJsPlayer(poster = "") {
         const playOverlay = document.querySelector(".video-action-overlay.center");
         const aspectRatioButton = document.getElementById("aspectRatioButton");
 
-        if (seekBar && playOverlay) {
+        if (seekBar) {
             isSeekBarFocused = true;
             isPlayPauseFocused = false;
             isAspectRatioFocused = false;
 
-            // Add focused class to seek bar
+            // Ensure seek bar is visible and focused
             seekBar.classList.add("focused");
 
-            // Remove focused class from play overlay and aspect ratio button
-            playOverlay.classList.remove("focused");
+            // Ensure controls bar is visible
+            const controlsBar = document.querySelector(".custom-video-controls");
+            if (controlsBar) controlsBar.classList.remove("hidden");
+
+            // Remove focused class from others
+            if (playOverlay) playOverlay.classList.remove("focused");
             if (aspectRatioButton) aspectRatioButton.classList.remove("focused");
         }
     }
@@ -752,9 +757,6 @@ function VideoJsPlayer(poster = "") {
                 if (!isSeekBarDragging && !player.seeking()) {
                     showOverlay("play");
                 }
-
-                // Remove focus when playing
-                unfocusAll();
 
                 // Reset manual pause flag when video starts playing
                 userManuallyPaused = false;
@@ -1550,8 +1552,18 @@ function VideoJsPlayer(poster = "") {
             if (isPlayPauseFocused) {
                 switch (e.key) {
                     case "ArrowDown":
-                        // Move focus to seek bar
-                        focusSeekBar();
+                        // Move focus to seek bar if not live
+                        if (!isLive) {
+                            focusSeekBar();
+                        } else {
+                            focusAspectRatio();
+                        }
+                        e.preventDefault();
+                        break;
+
+                    case "ArrowUp":
+                        // Keep focus on play/pause or show title
+                        focusPlayPause();
                         e.preventDefault();
                         break;
 
@@ -1580,8 +1592,7 @@ function VideoJsPlayer(poster = "") {
                         ) {
                             try {
                                 // Show controls
-                                if (controlsBar) controlsBar.classList.remove("hidden");
-                                if (titleBar) titleBar.style.display = "flex";
+                                showAllControls();
                                 // Use debounced seek to prevent buffer overload
                                 debouncedSeek(10);
                                 showOverlay("forward");
@@ -1601,8 +1612,7 @@ function VideoJsPlayer(poster = "") {
                         ) {
                             try {
                                 // Show controls
-                                if (controlsBar) controlsBar.classList.remove("hidden");
-                                if (titleBar) titleBar.style.display = "flex";
+                                showAllControls();
                                 // Use debounced seek to prevent buffer overload
                                 debouncedSeek(-10);
                                 showOverlay("backward");
@@ -1615,7 +1625,7 @@ function VideoJsPlayer(poster = "") {
                 }
 
                 // If we handled the key in play/pause mode, return
-                if (["ArrowDown", "Enter", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+                if (["ArrowUp", "ArrowDown", "Enter", "ArrowLeft", "ArrowRight"].includes(e.key)) {
                     return;
                 }
             }
