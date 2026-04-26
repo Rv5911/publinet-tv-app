@@ -1404,16 +1404,8 @@ function VideoJsPlayer(poster = "") {
                 }
             }
 
-            // Error handling → Enter & Back keys = goBack()
             if (errorActive) {
-                if (
-                    e.key === "Enter" ||
-                    e.key === "Escape" ||
-                    e.key === "Back" ||
-                    e.key === "BrowserBack" ||
-                    e.key === "XF86Back" ||
-                    key === 10009
-                ) {
+                if (e.key === "Enter" || isBackKey(e)) {
                     goBack();
                 }
                 return;
@@ -1457,12 +1449,11 @@ function VideoJsPlayer(poster = "") {
                             e.preventDefault();
                             break;
 
-                        case "Escape":
-                        case "Back":
-                        case "BrowserBack":
-                        case "XF86Back":
-                            goBack();
-                            e.preventDefault();
+                        default:
+                            if (isBackKey(e)) {
+                                goBack();
+                                e.preventDefault();
+                            }
                             break;
                     }
                 }
@@ -1536,12 +1527,11 @@ function VideoJsPlayer(poster = "") {
                             e.preventDefault();
                             break;
 
-                        case "Escape":
-                        case "Back":
-                        case "BrowserBack":
-                        case "XF86Back":
-                            goBack();
-                            e.preventDefault();
+                        default:
+                            if (isBackKey(e)) {
+                                goBack();
+                                e.preventDefault();
+                            }
                             break;
                     }
                 }
@@ -1690,12 +1680,10 @@ function VideoJsPlayer(poster = "") {
                     e.preventDefault();
                     break;
 
-                case "Escape":
-                case "Back":
-                case "BrowserBack":
-                case "XF86Back":
-                case 10009:
-                    goBack();
+                default:
+                    if (isBackKey(e)) {
+                        goBack();
+                    }
                     break;
             }
         }

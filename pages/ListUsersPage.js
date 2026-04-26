@@ -125,15 +125,12 @@ function ListUsersPage() {
             setFocus();
           }
           break;
-        case "Backspace":
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case 10009:
-          // localStorage.setItem("currentPage", "loginPage");
-          // ListUsersPage.cleanup();
-          // Router.showPage("login");
+        default:
+          if (isBackKey(e)) {
+            // localStorage.setItem("currentPage", "loginPage");
+            // ListUsersPage.cleanup();
+            // Router.showPage("login");
+          }
           break;
       }
     }
@@ -273,9 +270,11 @@ function ListUsersPage() {
             if (dialogActiveBtn === "delete") deleteBtn.click();
             else cancelBtn.click();
             break;
-          case "Escape":
-            e.preventDefault();
-            closeDialog();
+          default:
+            if (isBackKey(e)) {
+              e.preventDefault();
+              closeDialog();
+            }
             break;
         }
       }

@@ -63,6 +63,24 @@ function TimeFormat() {
     }
 
     function timeFormatKeydownEvents(e) {
+      if (isBackKey(e)) {
+        // Remove all focus styles before exiting
+        removeAllFocusStyles();
+        if (
+          document.activeElement &&
+          typeof document.activeElement.blur === "function"
+        ) {
+          document.activeElement.blur();
+        }
+        if (saveButton && typeof saveButton.blur === "function") {
+          saveButton.blur();
+        }
+        document.removeEventListener("keydown", timeFormatKeydownEvents);
+        localStorage.setItem("currentPage", "homePage");
+        Router.showPage("homePage");
+        return;
+      }
+
       switch (e.key) {
         case "ArrowDown":
           currentFocus = (currentFocus + 1) % (radios.length + 1);
@@ -145,32 +163,9 @@ function TimeFormat() {
           e.preventDefault();
           break;
 
-        case "Backspace":
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case "10009":
-          // Remove all focus styles before exiting
-          removeAllFocusStyles();
-          if (
-            document.activeElement &&
-            typeof document.activeElement.blur === "function"
-          ) {
-            document.activeElement.blur();
-          }
-          if (saveButton && typeof saveButton.blur === "function") {
-            saveButton.blur();
-          }
-          document.removeEventListener("keydown", timeFormatKeydownEvents);
-          localStorage.setItem("currentPage", "homePage");
-          Router.showPage("homePage");
-          break;
-
         default:
           break;
-      }
-    }
+      }}
 
     document.addEventListener("keydown", timeFormatKeydownEvents);
 

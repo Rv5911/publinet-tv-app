@@ -45,6 +45,15 @@ function SettingsPage() {
       const selectedItem = items[activeIndex];
       console.log(selectedItem, "selectedItem");
 
+      if (isBackKey(e)) {
+        SettingsPage.cleanup();
+
+        localStorage.setItem("currentPage", "homePage");
+
+        Router.showPage("homePage");
+        return;
+      }
+
       switch (key) {
         case "ArrowDown":
           if (selectedItem.classList.contains("clear-app-cache")) return;
@@ -73,23 +82,9 @@ function SettingsPage() {
           handleSelection(selectedItem);
           break;
 
-        case "Backspace":
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case "10009":
-          SettingsPage.cleanup();
-
-          localStorage.setItem("currentPage", "homePage");
-
-          Router.showPage("homePage");
-          break;
-
         default:
           break;
-      }
-    }
+      }}
 
     function handleSelection(item) {
       const container = document.querySelector(".settings-second-container");

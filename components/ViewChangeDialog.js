@@ -80,8 +80,13 @@ function ViewChangeDialog(onSelect, onCancel, currentView) {
   function handleKeyDown(e) {
     e.preventDefault();
 
-    switch (e.key) {
+    if (isBackKey(e)) {
+      cleanup();
+      onCancel();
+      return;
+    }
 
+    switch (e.key) {
       case "ArrowRight":
         if (focusedOption < 1) focusedOption++;
         break;
@@ -97,19 +102,12 @@ function ViewChangeDialog(onSelect, onCancel, currentView) {
         break;
 
       case "ArrowUp":
-        options.forEach(opt => opt.classList.remove("focused"));
+        options.forEach((opt) => opt.classList.remove("focused"));
         cleanup();
         onCancel();
         return;
 
-      case "Escape":
-      case "Back":
-      case "BrowserBack":
-      case "XF86Back":
-      case "Backspace":
-      case 10009:
-        cleanup();
-        onCancel();
+      default:
         break;
     }
 

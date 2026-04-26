@@ -170,15 +170,7 @@ CategoryListPage.init = function (container) {
         e.preventDefault();
         e.stopPropagation();
       }
-      const backKeys = [
-        "XF86Back",
-        "Back",
-        "Escape",
-        "BrowserBack",
-        "Backspace",
-        "10009",
-      ];
-      if (backKeys.includes(e.key)) {
+      if (isBackKey(e)) {
         if (searchInput.value.length > 0) {
           // Clear characters one by one
           searchInput.value = searchInput.value.slice(0, -1);
@@ -236,14 +228,10 @@ function handleCategoryListKeyNavigation(e) {
       case "Enter":
         goBackFromCategoryList();
         break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-      case "Back":
-      case "BrowserBack":
-      case "SoftLeft":
-      case "10009":
-        goBackFromCategoryList();
+      default:
+        if (isBackKey(e)) {
+          goBackFromCategoryList();
+        }
         break;
     }
     updateCategoryListFocus();
@@ -265,14 +253,10 @@ function handleCategoryListKeyNavigation(e) {
         const input = document.getElementById("category-search-input");
         if (input) input.focus();
         break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-      case "Back":
-      case "BrowserBack":
-      case "SoftLeft":
-      case "10009":
-        goBackFromCategoryList();
+      default:
+        if (isBackKey(e)) {
+          goBackFromCategoryList();
+        }
         break;
     }
     updateCategoryListFocus();
@@ -307,20 +291,16 @@ function handleCategoryListKeyNavigation(e) {
     case "Enter":
       handleCategoryListEnter();
       break;
-    case "Escape":
-    case "Backspace":
-    case "XF86Back":
-    case "Back":
-    case "BrowserBack":
-    case "SoftLeft":
-    case "10009":
-      if (state.currentIndex === 0) {
-        goBackFromCategoryList();
-      } else {
-        state.currentIndex = 0;
-        updateCategoryListFocus();
-      }
-      break;
+      default:
+        if (isBackKey(e)) {
+          if (state.currentIndex === 0) {
+            goBackFromCategoryList();
+          } else {
+            state.currentIndex = 0;
+            updateCategoryListFocus();
+          }
+        }
+        break;
   }
 
   updateCategoryListFocus();

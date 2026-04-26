@@ -1664,8 +1664,16 @@ function LivePage() {
       e.target &&
       (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
     ) {
-      // Allow specific keys like backspace or arrows within inputs if needed
-      // But generally we should return to let the default behavior happen
+      if (isBackKey(e)) {
+        if (e.target.value.length > 0) {
+          e.target.value = e.target.value.slice(0, -1);
+          // Dispatch input event to trigger filtering
+          e.target.dispatchEvent(new Event("input"));
+          e.preventDefault();
+          return;
+        }
+      }
+
       if (["Enter", "Escape"].includes(e.key)) {
         // We might still want to handle Enter/Escape to blur or perform search
       } else {
@@ -1677,17 +1685,7 @@ function LivePage() {
     const isFullscreen = checkIsFullscreen();
 
     // Handle Fullscreen Exit
-    if (
-      [
-        "Escape",
-        "Back",
-        "BrowserBack",
-        "XF86Back",
-        "SoftLeft",
-        "Backspace",
-      ].includes(e.key) ||
-      e.keyCode === 10009
-    ) {
+    if (isBackKey(e)) {
       if (isFullscreen) {
         e.preventDefault();
         e.stopImmediatePropagation();

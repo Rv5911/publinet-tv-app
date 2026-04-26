@@ -790,16 +790,7 @@ function initNavbar() {
 
     const isSearchFocused = document.activeElement === searchInput;
 
-    const backKeys = [
-      10009,
-      "Escape",
-      "Back",
-      "BrowserBack",
-      "XF86Back",
-      "Backspace",
-    ];
-
-    if (backKeys.includes(key)) {
+    if (isBackKey(e)) {
       if (sidebar && !sidebar.classList.contains("hidden")) {
         e.preventDefault();
         closeSidebar();
@@ -858,13 +849,11 @@ function initNavbar() {
 
     if (isSortOptionsOpen) {
       if (
+        isBackKey(e) ||
         [
           "ArrowUp",
           "ArrowDown",
           "Enter",
-          "Escape",
-          "Backspace",
-          "XF86Back",
         ].includes(key)
       ) {
         e.preventDefault();
@@ -875,13 +864,11 @@ function initNavbar() {
 
     if (sidebar && !sidebar.classList.contains("hidden")) {
       if (
+        isBackKey(e) ||
         [
           "ArrowUp",
           "ArrowDown",
           "Enter",
-          "Escape",
-          "Backspace",
-          "XF86Back",
         ].includes(key)
       ) {
         e.preventDefault();
@@ -1115,24 +1102,24 @@ function initNavbar() {
           );
         }
         break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-        if (sidebar && !sidebar.classList.contains("hidden")) {
-          closeSidebar();
-        } else {
-          // Handle back navigation from Navbar for Detail Pages
-          if (currentPage === "seriesDetailPage") {
-            localStorage.removeItem("selectedSeriesId");
-            localStorage.removeItem("lastPlayedEpisodeId");
-            Router.showPage("seriesPage");
-            document.body.style.backgroundImage = "none";
-            document.body.style.backgroundColor = "black";
-          } else if (currentPage === "movieDetailPage") {
-            localStorage.removeItem("selectedMovieId");
-            Router.showPage("moviesPage");
-            document.body.style.backgroundImage = "none";
-            document.body.style.backgroundColor = "black";
+      default:
+        if (isBackKey(e)) {
+          if (sidebar && !sidebar.classList.contains("hidden")) {
+            closeSidebar();
+          } else {
+            // Handle back navigation from Navbar for Detail Pages
+            if (currentPage === "seriesDetailPage") {
+              localStorage.removeItem("selectedSeriesId");
+              localStorage.removeItem("lastPlayedEpisodeId");
+              Router.showPage("seriesPage");
+              document.body.style.backgroundImage = "none";
+              document.body.style.backgroundColor = "black";
+            } else if (currentPage === "movieDetailPage") {
+              localStorage.removeItem("selectedMovieId");
+              Router.showPage("moviesPage");
+              document.body.style.backgroundImage = "none";
+              document.body.style.backgroundColor = "black";
+            }
           }
         }
         break;
@@ -1484,10 +1471,10 @@ function initNavbar() {
           closeSidebar();
         }
         break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-        closeSidebar();
+      default:
+        if (isBackKey(e)) {
+          closeSidebar();
+        }
         break;
     }
   }
@@ -1534,10 +1521,10 @@ function initNavbar() {
           // The user can press Escape or navigate away to close it
         }
         break;
-      case "Escape":
-      case "Backspace":
-      case "XF86Back":
-        closeSortMenu();
+      default:
+        if (isBackKey(e)) {
+          closeSortMenu();
+        }
         break;
     }
   }

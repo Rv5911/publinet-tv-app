@@ -145,14 +145,18 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         }
         break;
 
-      case "Escape":
-      case "Back":
-      case "XF86Back":
-      case "10009":
-        e.preventDefault();
-        handleCancel();
-        break;
       default:
+        if (isBackKey(e)) {
+          if (document.activeElement === input && input.value.length > 0) {
+            input.value = input.value.slice(0, -1);
+            e.preventDefault();
+            return;
+          }
+          e.preventDefault();
+          handleCancel();
+          return;
+        }
+
         // Prevent fall-through to background handlers for other keys
         // (e.g. Backspace when in background shouldn't trigger page back)
         if (

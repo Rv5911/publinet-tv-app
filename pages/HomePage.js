@@ -156,6 +156,13 @@ async function HomePage() {
         return;
       }
 
+      if (isBackKey(e)) {
+        // localStorage.setItem("currentPage", "loginPage");
+        // HomePage.cleanup();
+        // Router.showPage("login");
+        return;
+      }
+
       switch (key) {
         case "ArrowDown":
           e.preventDefault();
@@ -556,17 +563,6 @@ async function HomePage() {
           }
           break;
 
-        case "Backspace":
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case 10009:
-          // localStorage.setItem("currentPage", "loginPage");
-          // HomePage.cleanup();
-          // Router.showPage("login");
-          break;
-
         default:
           break;
       }
@@ -575,20 +571,11 @@ async function HomePage() {
     document.addEventListener("keydown", homePageKeydownEvents);
     document.addEventListener("keydown", (e) => {
       if (localStorage.getItem("currentPage") == "dashboard") {
-        const backKeys = [
-          10009,
-          "Escape",
-          "Back",
-          "BrowserBack",
-          "XF86Back",
-          "Backspace",
-        ];
         if (
           e.key === "XF86Exit" ||
           e.key === "XF86Home" ||
           e.keyCode === 10071 ||
-          backKeys.includes(e.keyCode) ||
-          backKeys.includes(e.key)
+          isBackKey(e)
         ) {
           e.preventDefault();
           localStorage.setItem("returnPage", "homePage");

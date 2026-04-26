@@ -98,6 +98,42 @@ function ParentalControl() {
         return;
       }
 
+      if (isBackKey(e)) {
+        var activeInput = document.activeElement;
+        if (
+          activeInput &&
+          activeInput.tagName === "INPUT" &&
+          activeInput.classList.contains("parental-input")
+        ) {
+          if (activeInput.value.length > 0) {
+            activeInput.value = activeInput.value.slice(0, -1);
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+
+        // Remove all focus styles before exiting
+        removeAllFocusStyles();
+
+        if (
+          document.activeElement &&
+          typeof document.activeElement.blur === "function"
+        ) {
+          document.activeElement.blur();
+        }
+        buttons.forEach(function (btn) {
+          if (btn && typeof btn.blur === "function") {
+            btn.blur();
+          }
+        });
+
+        document.removeEventListener("keydown", parentalControlKeydownEvents);
+        localStorage.setItem("currentPage", "homePage");
+        Router.showPage("homePage");
+        return;
+      }
+
       switch (e.key) {
         case "ArrowDown":
           if (
@@ -182,30 +218,6 @@ function ParentalControl() {
             }
           }
           e.preventDefault();
-          break;
-
-        case "Escape":
-        case "Back":
-        case "XF86Back":
-        case "10009":
-          // Remove all focus styles before exiting
-          removeAllFocusStyles();
-
-          if (
-            document.activeElement &&
-            typeof document.activeElement.blur === "function"
-          ) {
-            document.activeElement.blur();
-          }
-          buttons.forEach(function (btn) {
-            if (btn && typeof btn.blur === "function") {
-              btn.blur();
-            }
-          });
-
-          document.removeEventListener("keydown", parentalControlKeydownEvents);
-          localStorage.setItem("currentPage", "homePage");
-          Router.showPage("homePage");
           break;
 
         default:

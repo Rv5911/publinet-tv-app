@@ -153,6 +153,15 @@ function LoginPage() {
           document.activeElement === usernameInput ||
           document.activeElement === passwordInput);
 
+      if (isBackKey(e)) {
+        if (isInputFocused && document.activeElement.value.length > 0) {
+          document.activeElement.value = document.activeElement.value.slice(0, -1);
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }
+
       // If user is typing in an input field, don't prevent default for most keys
       if (
         isInputFocused &&

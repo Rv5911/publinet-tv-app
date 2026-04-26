@@ -22,11 +22,7 @@ async function MovieDetailPage() {
 
   function handleBackNavigationDuringLoading(e) {
     if (
-      (e.keyCode === 10009 ||
-        e.key === "Escape" ||
-        e.key === "Back" ||
-        e.key === "BrowserBack" ||
-        e.key === "XF86Back") &&
+      isBackKey(e) &&
       localStorage.getItem("currentPage") === "movieDetailPage"
     ) {
       e.preventDefault();
@@ -481,13 +477,7 @@ async function MovieDetailPage() {
           currentFocusIndex = focusableEls.indexOf(castItems[0]);
       }
 
-      if (
-        e.keyCode === 10009 ||
-        e.key === "Escape" ||
-        e.key === "Back" ||
-        e.key === "BrowserBack" ||
-        e.key === "XF86Back"
-      ) {
+      if (isBackKey(e)) {
         localStorage.removeItem("selectedMovieId");
 
         const returnPage = localStorage.getItem("returnPage") || "moviesPage";

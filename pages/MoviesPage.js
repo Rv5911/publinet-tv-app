@@ -1535,6 +1535,26 @@ function handleMoviesKeyNavigation(e) {
 
   moviesNavigationDebounce.lastKeyPress = now;
 
+  if (isBackKey(e)) {
+    moviesNavigationState.currentCategoryIndex = 0;
+    moviesNavigationState.currentCardIndex = 0;
+
+    const moviesContainer = document.querySelector(".movies-page-container");
+    if (moviesContainer) {
+      moviesContainer.scrollTop = 0;
+    }
+
+    const navbarEl = document.querySelector("#navbar-root");
+    if (navbarEl) {
+      navbarEl.style.display = "block";
+    }
+    if (localStorage.getItem("navigationFocus") === "moviesPage") {
+      updateMoviesFocus();
+    }
+    saveMoviesNavigationState();
+    return;
+  }
+
   switch (e.key) {
     case "ArrowRight":
       moveMoviesRight();
@@ -1547,26 +1567,6 @@ function handleMoviesKeyNavigation(e) {
       break;
     case "ArrowUp":
       moveMoviesUp();
-      break;
-    case "Escape":
-    case "Back":
-    case "BrowserBack":
-    case "XF86Back":
-    case "SoftLeft":
-    case "Backspace":
-    case 10009:
-      moviesNavigationState.currentCategoryIndex = 0;
-      moviesNavigationState.currentCardIndex = 0;
-
-      const moviesContainer = document.querySelector(".movies-page-container");
-      if (moviesContainer) {
-        moviesContainer.scrollTop = 0;
-      }
-
-      const navbarEl = document.querySelector("#navbar-root");
-      if (navbarEl) {
-        navbarEl.style.display = "block";
-      }
       break;
   }
 

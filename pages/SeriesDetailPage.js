@@ -36,11 +36,7 @@ async function SeriesDetailPage() {
 
   function handleBackNavigationDuringLoading(e) {
     if (
-      (e.keyCode === 10009 ||
-        e.key === "Escape" ||
-        e.key === "Back" ||
-        e.key === "BrowserBack" ||
-        e.key === "XF86Back") &&
+      isBackKey(e) &&
       localStorage.getItem("currentPage") === "seriesDetailPage"
     ) {
       e.preventDefault();
@@ -868,10 +864,7 @@ async function SeriesDetailPage() {
           showSeasons();
           updatePlayButton();
           return;
-        } else if (
-          ["Escape", "Back", "BrowserBack", "XF86Back"].includes(e.key) ||
-          e.keyCode === 10009
-        ) {
+        } else if (isBackKey(e)) {
           hideDropdown();
           return;
         }
@@ -1267,10 +1260,7 @@ async function SeriesDetailPage() {
         return;
       }
       // Back/Escape
-      if (
-        ["Escape", "Back", "BrowserBack", "XF86Back"].includes(e.key) ||
-        e.keyCode === 10009
-      ) {
+      if (isBackKey(e)) {
         e.preventDefault();
 
         if (isDropdownOpen) {

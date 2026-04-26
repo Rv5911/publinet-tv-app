@@ -1646,6 +1646,26 @@ function handleSeriesKeyNavigation(e) {
 
   seriesNavigationDebounce.lastKeyPress = now;
 
+  if (isBackKey(e)) {
+    seriesNavigationState.currentCategoryIndex = 0;
+    seriesNavigationState.currentCardIndex = 0;
+
+    const seriesContainer = document.querySelector(".series-page-container");
+    if (seriesContainer) {
+      seriesContainer.scrollTop = 0;
+    }
+
+    const navbarElS = document.querySelector("#navbar-root");
+    if (navbarElS) {
+      navbarElS.style.display = "block";
+    }
+    if (localStorage.getItem("navigationFocus") === "seriesPage") {
+      updateSeriesFocus();
+    }
+    saveSeriesNavigationState();
+    return;
+  }
+
   switch (e.key) {
     case "ArrowRight":
       moveSeriesRight();
@@ -1658,26 +1678,6 @@ function handleSeriesKeyNavigation(e) {
       break;
     case "ArrowUp":
       moveSeriesUp();
-      break;
-    case "Escape":
-    case "Back":
-    case "BrowserBack":
-    case "XF86Back":
-    case "SoftLeft":
-    case "Backspace":
-    case 10009:
-      seriesNavigationState.currentCategoryIndex = 0;
-      seriesNavigationState.currentCardIndex = 0;
-
-      const seriesContainer = document.querySelector(".series-page-container");
-      if (seriesContainer) {
-        seriesContainer.scrollTop = 0;
-      }
-
-      const navbarElS = document.querySelector("#navbar-root");
-      if (navbarElS) {
-        navbarElS.style.display = "block";
-      }
       break;
   }
 

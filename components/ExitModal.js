@@ -134,14 +134,10 @@ function ExitModal() {
           handleExitClick(buttons[focusIndex]);
           break;
 
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case "SoftLeft":
-        case "Backspace":
-        case 10009:
-          closeModal();
+        default:
+          if (isBackKey(e)) {
+            closeModal();
+          }
           break;
       }
     }

@@ -76,13 +76,10 @@ function AccountPage() {
         case "13":
           accountPageClick(buttons[focusIndex]);
           break;
-
-        case "Escape":
-        case "Back":
-        case "BrowserBack":
-        case "XF86Back":
-        case "SoftLeft":
-          accountPageClick(buttons[focusIndex]);
+        default:
+          if (isBackKey(e)) {
+            accountPageClick(buttons[focusIndex]);
+          }
           break;
       }
     }

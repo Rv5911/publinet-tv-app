@@ -219,15 +219,12 @@ function handleCategoryViewKeyNavigation(e) {
         handleCategoryViewEnter();
       }
       break;
-    case "Escape":
-    case "Back":
-    case "BrowserBack":
-    case "XF86Back":
-    case "Backspace":
-    case 10009:
-      goBackFromCategoryView();
-      break;
-  }
+      default:
+        if (isBackKey(e)) {
+          goBackFromCategoryView();
+        }
+        break;
+    }
 
   updateCategoryViewFocus();
 }
