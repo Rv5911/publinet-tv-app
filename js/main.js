@@ -28,14 +28,7 @@ window.onload = function () {
       sidebar &&
       sidebar.classList &&
       !sidebar.classList.contains("hidden") &&
-      [
-        "ArrowUp",
-        "ArrowDown",
-        "Enter",
-        "Escape",
-        "Backspace",
-        "XF86Back",
-      ].includes(e.key)
+      (["ArrowUp", "ArrowDown", "Enter"].includes(e.key) || isBackKey(e))
     ) {
       e.preventDefault();
       return;
