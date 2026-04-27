@@ -52,7 +52,7 @@ function LoginPage() {
     passwordWrapper.appendChild(passwordInput);
 
     const eyeIcon = document.createElement("img");
-    eyeIcon.src = "../assets/eye-closed.png";
+    eyeIcon.src = "./assets/eye-closed.png";
     eyeIcon.className = "eye-icon-login";
     eyeIcon.alt = "Toggle password visibility";
 
@@ -70,8 +70,8 @@ function LoginPage() {
       passwordVisible = !passwordVisible;
       passwordInput.type = passwordVisible ? "text" : "password";
       eyeIcon.src = passwordVisible
-        ? "../assets/eye-open.png" // When password IS visible, show OPEN eye
-        : "../assets/eye-closed.png"; // When password is NOT visible, show CLOSED eye
+        ? "./assets/eye-open.png" // When password IS visible, show OPEN eye
+        : "./assets/eye-closed.png"; // When password is NOT visible, show CLOSED eye
 
       // Update alt text for accessibility
       eyeIcon.alt = passwordVisible ? "Hide password" : "Show password";
@@ -261,7 +261,7 @@ function LoginPage() {
   return `
     <div class="login-page-container">
       <div class="login-form-div">
-        <img class="login-logo" src="../assets/main-logo.png" alt="">
+        <img class="login-logo" src="./assets/main-logo.png" alt="">
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
@@ -275,14 +275,14 @@ function LoginPage() {
 
           <div class="list-user-button-div">
             <button class="list-button">
-              <img src="../assets/list-users.png" alt=""> List User
+              <img src="./assets/list-users.png" alt=""> List User
             </button>
           </div>
         </div>
       </div>
 
       <div class="login-image-div">
-        <img class="login-right-image" src="../assets/login-right-image.png" alt="">
+        <img class="login-right-image" src="./assets/login-right-image.png" alt="">
       </div>
     </div>
   `;
