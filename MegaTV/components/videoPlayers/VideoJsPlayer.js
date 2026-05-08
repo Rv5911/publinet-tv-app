@@ -26,9 +26,11 @@ function VideoJsPlayer(poster = "") {
     const currentPlaylistName = JSON.parse(
         localStorage.getItem("selectedPlaylist")
     ).playlistName;
-    const currentPlaylist = JSON.parse(
-        localStorage.getItem("playlistsData")
-    ).filter((pl) => pl.playlistName === currentPlaylistName)[0];
+
+    const getPlaylistsData = () => JSON.parse(localStorage.getItem("playlistsData")) || [];
+    const getCurrentPlaylist = () => getPlaylistsData().find((pl) => pl.playlistName === currentPlaylistName) || {};
+
+    const currentPlaylist = getCurrentPlaylist();
 
     const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies ?
         currentPlaylist.continueWatchingMovies :
@@ -105,8 +107,8 @@ function VideoJsPlayer(poster = "") {
 
         // Store play state before seeking (only once per seek session)
         const isFirstSeek = pendingSeekTimeout === null;
-        if (isFirstSeek) {
-            wasPlayingBeforeSeek = !player.paused();
+        if (isFirstSeek && player) {
+            wasPlayingBeforeSeek = !player.paused;
             if (wasPlayingBeforeSeek && !userManuallyPaused) {
                 player.pause();
             }
@@ -121,10 +123,10 @@ function VideoJsPlayer(poster = "") {
             loadingEl.classList.remove("hidden");
         }
 
-        if (seekBar && player && player.currentTime) {
+        if (seekBar && player && !isNaN(player.currentTime)) {
             try {
-                const currentTime = player.currentTime();
-                const duration = player.duration();
+                const currentTime = player.currentTime;
+                const duration = player.duration || 0;
                 const newTime = Math.max(
                     0,
                     Math.min(duration, currentTime + accumulatedSeekOffset)
@@ -137,11 +139,11 @@ function VideoJsPlayer(poster = "") {
                 }
 
                 // Update seek bar background gradient
-                const percent = (newTime / duration) * 100;
+                const percent = duration > 0 ? (newTime / duration) * 100 : 0;
                 let bufferedPercent = 0;
-                if (player.buffered().length > 0) {
+                if (player.buffered && player.buffered.length > 0) {
                     bufferedPercent =
-                        (player.buffered().end(player.buffered().length - 1) / duration) *
+                        (player.buffered.end(player.buffered.length - 1) / duration) *
                         100;
                 }
                 seekBar.style.background = `linear-gradient(to right,
@@ -155,21 +157,21 @@ function VideoJsPlayer(poster = "") {
 
         // Set a new timeout to execute the seek after 300ms of no input
         pendingSeekTimeout = setTimeout(() => {
-            if (!player || !player.currentTime || errorActive) {
+            if (!player || isNaN(player.currentTime) || errorActive) {
                 accumulatedSeekOffset = 0;
                 return;
             }
 
             try {
-                const currentTime = player.currentTime();
-                const duration = player.duration();
+                const currentTime = player.currentTime;
+                const duration = player.duration || 0;
                 const newTime = Math.max(
                     0,
                     Math.min(duration, currentTime + accumulatedSeekOffset)
                 );
 
                 // Execute the accumulated seek
-                player.currentTime(newTime);
+                player.currentTime = newTime;
 
                 // Update seek bar
                 const seekBar = document.getElementById("customSeek");
@@ -190,9 +192,11 @@ function VideoJsPlayer(poster = "") {
                 // Resume playback if it was playing before
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     pendingResumeTimeout = setTimeout(() => {
-                        player.play().catch((err) => {
-                            console.log("Resume after debounced seek failed:", err);
-                        });
+                        if(player) {
+                            player.play().catch((err) => {
+                                console.log("Resume after debounced seek failed:", err);
+                            });
+                        }
                     }, 200);
                 }
             } catch (err) {
@@ -214,6 +218,15 @@ function VideoJsPlayer(poster = "") {
             }
             window.tizen.tvaudiocontrol.setVolume(currentVolume);
             showVolumeDisplay(currentVolume);
+        } else if (player) {
+            let currentVolume = player.volume * 100;
+            if (direction === "up") {
+                currentVolume = Math.min(currentVolume + 10, 100);
+            } else if (direction === "down") {
+                currentVolume = Math.max(currentVolume - 10, 0);
+            }
+            player.volume = currentVolume / 100;
+            showVolumeDisplay(currentVolume);
         }
     }
 
@@ -223,6 +236,8 @@ function VideoJsPlayer(poster = "") {
                 window.tizen.tvaudiocontrol.isMute &&
                 window.tizen.tvaudiocontrol.isMute();
             window.tizen.tvaudiocontrol.setMute(!isMuted);
+        } else if (player) {
+            player.muted = !player.muted;
         }
     }
 
@@ -446,10 +461,10 @@ function VideoJsPlayer(poster = "") {
         }
 
         // Don't auto-hide if player isn't playing or in error
-        if (!player || player.paused() || errorActive) return;
+        if (!player || player.paused || errorActive) return;
 
         controlsTimer = setTimeout(() => {
-            if (player && !player.paused() && !errorActive) {
+            if (player && !player.paused && !errorActive) {
                 hideAllControls();
             }
         }, 5000);
@@ -463,32 +478,6 @@ function VideoJsPlayer(poster = "") {
             }
             return;
         }
-
-        const options = {
-            autoplay: true,
-            controls: false,
-            preload: "auto",
-            fluid: true,
-            poster: isYouTube &&
-                (fromValue === "trailer_movie" || fromValue === "trailer_series") ?
-                "" :
-                poster || "",
-            liveui: isLive,
-            techOrder: isYouTube ? ["youtube"] : ["html5"],
-            sources: [
-                isYouTube ?
-                {
-                    src: srcUrl,
-                    type: "video/youtube",
-                } :
-                {
-                    src: srcUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-                    type: srcUrl.endsWith(".m3u8") ?
-                        "application/x-mpegURL" :
-                        "video/mp4",
-                },
-            ],
-        };
 
         let resumeTime = 0;
 
@@ -514,26 +503,29 @@ function VideoJsPlayer(poster = "") {
             }
         }
 
-        player = videojs(videoElement, options);
+        player = videoElement;
+        
+        player.autoplay = true;
+        player.preload = "auto";
+        
+        if (isYouTube && (fromValue === "trailer_movie" || fromValue === "trailer_series")) {
+            // No poster
+        } else if (poster) {
+            player.poster = poster;
+        }
 
-        player.ready(() => {
-            if (player.paused() && !userManuallyPaused && !errorActive) {
-                player.play().catch((err) => {
-                    console.log("Initial auto-play failed, will retry on canplay:", err);
-                });
-            }
-        });
+        player.src = srcUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
 
-        player.on("seeking", () => {
+        player.addEventListener("seeking", () => {
             console.log("Seeking started...");
         });
 
-        player.on("seeked", () => {
+        player.addEventListener("seeked", () => {
             console.log("Seek completed");
 
             // Only auto-play if video wasn't manually paused AND not dragging
             if (
-                player.paused() &&
+                player.paused &&
                 !errorActive &&
                 !isSeekBarDragging &&
                 !userManuallyPaused
@@ -548,9 +540,9 @@ function VideoJsPlayer(poster = "") {
 
         // Apply resume time after metadata is loaded
         if (resumeTime > 0) {
-            player.on("loadedmetadata", () => {
-                if (resumeTime < player.duration()) {
-                    player.currentTime(resumeTime);
+            player.addEventListener("loadedmetadata", () => {
+                if (resumeTime < player.duration) {
+                    player.currentTime = resumeTime;
                 }
             });
         }
@@ -590,7 +582,7 @@ function VideoJsPlayer(poster = "") {
                 }
             }
             setTimeout(() => {
-                if (!player.paused()) {
+                if (player && !player.paused) {
                     titleBar.classList.add("hidden");
                 }
             }, 3000);
@@ -602,7 +594,7 @@ function VideoJsPlayer(poster = "") {
                 if (
                     !errorActive &&
                     player &&
-                    typeof player.currentTime === "function"
+                    !isNaN(player.currentTime)
                 ) {
                     // Throttle seek bar updates to prevent buffer overload
                     const now = Date.now();
@@ -620,10 +612,10 @@ function VideoJsPlayer(poster = "") {
                     }
 
                     // Store play state before seeking
-                    wasPlayingBeforeSeek = !player.paused();
+                    wasPlayingBeforeSeek = !player.paused;
 
                     try {
-                        player.currentTime(parseFloat(seekBar.value));
+                        player.currentTime = parseFloat(seekBar.value);
                     } catch (err) {
                         console.warn("Seek bar error:", err);
                     }
@@ -643,38 +635,38 @@ function VideoJsPlayer(poster = "") {
                 }
             });
 
-            player.on("timeupdate", () => {
+            player.addEventListener("timeupdate", () => {
                 if (errorActive) return;
 
-                if (!seekBar.getAttribute("max")) {
-                    seekBar.setAttribute("max", player.duration() || 0);
+                if (!seekBar.getAttribute("max") && player.duration) {
+                    seekBar.setAttribute("max", player.duration || 0);
                 }
 
                 // Only update seek bar value if user is not actively dragging it
-                if (!isSeekBarDragging) {
-                    seekBar.value = player.currentTime();
+                if (!isSeekBarDragging && !isNaN(player.currentTime)) {
+                    seekBar.value = player.currentTime;
                 }
 
                 // Update current time display
                 if (currentTimeEl) {
-                    currentTimeEl.textContent = formatTime(player.currentTime());
+                    currentTimeEl.textContent = formatTime(player.currentTime);
                 }
 
                 // Update duration display (only once when available)
                 if (
                     durationEl &&
-                    player.duration() &&
+                    player.duration &&
                     durationEl.textContent === "0:00"
                 ) {
-                    durationEl.textContent = formatTime(player.duration());
+                    durationEl.textContent = formatTime(player.duration);
                 }
 
-                const percent = (player.currentTime() / player.duration()) * 100;
+                const duration = player.duration || 0;
+                const percent = duration > 0 ? (player.currentTime / duration) * 100 : 0;
                 let bufferedPercent = 0;
-                if (player.buffered().length > 0) {
+                if (player.buffered && player.buffered.length > 0 && duration > 0) {
                     bufferedPercent =
-                        (player.buffered().end(player.buffered().length - 1) /
-                            player.duration()) *
+                        (player.buffered.end(player.buffered.length - 1) / duration) *
                         100;
                 }
 
@@ -685,7 +677,7 @@ function VideoJsPlayer(poster = "") {
             });
         }
 
-        player.on("waiting", () => {
+        player.addEventListener("waiting", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
                 // Hide pause overlay when loading starts
@@ -698,12 +690,12 @@ function VideoJsPlayer(poster = "") {
             }
         });
 
-        player.on("canplay", () => {
+        player.addEventListener("canplay", () => {
             if (!errorActive) {
                 loadingEl.classList.add("hidden");
                 // 🔴 UPDATED: Auto-play if not manually paused and not dragging seek bar
                 if (
-                    player.paused() &&
+                    player.paused &&
                     !isSeekBarDragging &&
                     !userManuallyPaused &&
                     !errorActive
@@ -711,42 +703,30 @@ function VideoJsPlayer(poster = "") {
                     player.play().catch((err) => {
                         console.log("Auto-play on canplay failed:", err);
                     });
-                } else if (player.paused() && !isSeekBarDragging) {
+                } else if (player.paused && !isSeekBarDragging) {
                     // Show pause overlay if user manually paused or is seeking
                     showOverlay("pause");
                 }
             }
         });
 
-        player.on("stalled", () => {
+        player.addEventListener("stalled", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
             }
         });
 
-        player.on("loadstart", () => {
+        player.addEventListener("loadstart", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
             }
-
-            // Always hide poster for YouTube trailers
-            if (
-                isYouTube &&
-                (fromValue === "trailer_movie" || fromValue === "trailer_series")
-            ) {
-                const posterEl = document.querySelector(".vjs-poster");
-                if (posterEl) {
-                    posterEl.style.opacity = "0";
-                    posterEl.style.display = "none";
-                }
-            }
         });
 
-        player.on("ended", () => {
+        player.addEventListener("ended", () => {
             goBack();
         });
 
-        player.on("playing", () => {
+        player.addEventListener("playing", () => {
             if (!errorActive) {
                 hasStartedPlayingOnce = true;
                 loadingEl.classList.add("hidden");
@@ -754,7 +734,7 @@ function VideoJsPlayer(poster = "") {
                 resetControlsTimer();
                 
                 // Only show play overlay if we're not seeking
-                if (!isSeekBarDragging && !player.seeking()) {
+                if (!isSeekBarDragging && !player.seeking) {
                     showOverlay("play");
                 }
 
@@ -763,7 +743,7 @@ function VideoJsPlayer(poster = "") {
             }
         });
 
-        player.on("pause", () => {
+        player.addEventListener("pause", () => {
             // Don't show pause UI if video is still loading/buffering
             if (!errorActive && !loadingEl.classList.contains("hidden")) {
                 return;
@@ -777,14 +757,14 @@ function VideoJsPlayer(poster = "") {
                 setTimeout(() => focusPlayPause(), 100);
 
                 // Mark that user manually paused (unless it's from seeking)
-                if (!player.seeking()) {
+                if (!player.seeking) {
                     userManuallyPaused = true;
                 }
             }
         });
 
-        player.on("error", () => {
-            console.log("❌ Player error:", player.error());
+        player.addEventListener("error", (e) => {
+            console.log("❌ Player error:", player.error);
             errorActive = true;
 
             loadingEl.classList.add("hidden");
@@ -794,27 +774,14 @@ function VideoJsPlayer(poster = "") {
 
             overlays.forEach((o) => o.classList.add("hidden"));
 
-            // Hide Poster
-            const poster = document.querySelector(".vjs-poster");
-            if (poster) {
-                poster.style.opacity = "0"; // Use opacity to hide
-                poster.style.display = "none";
-            }
-
-            if (
-                isYouTube &&
-                (fromValue === "trailer_movie" || fromValue === "trailer_series")
-            ) {
-                const errorMsgEl = document.getElementById("errorDialogMessage");
-                if (errorMsgEl) {
-                    const playerError = player.error();
-                    let errorMessage = "Something went wrong";
-                    if (playerError) {
-                        errorMessage =
-                            playerError.message || `Error Code: ${playerError.code}`;
-                    }
-                    errorMsgEl.innerText = `⚠️ ${errorMessage}`;
+            const errorMsgEl = document.getElementById("errorDialogMessage");
+            if (errorMsgEl) {
+                const playerError = player.error;
+                let errorMessage = "Something went wrong";
+                if (playerError) {
+                    errorMessage = playerError.message || `Error Code: ${playerError.code}`;
                 }
+                errorMsgEl.innerText = `⚠️ ${errorMessage}`;
             }
 
             if (errorDialog) errorDialog.classList.remove("hidden");
@@ -828,8 +795,7 @@ function VideoJsPlayer(poster = "") {
             const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries ?
                 currentPlaylist.continueWatchingSeries :
                 [];
-            const selectedMovieId = localStorage.getItem("selectedMovieId");
-
+            
             const navbarEl = document.querySelector("#navbar-root");
             if (navbarEl) {
                 navbarEl.style.display = "block";
@@ -847,11 +813,11 @@ function VideoJsPlayer(poster = "") {
                     let duration = 0;
 
                     try {
-                        if (typeof player.currentTime === "function") {
-                            resumeTime = player.currentTime();
+                        if (!isNaN(player.currentTime)) {
+                            resumeTime = player.currentTime;
                         }
-                        if (typeof player.duration === "function") {
-                            duration = player.duration();
+                        if (!isNaN(player.duration)) {
+                            duration = player.duration;
                         }
                     } catch (e) {
                         resumeTime = 0;
@@ -876,8 +842,7 @@ function VideoJsPlayer(poster = "") {
                         };
 
                         // Load playlists
-                        let playlists =
-                            JSON.parse(localStorage.getItem("playlistsData")) || [];
+                        let playlists = getPlaylistsData();
 
                         playlists = playlists.map((pl) => {
                             if (pl.playlistName !== currentPlaylistName) return pl;
@@ -918,36 +883,11 @@ function VideoJsPlayer(poster = "") {
                         } else {
                             addItemToHistory(continueWatchingItem, "continueWatchingMovies");
                         }
-                    } else {
-                        console.log(
-                            "❌ Not saving - resumeTime:",
-                            resumeTime,
-                            "isVideoCompleted:",
-                            isVideoCompleted
-                        );
                     }
-                } else {
-                    console.log(
-                        "❌ Skipping continue watching - isYouTube:",
-                        isYouTube,
-                        "isLive:",
-                        isLive,
-                        "errorActive:",
-                        errorActive,
-                        "player:",
-                        !!player
-                    );
                 }
 
                 // Dispose player before navigating
-                if (player) {
-                    try {
-                        player.dispose();
-                        player = null;
-                    } catch (e) {
-                        console.warn("Error disposing player", e);
-                    }
-                }
+                disposePlayer();
 
                 // Set fromHome to false
                 localStorage.setItem("fromHome", "false");
@@ -961,7 +901,6 @@ function VideoJsPlayer(poster = "") {
                     const homeButton = document.querySelector('[data-page="homePage"]');
                     if (homeButton) {
                         homeButton.focus();
-                        console.log("✅ Focused on home button in navbar");
                     }
                 }, 100);
 
@@ -996,7 +935,9 @@ function VideoJsPlayer(poster = "") {
             function disposePlayer() {
                 if (player) {
                     try {
-                        player.dispose();
+                        player.pause();
+                        player.removeAttribute("src");
+                        player.load();
                         player = null;
                     } catch (e) {
                         console.warn("Error disposing player", e);
@@ -1010,11 +951,11 @@ function VideoJsPlayer(poster = "") {
                     let duration = 0;
 
                     try {
-                        if (!isLive && typeof currentPlayer.currentTime === "function") {
-                            resumeTime = currentPlayer.currentTime();
+                        if (!isLive && !isNaN(currentPlayer.currentTime)) {
+                            resumeTime = currentPlayer.currentTime;
                         }
-                        if (typeof currentPlayer.duration === "function") {
-                            duration = currentPlayer.duration();
+                        if (!isNaN(currentPlayer.duration)) {
+                            duration = currentPlayer.duration;
                         }
                     } catch (e) {
                         resumeTime = 0;
@@ -1077,7 +1018,6 @@ function VideoJsPlayer(poster = "") {
                                 "continueWatchingMovies"
                             );
                         }
-                        // If there are still incomplete episodes, keep the series in continue watching
                     } else if (resumeTime > 5 && !isVideoCompleted && !errorActive) {
                         const continueWatchingItem = {
                             itemId: playingItemData.season ?
@@ -1092,8 +1032,7 @@ function VideoJsPlayer(poster = "") {
                         };
 
                         // Load playlists
-                        let playlists =
-                            JSON.parse(localStorage.getItem("playlistsData")) || [];
+                        let playlists = getPlaylistsData();
 
                         playlists = playlists.map((pl) => {
                             if (pl.playlistName !== currentPlaylistName) return pl;
@@ -1141,17 +1080,9 @@ function VideoJsPlayer(poster = "") {
 
                     // Then safely dispose
                     try {
-                        if (typeof currentPlayer.pause === "function") {
-                            currentPlayer.pause();
-                        }
-                    } catch (err) {
-                        console.warn("Player pause error:", err);
-                    }
-
-                    try {
-                        if (typeof currentPlayer.dispose === "function") {
-                            currentPlayer.dispose();
-                        }
+                        currentPlayer.pause();
+                        currentPlayer.removeAttribute("src");
+                        currentPlayer.load();
                     } catch (err) {
                         console.warn("Player dispose error:", err);
                     }
@@ -1187,9 +1118,7 @@ function VideoJsPlayer(poster = "") {
                     Router.showPage("seriesDetailPage");
                 }
             } else {
-                if (typeof currentPlayer.dispose === "function") {
-                    currentPlayer.dispose();
-                }
+                disposePlayer();
                 if (fromValue == "movie") {
                     localStorage.setItem("currentPage", "movieDetailPage");
                     Router.showPage("movieDetailPage");
@@ -1207,11 +1136,10 @@ function VideoJsPlayer(poster = "") {
                 const currentPlaylistName = JSON.parse(
                     localStorage.getItem("selectedPlaylist")
                 ).playlistName;
-                const playlistsData =
-                    JSON.parse(localStorage.getItem("playlistsData")) || [];
-                const currentPlaylist = playlistsData.filter(
+                const playlistsData = getPlaylistsData();
+                const currentPlaylist = playlistsData.find(
                     (pl) => pl.playlistName === currentPlaylistName
-                )[0];
+                );
 
                 if (!currentPlaylist || !currentPlaylist.continueWatchingSeries) return;
 
@@ -1238,10 +1166,6 @@ function VideoJsPlayer(poster = "") {
 
                 // Save back to localStorage
                 localStorage.setItem("playlistsData", JSON.stringify(updatedPlaylists));
-
-                console.log(
-                    `Removed episode ${completedEpisodeId} from continue watching`
-                );
             } catch (error) {
                 console.warn("Error removing episode from continue watching:", error);
             }
@@ -1254,11 +1178,10 @@ function VideoJsPlayer(poster = "") {
                 const currentPlaylistName = JSON.parse(
                     localStorage.getItem("selectedPlaylist")
                 ).playlistName;
-                const playlistsData =
-                    JSON.parse(localStorage.getItem("playlistsData")) || [];
-                const currentPlaylist = playlistsData.filter(
+                const playlistsData = getPlaylistsData();
+                const currentPlaylist = playlistsData.find(
                     (pl) => pl.playlistName === currentPlaylistName
-                )[0];
+                );
                 const continueWatchingEpisodes = currentPlaylist ?
                     currentPlaylist.continueWatchingSeries || [] :
                     [];
@@ -1277,23 +1200,16 @@ function VideoJsPlayer(poster = "") {
                 });
 
                 // Check if there are any episodes that are still in continue watching
-                // (meaning they're incomplete)
                 const hasIncompleteEpisodes = allEpisodes.some((episode) => {
-                    // Skip the current episode that just got completed (we're about to remove it)
                     if (episode.id === currentEpisodeId.toString()) {
                         return false;
                     }
-
-                    // Check if this episode exists in continueWatching (meaning it's incomplete)
                     const isInContinueWatching = continueWatchingEpisodes.some(
                         (cw) => cw.itemId === seriesId && cw.episodeId === episode.id
                     );
-
-                    // If it's in continueWatching, it means it's incomplete
                     return isInContinueWatching;
                 });
 
-                // If there are NO incomplete episodes, then ALL episodes are completed
                 return !hasIncompleteEpisodes;
             } catch (error) {
                 console.warn("Error checking if all episodes completed:", error);
@@ -1317,88 +1233,20 @@ function VideoJsPlayer(poster = "") {
                 resetControlsTimer();
             }
 
-            // Tizen Volume Controls with keyboard (w/s/m)
+            // Tizen Volume Controls
             if (typeof window.tizen !== "undefined" && window.tizen.tvaudiocontrol) {
-                if (keyChar === "w") {
+                if (keyChar === "w" || key === 447) {
                     updateVolume("up");
                     e.stopPropagation();
                     return;
                 }
-                if (keyChar === "s") {
+                if (keyChar === "s" || key === 448) {
                     updateVolume("down");
                     e.stopPropagation();
                     return;
                 }
-                if (keyChar === "m") {
+                if (keyChar === "m" || key === 449) {
                     toggleMute();
-                    setTimeout(() => {
-                        const isMuted =
-                            window.tizen &&
-                            window.tizen.tvaudiocontrol &&
-                            window.tizen.tvaudiocontrol.isMute &&
-                            window.tizen.tvaudiocontrol.isMute();
-                        if (isMuted) showMuteIcon();
-                        else hideMuteIcon();
-
-                        let volDisplay = document.getElementById("volumeDisplay");
-                        setTimeout(() => hideMuteIcon(), 1000);
-                    }, 50);
-                    e.stopPropagation();
-                    return;
-                }
-            }
-
-            // Tizen Remote Keys (447/448/449)
-            if (typeof window.tizen !== "undefined" && window.tizen.systeminfo) {
-                if (key === 447) {
-                    updateVolume("up");
-                    setTimeout(() => {
-                        const isMuted =
-                            window.tizen &&
-                            window.tizen.tvaudiocontrol &&
-                            window.tizen.tvaudiocontrol.isMute &&
-                            window.tizen.tvaudiocontrol.isMute();
-                        if (!isMuted) hideMuteIcon();
-                    }, 50);
-                    e.stopPropagation();
-                    return;
-                }
-                if (key === 448) {
-                    updateVolume("down");
-                    setTimeout(() => {
-                        const isMuted =
-                            window.tizen &&
-                            window.tizen.tvaudiocontrol &&
-                            window.tizen.tvaudiocontrol.isMute &&
-                            window.tizen.tvaudiocontrol.isMute();
-                        if (!isMuted) hideMuteIcon();
-                    }, 50);
-                    e.stopPropagation();
-                    return;
-                }
-                if (key === 449) {
-                    toggleMute();
-                    setTimeout(() => {
-                        let volDisplay = document.getElementById("volumeDisplay");
-                        if (!volDisplay) {
-                            volDisplay = document.createElement("div");
-                            volDisplay.id = "volumeDisplay";
-                            volDisplay.className = "volume-display";
-                            document.body.appendChild(volDisplay);
-                        }
-                        const isMuted =
-                            window.tizen &&
-                            window.tizen.tvaudiocontrol &&
-                            window.tizen.tvaudiocontrol.isMute &&
-                            window.tizen.tvaudiocontrol.isMute();
-                        let volume = isMuted ? 0 : window.tizen.tvaudiocontrol.getVolume();
-                        volDisplay.innerText = "Volume: " + volume;
-                        volDisplay.style.display = "block";
-                        clearTimeout(window._volDisplayTimeout);
-                        window._volDisplayTimeout = setTimeout(() => {
-                            volDisplay.style.display = "none";
-                        }, 1200);
-                    }, 50);
                     e.stopPropagation();
                     return;
                 }
@@ -1411,275 +1259,150 @@ function VideoJsPlayer(poster = "") {
                 return;
             }
 
-            // 🔴 If arrow keys are pressed and controls are hidden, show them and reset timer
+            // Show UI on arrow keys/enter if hidden
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.key)) {
                 const controlsBarWrapper = document.querySelector(".custom-video-controls");
                 if (controlsBarWrapper && controlsBarWrapper.classList.contains("hidden")) {
                     showAllControls();
-                    // Restore focus to wherever it was, or default to play/pause
                     if (isSeekBarFocused) focusSeekBar();
                     else if (isAspectRatioFocused) focusAspectRatio();
                     else focusPlayPause();
                 }
                 resetControlsTimer();
-                // 🔴 NOTE: We removed the 'return' here so the first key press 
-                // BOTH shows the UI and performs the action (like seeking)
             }
 
-            // 🔴 UPDATED: Aspect ratio button navigation logic
             if (isAspectRatioFocused) {
-                const aspectRatioButton = document.getElementById("aspectRatioButton");
-                if (aspectRatioButton) {
-                    switch (e.key) {
-                        case "ArrowUp":
-                            // Move focus to seek bar
-                            focusSeekBar();
-                            e.preventDefault();
-                            break;
-
-                        case "Enter":
-                            // Apply aspect ratio change using utility
-                            const videoEl = document.querySelector(
-                                "#videojs-player-tag_html5_api"
-                            );
-                            if (videoEl && window.VideoAspectRatio) {
-                                const newLabel = window.VideoAspectRatio.cycle(videoEl);
-                                window.VideoAspectRatio.showOverlay(newLabel);
-                            }
-                            e.preventDefault();
-                            break;
-
-                        default:
-                            if (isBackKey(e)) {
-                                goBack();
-                                e.preventDefault();
-                            }
-                            break;
-                    }
-                }
-                return; // Don't process other keys when aspect ratio button is focused
-            }
-
-            // 🔴 UPDATED: Seek bar navigation logic
-            if (isSeekBarFocused) {
-                const seekBar = document.getElementById("customSeek");
-                if (seekBar) {
-                    switch (e.key) {
-                        case "ArrowLeft":
-                            if (
-                                !isLive &&
-                                player &&
-                                hasStartedPlayingOnce &&
-                                typeof player.currentTime === "function"
-                            ) {
-                                try {
-                                    // Show controls and focus pause
-                                    if (controlsBar) controlsBar.classList.remove("hidden");
-                                    if (titleBar) titleBar.style.display = "flex";
-                                    focusPlayPause();
-                                    // Use debounced seek to prevent buffer overload
-                                    debouncedSeek(-10);
-                                    showOverlay("backward");
-                                } catch (err) {
-                                    console.warn("Player seek error:", err);
-                                }
-                            }
-                            e.preventDefault();
-                            break;
-
-                        case "ArrowRight":
-                            if (
-                                !isLive &&
-                                player &&
-                                hasStartedPlayingOnce &&
-                                typeof player.currentTime === "function"
-                            ) {
-                                try {
-                                    // Show controls and focus pause
-                                    if (controlsBar) controlsBar.classList.remove("hidden");
-                                    if (titleBar) titleBar.style.display = "flex";
-                                    focusPlayPause();
-                                    // Use debounced seek to prevent buffer overload
-                                    debouncedSeek(10);
-                                    showOverlay("forward");
-                                } catch (err) {
-                                    console.warn("Player seek error:", err);
-                                }
-                            }
-                            e.preventDefault();
-                            break;
-
-                        case "ArrowUp":
-                            // Move focus to play/pause overlay
-                            focusPlayPause();
-                            e.preventDefault();
-                            break;
-
-                        case "ArrowDown":
-                            // Move focus to aspect ratio button
-                            focusAspectRatio();
-                            e.preventDefault();
-                            break;
-
-                        case "Enter":
-                            // Just unfocus seek bar, don't play/pause
-                            focusPlayPause();
-                            e.preventDefault();
-                            break;
-
-                        default:
-                            if (isBackKey(e)) {
-                                goBack();
-                                e.preventDefault();
-                            }
-                            break;
-                    }
-                }
-                return; // Don't process other keys when seek bar is focused
-            }
-
-            // 🔴 UPDATED: Play/Pause overlay navigation logic
-            if (isPlayPauseFocused) {
                 switch (e.key) {
-                    case "ArrowDown":
-                        // Move focus to seek bar if not live
-                        if (!isLive) {
-                            focusSeekBar();
-                        } else {
-                            focusAspectRatio();
+                    case "ArrowUp":
+                        focusSeekBar();
+                        e.preventDefault();
+                        break;
+                    case "Enter":
+                        const videoEl = document.querySelector("#videojs-player-tag");
+                        if (videoEl && window.VideoAspectRatio) {
+                            const newLabel = window.VideoAspectRatio.cycle(videoEl);
+                            window.VideoAspectRatio.showOverlay(newLabel);
                         }
                         e.preventDefault();
                         break;
+                    default:
+                        if (isBackKey(e)) {
+                            goBack();
+                            e.preventDefault();
+                        }
+                        break;
+                }
+                return;
+            }
 
+            if (isSeekBarFocused) {
+                switch (e.key) {
+                    case "ArrowLeft":
+                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                            showAllControls();
+                            focusPlayPause();
+                            debouncedSeek(-10);
+                            showOverlay("backward");
+                        }
+                        e.preventDefault();
+                        break;
+                    case "ArrowRight":
+                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                            showAllControls();
+                            focusPlayPause();
+                            debouncedSeek(10);
+                            showOverlay("forward");
+                        }
+                        e.preventDefault();
+                        break;
                     case "ArrowUp":
-                        // Keep focus on play/pause or show title
                         focusPlayPause();
                         e.preventDefault();
                         break;
-
+                    case "ArrowDown":
+                        focusAspectRatio();
+                        e.preventDefault();
+                        break;
                     case "Enter":
-                        // Toggle play/pause
-                        if (player && typeof player.paused === "function") {
-                            try {
-                                if (player.paused()) {
-                                    if (typeof player.play === "function") player.play();
-                                } else {
-                                    if (typeof player.pause === "function") player.pause();
-                                }
-                            } catch (err) {
-                                console.warn("Player control error:", err);
-                            }
+                        focusPlayPause();
+                        e.preventDefault();
+                        break;
+                    default:
+                        if (isBackKey(e)) {
+                            goBack();
+                            e.preventDefault();
+                        }
+                        break;
+                }
+                return;
+            }
+
+            if (isPlayPauseFocused) {
+                switch (e.key) {
+                    case "ArrowDown":
+                        if (!isLive) focusSeekBar();
+                        else focusAspectRatio();
+                        e.preventDefault();
+                        break;
+                    case "ArrowUp":
+                        focusPlayPause();
+                        e.preventDefault();
+                        break;
+                    case "Enter":
+                        if (player) {
+                            if (player.paused) player.play();
+                            else player.pause();
                         }
                         e.preventDefault();
                         break;
-
                     case "ArrowRight":
-                        if (
-                            !isLive &&
-                            player &&
-                            hasStartedPlayingOnce &&
-                            typeof player.currentTime === "function"
-                        ) {
-                            try {
-                                // Show controls
-                                showAllControls();
-                                // Use debounced seek to prevent buffer overload
-                                debouncedSeek(10);
-                                showOverlay("forward");
-                            } catch (err) {
-                                console.warn("Player seek error:", err);
-                            }
+                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                            showAllControls();
+                            debouncedSeek(10);
+                            showOverlay("forward");
                         }
                         e.preventDefault();
                         break;
-
                     case "ArrowLeft":
-                        if (
-                            !isLive &&
-                            player &&
-                            hasStartedPlayingOnce &&
-                            typeof player.currentTime === "function"
-                        ) {
-                            try {
-                                // Show controls
-                                showAllControls();
-                                // Use debounced seek to prevent buffer overload
-                                debouncedSeek(-10);
-                                showOverlay("backward");
-                            } catch (err) {
-                                console.warn("Player seek error:", err);
-                            }
+                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                            showAllControls();
+                            debouncedSeek(-10);
+                            showOverlay("backward");
                         }
                         e.preventDefault();
                         break;
                 }
-
-                // If we handled the key in play/pause mode, return
                 if (["ArrowUp", "ArrowDown", "Enter", "ArrowLeft", "ArrowRight"].includes(e.key)) {
                     return;
                 }
             }
 
-            // 🔴 Fallback controls (when nothing is focused)
+            // Fallback
             switch (e.key) {
                 case "Enter":
-                    if (player && typeof player.paused === "function") {
-                        try {
-                            if (player.paused()) {
-                                if (typeof player.play === "function") player.play();
-                            } else {
-                                if (typeof player.pause === "function") player.pause();
-                            }
-                        } catch (err) {
-                            console.warn("Player control error:", err);
-                        }
+                    if (player) {
+                        if (player.paused) player.play();
+                        else player.pause();
                     }
                     break;
-
                 case "ArrowRight":
-                    if (
-                        !isLive &&
-                        player &&
-                        hasStartedPlayingOnce &&
-                        typeof player.currentTime === "function"
-                    ) {
-                        try {
-                            // Show controls and focus pause
-                            if (controlsBar) controlsBar.classList.remove("hidden");
-                            if (titleBar) titleBar.style.display = "flex";
-                            focusPlayPause();
-                            // Use debounced seek to prevent buffer overload
-                            debouncedSeek(10);
-                            showOverlay("forward");
-                        } catch (err) {
-                            console.warn("Player seek error:", err);
-                        }
+                    if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                        showAllControls();
+                        focusPlayPause();
+                        debouncedSeek(10);
+                        showOverlay("forward");
                     }
                     e.preventDefault();
                     break;
-
                 case "ArrowLeft":
-                    if (
-                        !isLive &&
-                        player &&
-                        hasStartedPlayingOnce &&
-                        typeof player.currentTime === "function"
-                    ) {
-                        try {
-                            // Show controls and focus pause
-                            if (controlsBar) controlsBar.classList.remove("hidden");
-                            if (titleBar) titleBar.style.display = "flex";
-                            focusPlayPause();
-                            // Use debounced seek to prevent buffer overload
-                            debouncedSeek(-10);
-                            showOverlay("backward");
-                        } catch (err) {
-                            console.warn("Player seek error:", err);
-                        }
+                    if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
+                        showAllControls();
+                        focusPlayPause();
+                        debouncedSeek(-10);
+                        showOverlay("backward");
                     }
                     e.preventDefault();
                     break;
-
                 default:
                     if (isBackKey(e)) {
                         goBack();
@@ -1691,24 +1414,12 @@ function VideoJsPlayer(poster = "") {
         document.addEventListener("keydown", videojsPlayerdownHandler);
 
         VideoJsPlayer.cleanup = function() {
-            // Clear any pending timeouts first
-            if (pendingSeekTimeout) {
-                clearTimeout(pendingSeekTimeout);
-                pendingSeekTimeout = null;
-            }
-            if (pendingResumeTimeout) {
-                clearTimeout(pendingResumeTimeout);
-                pendingResumeTimeout = null;
-            }
-
-            // Remove event listener
+            if (pendingSeekTimeout) clearTimeout(pendingSeekTimeout);
+            if (pendingResumeTimeout) clearTimeout(pendingResumeTimeout);
             try {
                 document.removeEventListener("keydown", videojsPlayerdownHandler);
-            } catch (err) {
-                console.warn("Event listener removal error:", err);
-            }
-
-            // Reset tracking variables
+            } catch (err) {}
+            
             isSeekBarDragging = false;
             wasPlayingBeforeSeek = false;
             isSeekBarFocused = false;
@@ -1719,28 +1430,14 @@ function VideoJsPlayer(poster = "") {
             lastSeekTime = 0;
             hasStartedPlayingOnce = false;
 
-            // Store player reference to avoid race conditions
-            const currentPlayer = player;
-            if (currentPlayer) {
-                // Set player to null first to prevent further access
+            if (player) {
+                const currentPlayer = player;
                 player = null;
-
-                // Then safely dispose
+                try { currentPlayer.pause(); } catch (err) {}
                 try {
-                    if (typeof currentPlayer.pause === "function") {
-                        currentPlayer.pause();
-                    }
-                } catch (err) {
-                    console.warn("Player pause error during cleanup:", err);
-                }
-
-                try {
-                    if (typeof currentPlayer.dispose === "function") {
-                        currentPlayer.dispose();
-                    }
-                } catch (err) {
-                    console.warn("Player dispose error during cleanup:", err);
-                }
+                    currentPlayer.removeAttribute("src");
+                    currentPlayer.load();
+                } catch (err) {}
             }
         };
     }
@@ -1748,11 +1445,9 @@ function VideoJsPlayer(poster = "") {
     setTimeout(() => initPlayer(), 0);
 
     setTimeout(() => {
-        const videoHtmlElement = document.querySelector(
-            "#videojs-player-tag_html5_api"
-        );
-        if (videoHtmlElement && window.VideoAspectRatio) {
-            window.VideoAspectRatio.initialize(videoHtmlElement);
+        const videoEl = document.querySelector("#videojs-player-tag");
+        if (videoEl && window.VideoAspectRatio) {
+            window.VideoAspectRatio.initialize(videoEl);
         }
     }, 0);
 
@@ -1760,7 +1455,7 @@ function VideoJsPlayer(poster = "") {
         const aspectRatioButton = document.getElementById("aspectRatioButton");
         if (aspectRatioButton) {
             aspectRatioButton.addEventListener("click", () => {
-                const videoEl = document.querySelector("#videojs-player-tag_html5_api");
+                const videoEl = document.querySelector("#videojs-player-tag");
                 if (videoEl && window.VideoAspectRatio) {
                     const newLabel = window.VideoAspectRatio.cycle(videoEl);
                     window.VideoAspectRatio.showOverlay(newLabel);
@@ -1771,19 +1466,16 @@ function VideoJsPlayer(poster = "") {
 
     return `
   <div class="video-js-player-container">
-    <!-- Video Title -->
     <div class="video-title-bar" style="display: none;">
       <span class="video-title-text">${titleText}</span>
     </div>
 
-    <!-- Loader -->
     <div class="video-buffer-loader hidden">
       <div class="spinner"></div>
     </div>
 
     <div class="video-live-badge hidden">LIVE</div>
 
-    <!-- Error Dialog -->
     <div class="video-error-dialog hidden">
       <div class="error-box">
         <p id="errorDialogMessage">⚠️ Something went wrong</p>
@@ -1791,44 +1483,38 @@ function VideoJsPlayer(poster = "") {
       </div>
     </div>
 
-    <!-- Overlays -->
     <div class="video-action-overlay center hidden">
-      <div class="video-action-icon">▶️</div>
+        <div class="video-action-icon"><i class="fa-solid fa-play"></i></div>
     </div>
     <div class="video-action-overlay left hidden">
-      <div class="video-action-icon">⏪</div>
+        <div class="video-action-icon"><i class="fa-solid fa-backward"></i></div>
     </div>
     <div class="video-action-overlay right hidden">
-      <div class="video-action-icon">⏩</div>
+        <div class="video-action-icon"><i class="fa-solid fa-forward"></i></div>
     </div>
 
     <video
       id="videojs-player-tag"
       class="video-js videojs-player-class"
       playsinline
+      style="width: 100%; height: 100%;"
     ></video>
 
-    <!-- Custom controls with time displays -->
     <div class="custom-video-controls hidden">
       <div class="seek-bar-container">
         <span id="currentTime" class="time-display">0:00</span>
         <input id="customSeek" type="range" value="0" min="0" step="0.1" />
         <span id="duration" class="time-display">0:00</span>
       </div>
-      ${
-        isYouTube
-          ? ""
-          : `<div class="aspect-ratio-container">
-        <button class="aspect-ratio-button" id="aspectRatioButton"><i class="fa-solid fa-compress" style="color: ${
-          isAspectRatioFocused ? "var(--gold)" : "white"
-        }"></i>Aspect Ratio</button>
-      </div>`
-      }
-
+      ${isYouTube ? "" : `
+      <div class="aspect-ratio-container">
+        <button class="aspect-ratio-button" id="aspectRatioButton">
+          <i class="fa-solid fa-compress" style="color: ${isAspectRatioFocused ? "var(--gold)" : "white"}"></i>
+          Aspect Ratio
+        </button>
+      </div>`}
     </div>
- 
     <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
-
   </div>
 `;
 }
