@@ -58,7 +58,7 @@ window.onload = function () {
   }
 
   // Show splash screen first
-  // showSplashScreen();
+  showSplashScreen();
 
   setTimeout(() => {
     const playlistsData = localStorage.getItem("playlistsData")
