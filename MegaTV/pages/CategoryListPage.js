@@ -355,7 +355,22 @@ function handleCategoryListEnter() {
     localStorage.setItem("categoryListLastIndex", state.currentIndex);
     localStorage.setItem("categoryListLastFocusSection", state.focusSection);
     localStorage.setItem("preserveCategoryListFocus", "true");
+    localStorage.removeItem("categoryViewReturnPage");
+    localStorage.removeItem("categoryViewReturnCategoryIndex");
+    localStorage.removeItem("categoryViewReturnCardIndex");
+    localStorage.removeItem("categoryViewSourcePage");
+    localStorage.removeItem("categoryViewSourceCategoryIndex");
+    localStorage.removeItem("categoryViewSourceCardIndex");
     localStorage.setItem("categoryReturnPage", "categoryListPage");
+    localStorage.setItem("categoryViewReturnPage", "categoryListPage");
+    localStorage.setItem(
+      "categoryViewReturnCategoryIndex",
+      state.currentIndex,
+    );
+    localStorage.setItem("categoryViewReturnCardIndex", "header");
+    localStorage.setItem("categoryViewSourcePage", "categoryListPage");
+    localStorage.setItem("categoryViewSourceCategoryIndex", state.currentIndex);
+    localStorage.setItem("categoryViewSourceCardIndex", "header");
 
     localStorage.setItem("currentPage", "categoryViewPage");
     localStorage.setItem("navigationFocus", "categoryViewPage");
@@ -396,6 +411,9 @@ function goBackFromCategoryList() {
     "categoryListLastIndex",
     "categoryListLastFocusSection",
     "preserveCategoryListFocus",
+    "categoryViewReturnPage",
+    "categoryViewReturnCategoryIndex",
+    "categoryViewReturnCardIndex",
     "categoryReturnPage",
     "viewMoreType",
     "viewMoreCategoryId",

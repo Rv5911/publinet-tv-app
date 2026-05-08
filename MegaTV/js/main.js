@@ -58,7 +58,7 @@ window.onload = function () {
   }
 
   // Show splash screen first
-  showSplashScreen();
+  // showSplashScreen();
 
   setTimeout(() => {
     const playlistsData = localStorage.getItem("playlistsData")
@@ -77,7 +77,7 @@ window.onload = function () {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
     }
-  }, 5000);
+  }, 0);
 
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();

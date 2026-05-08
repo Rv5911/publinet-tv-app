@@ -7,7 +7,7 @@
   "title": "Mega TV",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
-    
+    "splashBackground": "splash-screen.png",
    "resolution": "1920x1080",
     "disableBackHistoryAPI" : true
 }

@@ -309,21 +309,6 @@ function LiveVideoJsComponent(
     }
   }
 
-  function exposePlaybackApi(videoEl) {
-    if (!videoEl) return;
-    videoEl.togglePlayPause = togglePlayPause;
-  }
-
-  function clearPlaybackApi(videoEl) {
-    if (!videoEl) return;
-
-    try {
-      delete videoEl.togglePlayPause;
-    } catch {
-      videoEl.togglePlayPause = undefined;
-    }
-  }
-
   function handlePlayPauseClick(event) {
     if (!event) return;
     event.preventDefault();
@@ -369,8 +354,11 @@ function LiveVideoJsComponent(
     return !!(
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
+      document.webkitIsFullScreen ||
       document.mozFullScreenElement ||
-      document.msFullscreenElement
+      document.mozFullScreen ||
+      document.msFullscreenElement ||
+      document.msIsFullScreen
     );
   }
 
@@ -468,7 +456,6 @@ function LiveVideoJsComponent(
           window.livePlayer.pause();
         }
       } catch {}
-      clearPlaybackApi(window.livePlayer);
       window.livePlayer = null;
     }
 
@@ -492,10 +479,14 @@ function LiveVideoJsComponent(
     videoEl.removeAttribute("poster");
     videoEl.style.backgroundColor = "black";
     videoEl.style.objectFit = "contain";
+    videoEl.style.position = "absolute";
+    videoEl.style.inset = "0";
+    videoEl.style.zIndex = "1";
+    videoEl.style.display = "block";
     videoEl.load();
 
     window.livePlayer = videoEl;
-    exposePlaybackApi(videoEl);
+    videoEl.togglePlayPause = togglePlayPause;
     resetManualAspectRatio();
 
     const startPlayback = () => {
@@ -508,10 +499,14 @@ function LiveVideoJsComponent(
       }
     };
 
+    const hideLoaderAndSync = () => {
+      setOverlayState({ loading: false, error: false });
+      syncPlayPauseIconFromMedia(videoEl);
+    };
+
     const handleNativePlaying = () => {
       clearPlaybackError();
-      syncLoaderFromMedia(videoEl);
-      syncPlayPauseIconFromMedia(videoEl);
+      hideLoaderAndSync();
 
       setTimeout(() => {
         const topOverlays = document.querySelector(".live-top-overlays");
@@ -530,8 +525,7 @@ function LiveVideoJsComponent(
 
     const handleNativePlay = () => {
       clearPlaybackError();
-      syncLoaderFromMedia(videoEl);
-      syncPlayPauseIconFromMedia(videoEl);
+      hideLoaderAndSync();
     };
 
     const handleNativeError = () => {
@@ -558,27 +552,27 @@ function LiveVideoJsComponent(
       }],
       ["loadedmetadata", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["loadeddata", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["canplay", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["canplaythrough", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["seeked", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["timeupdate", () => {
         clearPlaybackError();
-        syncLoaderFromMedia(videoEl);
+        hideLoaderAndSync();
       }],
       ["playing", handleNativePlaying],
       ["play", handleNativePlay],
@@ -622,8 +616,11 @@ function LiveVideoJsComponent(
         const isFs =
           document.fullscreenElement ||
           document.webkitFullscreenElement ||
+          document.webkitIsFullScreen ||
           document.mozFullScreenElement ||
-          document.msFullscreenElement;
+          document.mozFullScreen ||
+          document.msFullscreenElement ||
+          document.msIsFullScreen;
 
         if (!isFs) {
           if (playerContainer.requestFullscreen) {
@@ -686,8 +683,11 @@ function LiveVideoJsComponent(
         const isFs =
           document.fullscreenElement ||
           document.webkitFullscreenElement ||
+          document.webkitIsFullScreen ||
           document.mozFullScreenElement ||
-          document.msFullscreenElement;
+          document.mozFullScreen ||
+          document.msFullscreenElement ||
+          document.msIsFullScreen;
 
         if (isFs) {
           e.preventDefault();
@@ -703,6 +703,16 @@ function LiveVideoJsComponent(
             document.mozCancelFullScreen();
           } else if (document.msExitFullscreen) {
             document.msExitFullscreen();
+          }
+
+          // Fallback for simple video tag native fullscreen
+          const video = document.querySelector("video");
+          if (video) {
+            if (video.webkitExitFullscreen) video.webkitExitFullscreen();
+            else if (video.webkitCancelFullScreen)
+              video.webkitCancelFullScreen();
+            else if (video.mozCancelFullScreen) video.mozCancelFullScreen();
+            else if (video.msExitFullscreen) video.msExitFullscreen();
           }
         }
       }
@@ -842,12 +852,14 @@ function LiveVideoJsComponent(
         videoEl.pause();
         videoEl.removeAttribute("src");
         videoEl.load();
+        if (videoEl.togglePlayPause) {
+          delete videoEl.togglePlayPause;
+        }
       } catch (err) {
         console.warn("LiveVideoJsComponent video cleanup error:", err);
       }
     }
 
-    clearPlaybackApi(videoEl);
     window.livePlayer = null;
 
     // Clean up event listeners

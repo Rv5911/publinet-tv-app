@@ -1443,18 +1443,38 @@ function LivePage() {
   };
 
   const togglePlayPauseGlobal = () => {
-    if (!window.livePlayer) return;
+    const player = window.livePlayer;
+    if (!player) return;
 
-    // Toggle Play/Pause
-    if (typeof window.livePlayer.togglePlayPause === "function") {
-      window.livePlayer.togglePlayPause();
-    } else {
-      // Video.js instance
-      if (window.livePlayer.paused()) {
-        window.livePlayer.play();
-      } else {
-        window.livePlayer.pause();
+    const isPaused = () => {
+      if (typeof player.paused === "function") {
+        return player.paused();
       }
+      return !!player.paused;
+    };
+
+    try {
+      // Prefer the player-specific toggle if it exists.
+      if (typeof player.togglePlayPause === "function") {
+        player.togglePlayPause();
+      } else if (
+        typeof player.play === "function" &&
+        typeof player.pause === "function"
+      ) {
+        // Native HTMLVideoElement path.
+        if (isPaused()) {
+          const playPromise = player.play();
+          if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch((err) => {
+              console.warn("Fullscreen play() failed:", err);
+            });
+          }
+        } else {
+          player.pause();
+        }
+      }
+    } catch (err) {
+      console.warn("Fullscreen play/pause toggle failed:", err);
     }
 
     resetControlsTimer();

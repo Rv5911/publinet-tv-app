@@ -8,6 +8,9 @@ let categoryViewNavigationState = {
   type: "movies", // "movies" or "series"
   items: [],
   categoryTitle: "",
+  returnPage: "moviesPage",
+  returnCategoryIndex: 0,
+  returnCardIndex: "header",
 };
 
 const GRID_CHUNK_SIZE = 36; // 6 rows of 6
@@ -17,14 +20,42 @@ let categoryViewDebounce = {
   debounceTime: 200,
 };
 
+function getCategoryViewReturnPage(type) {
+  const explicitSourcePage = localStorage.getItem("categoryViewSourcePage");
+  if (explicitSourcePage) return explicitSourcePage;
+
+  const explicitReturnPage = localStorage.getItem("categoryViewReturnPage");
+  if (explicitReturnPage) return explicitReturnPage;
+
+  return type === "movies" ? "moviesPage" : "seriesPage";
+}
+
 function CategoryViewPage() {
   const type = localStorage.getItem("viewMoreType") || "movies";
   const categoryId = localStorage.getItem("viewMoreCategoryId");
   const categoryTitle =
     localStorage.getItem("viewMoreCategoryTitle") || "Category";
+  const explicitReturnPage = getCategoryViewReturnPage(type);
+  const explicitReturnCategoryIndex = parseInt(
+    localStorage.getItem("categoryViewSourceCategoryIndex") ||
+    localStorage.getItem("categoryViewReturnCategoryIndex") ||
+      localStorage.getItem("viewMoreCategoryIndex") ||
+      "0",
+    10,
+  );
+  const explicitReturnCardIndex =
+    localStorage.getItem("categoryViewSourceCardIndex") ||
+    localStorage.getItem("categoryViewReturnCardIndex") || "header";
 
   categoryViewNavigationState.type = type;
   categoryViewNavigationState.categoryTitle = categoryTitle;
+  categoryViewNavigationState.returnPage = explicitReturnPage;
+  categoryViewNavigationState.returnCategoryIndex = Number.isNaN(
+    explicitReturnCategoryIndex,
+  )
+    ? 0
+    : explicitReturnCategoryIndex;
+  categoryViewNavigationState.returnCardIndex = explicitReturnCardIndex;
 
   let allItems = [];
   if (type === "movies") {
@@ -335,11 +366,70 @@ function handleCategoryViewEnter() {
 }
 
 function goBackFromCategoryView() {
-  const type = categoryViewNavigationState.type;
-  const returnPage = localStorage.getItem("categoryReturnPage") || (type === "movies" ? "moviesPage" : "seriesPage");
+  const returnPage =
+    categoryViewNavigationState.returnPage ||
+    localStorage.getItem("categoryViewReturnPage") ||
+    "moviesPage";
+  const returnCategoryIndex = categoryViewNavigationState.returnCategoryIndex;
+  const returnCardIndex = categoryViewNavigationState.returnCardIndex;
+
+  const restoreNavState = (navStateKey, navStateObject) => {
+    const savedState = {
+      currentCategoryIndex: returnCategoryIndex,
+      currentCardIndex: returnCardIndex,
+      lastFocusedCategory: returnCategoryIndex,
+      lastFocusedCard: returnCardIndex === "header" ? 0 : returnCardIndex,
+    };
+    localStorage.setItem(navStateKey, JSON.stringify(savedState));
+    if (navStateObject) {
+      navStateObject.currentCategoryIndex = returnCategoryIndex;
+      navStateObject.currentCardIndex = returnCardIndex;
+      navStateObject.lastFocusedCategory = returnCategoryIndex;
+      navStateObject.lastFocusedCard =
+        returnCardIndex === "header" ? 0 : returnCardIndex;
+    }
+  };
+
+  if (returnPage === "moviesPage") {
+    restoreNavState(
+      "moviesNavState",
+      window.moviesNavigationState || categoryViewNavigationState,
+    );
+    localStorage.setItem(
+      "moviesPendingReturnFocusState",
+      JSON.stringify({
+        currentCategoryIndex: returnCategoryIndex,
+        currentCardIndex: returnCardIndex,
+        lastFocusedCategory: returnCategoryIndex,
+        lastFocusedCard: returnCardIndex === "header" ? 0 : returnCardIndex,
+      }),
+    );
+  } else if (returnPage === "seriesPage") {
+    restoreNavState(
+      "seriesNavState",
+      window.seriesNavigationState || categoryViewNavigationState,
+    );
+    localStorage.setItem(
+      "seriesPendingReturnFocusState",
+      JSON.stringify({
+        currentCategoryIndex: returnCategoryIndex,
+        currentCardIndex: returnCardIndex,
+        lastFocusedCategory: returnCategoryIndex,
+        lastFocusedCard: returnCardIndex === "header" ? 0 : returnCardIndex,
+      }),
+    );
+  }
 
   localStorage.setItem("currentPage", returnPage);
   localStorage.setItem("navigationFocus", returnPage);
+
+  localStorage.removeItem("categoryViewReturnPage");
+  localStorage.removeItem("categoryViewReturnCategoryIndex");
+  localStorage.removeItem("categoryViewReturnCardIndex");
+  localStorage.removeItem("categoryViewSourcePage");
+  localStorage.removeItem("categoryViewSourceCategoryIndex");
+  localStorage.removeItem("categoryViewSourceCardIndex");
+  localStorage.removeItem("categoryReturnPage");
 
   Router.showPage(returnPage);
 }
