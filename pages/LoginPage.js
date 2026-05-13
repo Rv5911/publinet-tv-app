@@ -23,6 +23,28 @@ function LoginPage() {
       document.querySelector(".login-form-div").classList.remove("shift-up");
     });
 
+    const restoreLoginDraft = () => {
+      const draftPlaylist = localStorage.getItem("loginDraftPlaylistName");
+      const draftUsername = localStorage.getItem("loginDraftUsername");
+      const draftPassword = localStorage.getItem("loginDraftPassword");
+
+      if (draftPlaylist !== null && playlistInput) {
+        playlistInput.value = draftPlaylist;
+      }
+      if (draftUsername !== null && usernameInput) {
+        usernameInput.value = draftUsername;
+      }
+      if (draftPassword !== null && passwordInput) {
+        passwordInput.value = draftPassword;
+      }
+
+      localStorage.removeItem("loginDraftPlaylistName");
+      localStorage.removeItem("loginDraftUsername");
+      localStorage.removeItem("loginDraftPassword");
+    };
+
+    restoreLoginDraft();
+
     usernameInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
     });
@@ -133,12 +155,27 @@ function LoginPage() {
       logAllDnsEntries();
       loginApi(username, password, playlistName).then((response) => {
         if (response) {
+          localStorage.removeItem("loginDraftPlaylistName");
+          localStorage.removeItem("loginDraftUsername");
+          localStorage.removeItem("loginDraftPassword");
           LoginPage.cleanup();
         }
       });
     }
 
     function showExitModal() {
+      localStorage.setItem(
+        "loginDraftPlaylistName",
+        playlistInput ? playlistInput.value : "",
+      );
+      localStorage.setItem(
+        "loginDraftUsername",
+        usernameInput ? usernameInput.value : "",
+      );
+      localStorage.setItem(
+        "loginDraftPassword",
+        passwordInput ? passwordInput.value : "",
+      );
       localStorage.setItem("returnPage", "login");
       localStorage.setItem("returnFocus", "login");
       localStorage.setItem("currentPage", "exitModal");
@@ -282,10 +319,13 @@ function LoginPage() {
               );
               e.preventDefault();
               return;
-            } else {
-              localStorage.setItem("currentPage", "listUsersPage");
-              LoginPage.cleanup();
-              Router.showPage("listPage");
+          } else {
+            localStorage.removeItem("loginDraftPlaylistName");
+            localStorage.removeItem("loginDraftUsername");
+            localStorage.removeItem("loginDraftPassword");
+            localStorage.setItem("currentPage", "listUsersPage");
+            LoginPage.cleanup();
+            Router.showPage("listPage");
             }
           }
           e.stopPropagation();
