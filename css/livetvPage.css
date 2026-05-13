@@ -1010,7 +1010,7 @@
     min-width: 300px;
     z-index: 10000;
     /* Higher than overlay */
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+    /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.7); */
 }
 
 .dialog-content h3 {

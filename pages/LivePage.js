@@ -1665,13 +1665,25 @@ function LivePage() {
       (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
     ) {
       if (isBackKey(e)) {
-        if (e.target.value.length > 0) {
-          e.target.value = e.target.value.slice(0, -1);
-          // Dispatch input event to trigger filtering
-          e.target.dispatchEvent(new Event("input"));
-          e.preventDefault();
+        const input = e.target;
+        const start = typeof input.selectionStart === "number" ? input.selectionStart : input.value.length;
+        const end = typeof input.selectionEnd === "number" ? input.selectionEnd : input.value.length;
+
+        if (start !== end) {
+          input.value = input.value.slice(0, start) + input.value.slice(end);
+          input.setSelectionRange(start, start);
+        } else if (start > 0) {
+          input.value =
+            input.value.slice(0, start - 1) + input.value.slice(end);
+          input.setSelectionRange(start - 1, start - 1);
+        } else {
           return;
         }
+
+        // Dispatch input event to trigger filtering
+        input.dispatchEvent(new Event("input"));
+        e.preventDefault();
+        return;
       }
 
       if (["Enter", "Escape"].includes(e.key)) {
@@ -2559,6 +2571,16 @@ function LivePage() {
         updateFocus();
       });
       catInput.addEventListener("keydown", (e) => {
+        const isInputFocused = document.activeElement === catInput;
+        const key = e.key;
+
+        if (
+          isInputFocused &&
+          (key === "ArrowLeft" || key === "ArrowRight")
+        ) {
+          return; // Let the browser move the text cursor normally
+        }
+
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
           e.preventDefault();
           e.stopPropagation();
@@ -2592,6 +2614,16 @@ function LivePage() {
       });
       // Handle arrow keys to blur input and navigate
       chanInput.addEventListener("keydown", (e) => {
+        const isInputFocused = document.activeElement === chanInput;
+        const key = e.key;
+
+        if (
+          isInputFocused &&
+          (key === "ArrowLeft" || key === "ArrowRight")
+        ) {
+          return; // Let the browser move the text cursor normally
+        }
+
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
           e.preventDefault();
           e.stopPropagation();

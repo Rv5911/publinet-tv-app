@@ -592,7 +592,7 @@ async function HomePage() {
   }, 0);
 
   // Get favorite and recently added movies and series
-  const currentPlaylist = getCurrentPlaylist() || {};
+  const currentPlaylist = getCurrentPlaylist();
 
   console.log("currentPlaylist", currentPlaylist);
 
@@ -608,10 +608,10 @@ async function HomePage() {
   };
 
   // --- FAVORITES ---
-  const favoriteMovieIds = Array.isArray(currentPlaylist.favouriteMovies)
+  const favoriteMovieIds = currentPlaylist.favouriteMovies
     ? currentPlaylist.favouriteMovies.map((id) => String(id))
     : [];
-  const favoriteSeriesIds = Array.isArray(currentPlaylist.favouriteSeries)
+  const favoriteSeriesIds = currentPlaylist.favouriteSeries
     ? currentPlaylist.favouriteSeries.map((id) => String(id))
     : [];
 
@@ -643,16 +643,8 @@ async function HomePage() {
 
   // --- RECENTLY WATCHED ---
   // Extract itemIds from continueWatching arrays
-  const continueWatchingMovies = Array.isArray(
-    currentPlaylist.continueWatchingMovies,
-  )
-    ? currentPlaylist.continueWatchingMovies
-    : [];
-  const continueWatchingSeries = Array.isArray(
-    currentPlaylist.continueWatchingSeries,
-  )
-    ? currentPlaylist.continueWatchingSeries
-    : [];
+  const continueWatchingMovies = currentPlaylist.continueWatchingMovies || [];
+  const continueWatchingSeries = currentPlaylist.continueWatchingSeries || [];
 
   // We need to map these back to the full stream objects
   // continueWatching items usually have { itemId: "...", ... }

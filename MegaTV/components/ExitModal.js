@@ -18,8 +18,18 @@ function ExitModal() {
       if (ExitModal.cleanup) ExitModal.cleanup();
 
       try {
-        const app = tizen.application.getCurrentApplication();
-        if (app) app.exit();
+        if (typeof tizen !== "undefined" && tizen.application) {
+                const app = tizen.application.getCurrentApplication();
+                if (app) {
+                    app.exit();
+                    return;
+                }
+            }
+
+            if (typeof window !== "undefined" && window.close) {
+                window.close();
+                return;
+            }
       } catch (err) {
         Toaster.showToast("error", "Failed to exit app");
       }
@@ -44,6 +54,12 @@ function ExitModal() {
     // Clear return state
     localStorage.removeItem("returnPage");
     localStorage.removeItem("returnFocus");
+
+    if (returnPage === "login") {
+      localStorage.setItem("currentPage", "login");
+      Router.showPage("login");
+      return;
+    }
 
     localStorage.setItem("currentPage", returnPage);
     // Router.showPage(returnPage); // Removed to prevent reload/re-render. Background is already visible.

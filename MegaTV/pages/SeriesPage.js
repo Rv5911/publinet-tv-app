@@ -790,7 +790,7 @@ function handleSeriesSimpleEnter() {
   let cardIndex = seriesNavigationState.currentCardIndex;
 
   if (cardIndex === "header") {
-    handleSeriesViewMoreClick("series", categoryIndex);
+    handleViewMoreClick("series", categoryIndex);
     return;
   }
 
@@ -872,7 +872,7 @@ function proceedToSeriesDetail(categoryIndex, cardIndex, seriesId) {
   Router.showPage("seriesDetailPage");
 }
 
-function handleSeriesViewMoreClick(type, categoryIndex) {
+function handleViewMoreClick(type, categoryIndex) {
   let categories =
     type === "movies"
       ? window.allMoviesCategories || []
@@ -881,26 +881,14 @@ function handleSeriesViewMoreClick(type, categoryIndex) {
 
   if (category) {
     saveSeriesNavigationState();
-    localStorage.removeItem("categoryViewReturnPage");
-    localStorage.removeItem("categoryViewReturnCategoryIndex");
-    localStorage.removeItem("categoryViewReturnCardIndex");
-    localStorage.removeItem("categoryViewSourcePage");
-    localStorage.removeItem("categoryViewSourceCategoryIndex");
-    localStorage.removeItem("categoryViewSourceCardIndex");
-    localStorage.removeItem("categoryReturnPage");
     localStorage.setItem("viewMoreType", type);
     localStorage.setItem("viewMoreCategoryId", category.id);
     localStorage.setItem("viewMoreCategoryTitle", category.title);
     localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnPage", "seriesPage");
-    localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnCardIndex", "header");
-    localStorage.setItem("categoryViewSourcePage", "seriesPage");
-    localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewSourceCardIndex", "header");
 
     localStorage.setItem("currentPage", "categoryViewPage");
     localStorage.setItem("navigationFocus", "categoryViewPage");
+    localStorage.setItem("categoryReturnPage", "seriesPage");
 
     Router.showPage("categoryViewPage");
   }
@@ -1964,55 +1952,34 @@ function saveSeriesNavigationState() {
 
 function restoreSeriesNavigationState() {
   try {
-    let pendingReturnFocus = localStorage.getItem(
-      "seriesPendingReturnFocusState",
-    );
-    let state = null;
-
-    if (pendingReturnFocus) {
-      state = JSON.parse(pendingReturnFocus);
+    let saved = localStorage.getItem("seriesNavState");
+    if (saved) {
+      let state = JSON.parse(saved);
       seriesNavigationState.currentCategoryIndex =
         state.currentCategoryIndex || 0;
-      seriesNavigationState.currentCardIndex =
-        state.currentCardIndex != null ? state.currentCardIndex : "header";
+      seriesNavigationState.currentCardIndex = state.currentCardIndex || 0;
       seriesNavigationState.lastFocusedCategory =
         state.lastFocusedCategory || 0;
-      seriesNavigationState.lastFocusedCard =
-        state.lastFocusedCard || 0;
-      localStorage.removeItem("seriesPendingReturnFocusState");
-    } else {
-      let saved = localStorage.getItem("seriesNavState");
-      if (saved) {
-        state = JSON.parse(saved);
-        seriesNavigationState.currentCategoryIndex =
-          state.currentCategoryIndex || 0;
-        seriesNavigationState.currentCardIndex =
-          state.currentCardIndex != null ? state.currentCardIndex : 0;
-        seriesNavigationState.lastFocusedCategory =
-          state.lastFocusedCategory || 0;
-        seriesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
+      seriesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
+
+      // Show the same loader that was used initially
+      const pageEl = document.getElementById("series-page");
+      if (pageEl) {
+        const loader = document.createElement("div");
+        loader.id = "series-page-loader";
+        loader.className = "custom-page-loader";
+        loader.innerHTML = `
+          <div class="custom-loader-content">
+            <div class="custom-loader-spinner"></div>
+          </div>
+        `;
+        pageEl.appendChild(loader);
       }
+
+      setTimeout(() => {
+        validateAndAdjustRestoredSeriesState();
+      }, 100);
     }
-
-    if (!state) return;
-
-    // Show the same loader that was used initially
-    const pageEl = document.getElementById("series-page");
-    if (pageEl) {
-      const loader = document.createElement("div");
-      loader.id = "series-page-loader";
-      loader.className = "custom-page-loader";
-      loader.innerHTML = `
-        <div class="custom-loader-content">
-          <div class="custom-loader-spinner"></div>
-        </div>
-      `;
-      pageEl.appendChild(loader);
-    }
-
-    setTimeout(() => {
-      validateAndAdjustRestoredSeriesState();
-    }, 100);
   } catch (e) {
     console.log("Error restoring series navigation state:", e);
   }

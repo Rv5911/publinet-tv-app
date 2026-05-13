@@ -86,9 +86,9 @@
     border-color: var(--gold);
 }
 
-.radio-option input[type="radio"]:focus + .custom-radio {
+/* .radio-option input[type="radio"]:focus + .custom-radio {
     box-shadow: 0 0 0 3px rgba(11, 118, 247, 0.5);
-}
+} */
 
 .option-label {
     font-size: 30px;
@@ -116,12 +116,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3);
+    /* box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3); */
 }
 
 #saveBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4);
+    /* box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4); */
 }
 
 #saveBtn:focus {
@@ -137,7 +137,7 @@
     outline: 2px solid #fff;
     outline-offset: 2px;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4);
+    /* box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4); */
 }
 
 .saveBtn-div{

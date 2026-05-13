@@ -138,11 +138,43 @@ function LoginPage() {
       });
     }
 
+    function showExitModal() {
+      localStorage.setItem("returnPage", "login");
+      localStorage.setItem("returnFocus", "login");
+      localStorage.setItem("currentPage", "exitModal");
+      LoginPage.cleanup();
+      Router.showPage("exitModal");
+    }
+
+    function getLoginNavigationKey(e) {
+      const key = e.key;
+      const keyCode = e.keyCode || e.which;
+
+      if (key === "ArrowDown" || keyCode === 40 || key === "Down") {
+        return "ArrowDown";
+      }
+      if (key === "ArrowUp" || keyCode === 38 || key === "Up") {
+        return "ArrowUp";
+      }
+      if (key === "ArrowLeft" || keyCode === 37 || key === "Left") {
+        return "ArrowLeft";
+      }
+      if (key === "ArrowRight" || keyCode === 39 || key === "Right") {
+        return "ArrowRight";
+      }
+      if (key === "Enter" || keyCode === 13 || key === "Return") {
+        return "Enter";
+      }
+
+      return key;
+    }
+
     function loginPageKeydownEvents(e) {
       if (localStorage.getItem("currentPage") !== "login") {
         return;
       }
-      const key = e.key;
+      const key = getLoginNavigationKey(e);
+      const keyCode = e.keyCode || e.which;
       const focused = inputs[currentIndex];
       const eyeFocused = eyeIcon.classList.contains("eye-icon-focused");
 
@@ -153,13 +185,17 @@ function LoginPage() {
           document.activeElement === usernameInput ||
           document.activeElement === passwordInput);
 
+      const isTextBackspaceKey = key === "Backspace" || keyCode === 8;
+
+      if (isInputFocused && isTextBackspaceKey) {
+        return; // Let the browser delete at the current cursor position
+      }
+
       if (isBackKey(e)) {
-        if (isInputFocused && document.activeElement.value.length > 0) {
-          document.activeElement.value = document.activeElement.value.slice(0, -1);
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        }
+        e.preventDefault();
+        e.stopPropagation();
+        showExitModal();
+        return;
       }
 
       // If user is typing in an input field, don't prevent default for most keys
@@ -172,6 +208,13 @@ function LoginPage() {
         key !== "Enter"
       ) {
         return; // Allow normal typing
+      }
+
+      if (
+        isInputFocused &&
+        (key === "ArrowLeft" || key === "ArrowRight")
+      ) {
+        return; // Let the browser move the text cursor normally
       }
 
       switch (key) {
@@ -199,6 +242,7 @@ function LoginPage() {
             if (lastFocusedInput) lastFocusedInput.blur();
             eyeIcon.classList.add("eye-icon-focused");
           }
+          e.stopPropagation();
           e.preventDefault();
           break;
 
@@ -207,6 +251,7 @@ function LoginPage() {
             clearFocusStyles();
             passwordInput.classList.add("login-input-focused");
           }
+          e.stopPropagation();
           e.preventDefault();
           break;
 
@@ -243,6 +288,7 @@ function LoginPage() {
               Router.showPage("listPage");
             }
           }
+          e.stopPropagation();
           e.preventDefault();
           break;
       }

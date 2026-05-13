@@ -791,7 +791,7 @@ function handleMoviesSimpleEnter() {
   let cardIndex = moviesNavigationState.currentCardIndex;
 
   if (cardIndex === "header") {
-    handleMoviesViewMoreClick("movies", categoryIndex);
+    handleViewMoreClick("movies", categoryIndex);
     return;
   }
 
@@ -847,7 +847,7 @@ function handleMoviesSimpleEnter() {
   }
 }
 
-function handleMoviesViewMoreClick(type, categoryIndex) {
+function handleViewMoreClick(type, categoryIndex) {
   let categories =
     type === "movies"
       ? window.allMoviesCategories || []
@@ -856,26 +856,14 @@ function handleMoviesViewMoreClick(type, categoryIndex) {
 
   if (category) {
     saveMoviesNavigationState();
-    localStorage.removeItem("categoryViewReturnPage");
-    localStorage.removeItem("categoryViewReturnCategoryIndex");
-    localStorage.removeItem("categoryViewReturnCardIndex");
-    localStorage.removeItem("categoryViewSourcePage");
-    localStorage.removeItem("categoryViewSourceCategoryIndex");
-    localStorage.removeItem("categoryViewSourceCardIndex");
-    localStorage.removeItem("categoryReturnPage");
     localStorage.setItem("viewMoreType", type);
     localStorage.setItem("viewMoreCategoryId", category.id);
     localStorage.setItem("viewMoreCategoryTitle", category.title);
     localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnPage", "moviesPage");
-    localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnCardIndex", "header");
-    localStorage.setItem("categoryViewSourcePage", "moviesPage");
-    localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewSourceCardIndex", "header");
 
     localStorage.setItem("currentPage", "categoryViewPage");
     localStorage.setItem("navigationFocus", "categoryViewPage");
+    localStorage.setItem("categoryReturnPage", "moviesPage");
 
     Router.showPage("categoryViewPage");
   }
@@ -1854,55 +1842,34 @@ function saveMoviesNavigationState() {
 
 function restoreMoviesNavigationState() {
   try {
-    let pendingReturnFocus = localStorage.getItem(
-      "moviesPendingReturnFocusState",
-    );
-    let state = null;
-
-    if (pendingReturnFocus) {
-      state = JSON.parse(pendingReturnFocus);
+    let saved = localStorage.getItem("moviesNavState");
+    if (saved) {
+      let state = JSON.parse(saved);
       moviesNavigationState.currentCategoryIndex =
         state.currentCategoryIndex || 0;
-      moviesNavigationState.currentCardIndex =
-        state.currentCardIndex != null ? state.currentCardIndex : "header";
+      moviesNavigationState.currentCardIndex = state.currentCardIndex || 0;
       moviesNavigationState.lastFocusedCategory =
         state.lastFocusedCategory || 0;
-      moviesNavigationState.lastFocusedCard =
-        state.lastFocusedCard || 0;
-      localStorage.removeItem("moviesPendingReturnFocusState");
-    } else {
-      let saved = localStorage.getItem("moviesNavState");
-      if (saved) {
-        state = JSON.parse(saved);
-        moviesNavigationState.currentCategoryIndex =
-          state.currentCategoryIndex || 0;
-        moviesNavigationState.currentCardIndex =
-          state.currentCardIndex != null ? state.currentCardIndex : 0;
-        moviesNavigationState.lastFocusedCategory =
-          state.lastFocusedCategory || 0;
-        moviesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
+      moviesNavigationState.lastFocusedCard = state.lastFocusedCard || 0;
+
+      // Show the same loader that was used initially
+      const pageEl = document.getElementById("movies-page");
+      if (pageEl) {
+        const loader = document.createElement("div");
+        loader.id = "movies-page-loader";
+        loader.className = "custom-page-loader";
+        loader.innerHTML = `
+          <div class="custom-loader-content">
+            <div class="custom-loader-spinner"></div>
+          </div>
+        `;
+        pageEl.appendChild(loader);
       }
+
+      setTimeout(() => {
+        validateAndAdjustRestoredMoviesState();
+      }, 100);
     }
-
-    if (!state) return;
-
-    // Show the same loader that was used initially
-    const pageEl = document.getElementById("movies-page");
-    if (pageEl) {
-      const loader = document.createElement("div");
-      loader.id = "movies-page-loader";
-      loader.className = "custom-page-loader";
-      loader.innerHTML = `
-        <div class="custom-loader-content">
-          <div class="custom-loader-spinner"></div>
-        </div>
-      `;
-      pageEl.appendChild(loader);
-    }
-
-    setTimeout(() => {
-      validateAndAdjustRestoredMoviesState();
-    }, 100);
   } catch (e) {
     console.log("Error restoring movies navigation state:", e);
   }

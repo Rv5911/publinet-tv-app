@@ -122,7 +122,12 @@ function renderNavbarVisibility() {
   const navbarRoot = document.getElementById("navbar-root");
   if (!navbarRoot) return;
 
-  navbarRoot.style.display = hiddenPages.includes(currentPage)
+  const shouldHideExitModalNavbar =
+    currentPage === "exitModal" &&
+    localStorage.getItem("returnPage") === "login";
+
+  navbarRoot.style.display =
+    hiddenPages.includes(currentPage) || shouldHideExitModalNavbar
     ? "none"
     : "block";
 }

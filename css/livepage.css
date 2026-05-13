@@ -454,7 +454,7 @@
 
 .lp-channel-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
 }
 
 .lp-channel-card.lp-focused {
@@ -611,7 +611,7 @@
     right: -6px;
     top: 50%;
     transform: translateY(-50%);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); */
 }
 
 .lp-channel-buttons {

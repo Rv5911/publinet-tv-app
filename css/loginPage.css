@@ -9,7 +9,7 @@
   box-sizing: border-box;
   font-size: 50px;
   padding-left: 52px;
-  animation: fadeInOut 1s ease-in-out;
+  /* animation: fadeInOut 1s ease-in-out; */
   padding-right: 52px;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }

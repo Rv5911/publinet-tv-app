@@ -514,7 +514,7 @@
     border-radius: 10px;
     z-index: 1000;
     margin-top: 5px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    /* box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); */
     /* NEW: Ensure dropdown stays on top and isolated */
     backdrop-filter: blur(5px);
 }

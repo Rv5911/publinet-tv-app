@@ -90,12 +90,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3);
+    /* box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3); */
 }
 
 #parentalSaveBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4);
+    /* box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4); */
 }
 
 #parentalSaveBtn:focus {
@@ -111,7 +111,7 @@
     outline: 2px solid #fff;
     outline-offset: 2px;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4);
+    /* box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4); */
 }
 
 .parental-saveBtn-div {
@@ -134,12 +134,12 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3);
+    /* box-shadow: 0 4px 15px rgba(11, 118, 247, 0.3); */
 }
 
 #parentalClearBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4);
+    /* box-shadow: 0 6px 20px rgba(11, 118, 247, 0.4); */
 }
 
 #parentalClearBtn:focus {

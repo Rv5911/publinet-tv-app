@@ -150,7 +150,7 @@ function ListUsersPage() {
           if (card) showRemoveDialog(currentRow, currentCol);
         }
         enterPressTimer = null;
-      }, 500);
+      }, 200);
     }
 
     function handleEnterKeyUp(e) {
@@ -235,7 +235,7 @@ function ListUsersPage() {
       const deleteBtn = dialog.querySelector(".delete-btn");
       const cancelBtn = dialog.querySelector(".cancel-btn");
 
-      let dialogActiveBtn = "delete";
+      let dialogActiveBtn = "cancel";
       function updateDialogFocus() {
         deleteBtn.style.border = "3px solid transparent";
         cancelBtn.style.border = "3px solid transparent";

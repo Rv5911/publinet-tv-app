@@ -34,7 +34,7 @@
     opacity: 0;
     transform: translateX(120%);
     transition: transform 0.35s ease, opacity 0.35s ease;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); */
     backdrop-filter: blur(4px);
     /* modern glassy feel */
 }
