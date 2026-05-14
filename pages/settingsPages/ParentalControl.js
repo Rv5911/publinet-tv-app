@@ -241,8 +241,12 @@ function ParentalControl() {
 
         case "Enter":
           if (currentFocus < inputs.length) {
-            // Focus the input when Enter is pressed
-            inputs[currentFocus].focus();
+            if (passwordLocked) {
+              showEditLockedToast();
+            } else {
+              // Focus the input when Enter is pressed
+              inputs[currentFocus].focus();
+            }
           } else {
             // Click the appropriate button
             var buttonIndex = currentFocus - inputs.length;
@@ -262,9 +266,14 @@ function ParentalControl() {
 
     // Add click handlers for custom input fields
     inputFields.forEach(function (field, index) {
-      field.addEventListener("click", function () {
+      field.addEventListener("click", function (e) {
         currentFocus = index;
         updateFocusStyles();
+        if (passwordLocked) {
+          e.preventDefault();
+          showEditLockedToast();
+          return;
+        }
         // Focus the input on click
         var input = this.querySelector(".parental-input");
         input.focus();
@@ -275,14 +284,22 @@ function ParentalControl() {
 
     // Add focus event listeners to update styles when input is actually focused
     inputs.forEach(function (input, index) {
-      input.addEventListener("click", function () {
+      input.addEventListener("click", function (e) {
         if (passwordLocked) {
+          e.preventDefault();
           showEditLockedToast();
         }
       });
 
       input.addEventListener("keydown", function (e) {
         if (!passwordLocked) return;
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          showEditLockedToast();
+          return;
+        }
 
         var allowedKeys = [
           "Tab",
@@ -291,7 +308,6 @@ function ParentalControl() {
           "ArrowRight",
           "ArrowUp",
           "ArrowDown",
-          "Enter",
           "Escape",
         ];
 
@@ -360,6 +376,11 @@ function ParentalControl() {
           password
         );
 
+        savedPassword = password;
+        lockPasswordFields();
+        inputs[0].value = password;
+        inputs[1].value = password;
+
         // Remove focus styles after saving
         removeAllFocusStyles();
 
@@ -374,10 +395,6 @@ function ParentalControl() {
           "Parental control password saved successfully!"
         );
         console.log("Parental control password saved");
-        // Ensure both inputs are masked after saving
-        inputs.forEach(function (inp) {
-          if (inp) inp.type = "password";
-        });
       }
     });
 
