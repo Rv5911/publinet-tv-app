@@ -17,18 +17,49 @@ function ParentalControl() {
       currentPlaylist && currentPlaylist.parentalPassword
         ? currentPlaylist.parentalPassword
         : null;
+    var passwordLocked = !!(savedPassword && savedPassword.length > 0);
+    var editLockToastShown = false;
 
-    if (savedPassword && savedPassword.length > 0) {
+    function showEditLockedToast() {
+      if (editLockToastShown) return;
+      editLockToastShown = true;
+
+      if (typeof Toaster !== "undefined" && Toaster.showToast) {
+        Toaster.showToast(
+          "error",
+          "Please clear fields to edit the password."
+        );
+      }
+
+      setTimeout(function () {
+        editLockToastShown = false;
+      }, 1500);
+    }
+
+    function lockPasswordFields() {
+      passwordLocked = true;
       inputs.forEach(function (inp) {
         inp.type = "password";
+        inp.readOnly = true;
       });
+    }
 
+    function unlockPasswordFields() {
+      passwordLocked = false;
+      inputs.forEach(function (inp) {
+        inp.readOnly = false;
+      });
+    }
+
+    if (passwordLocked) {
+      lockPasswordFields();
       // Autofill both fields
       inputs[0].value = savedPassword;
       inputs[1].value = savedPassword;
     } else {
       inputs.forEach(function (inp) {
         inp.type = "text";
+        inp.readOnly = false;
       });
     }
 
@@ -98,21 +129,23 @@ function ParentalControl() {
         return;
       }
 
-      if (isBackKey(e)) {
-        var activeInput = document.activeElement;
-        if (
-          activeInput &&
-          activeInput.tagName === "INPUT" &&
-          activeInput.classList.contains("parental-input")
-        ) {
-          if (activeInput.value.length > 0) {
-            activeInput.value = activeInput.value.slice(0, -1);
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
+      var activeInput = document.activeElement;
+      var isFocusedParentalInput =
+        activeInput &&
+        activeInput.tagName === "INPUT" &&
+        activeInput.classList.contains("parental-input");
+
+      if (isFocusedParentalInput) {
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          return; // Let the browser move the text cursor normally
         }
 
+        if (isBackKey(e) || e.key === "Delete") {
+          return; // Let the browser delete at the current cursor position
+        }
+      }
+
+      if (isBackKey(e)) {
         // Remove all focus styles before exiting
         removeAllFocusStyles();
 
@@ -242,9 +275,46 @@ function ParentalControl() {
 
     // Add focus event listeners to update styles when input is actually focused
     inputs.forEach(function (input, index) {
+      input.addEventListener("click", function () {
+        if (passwordLocked) {
+          showEditLockedToast();
+        }
+      });
+
+      input.addEventListener("keydown", function (e) {
+        if (!passwordLocked) return;
+
+        var allowedKeys = [
+          "Tab",
+          "Shift",
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+          "Enter",
+          "Escape",
+        ];
+
+        if (allowedKeys.indexOf(e.key) !== -1) {
+          return;
+        }
+
+        e.preventDefault();
+        showEditLockedToast();
+      });
+
+      input.addEventListener("paste", function (e) {
+        if (!passwordLocked) return;
+        e.preventDefault();
+        showEditLockedToast();
+      });
+
       input.addEventListener("focus", function () {
         currentFocus = index;
         updateFocusStyles();
+        if (passwordLocked) {
+          showEditLockedToast();
+        }
       });
 
       // Remove focus styles when input loses focus
@@ -322,6 +392,7 @@ function ParentalControl() {
         // Clear both input fields
         inputs[0].value = "";
         inputs[1].value = "";
+        unlockPasswordFields();
 
         updatePlaylistData(
           currentPlaylist.playlistName,
