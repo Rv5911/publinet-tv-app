@@ -722,6 +722,7 @@ function LiveAvPlayer(
         var b = document.getElementById("av-live-bottom-bar");
         var c = document.getElementById("live-play-pause-btn");
         var f = document.getElementById("lp-fullscreen-btn");
+        var fsAr = document.getElementById("live-fs-ar-btn");
         var top = document.querySelector(".av-live-top-info-row");
 
         if (hideBottomBar && b) {
@@ -745,7 +746,8 @@ function LiveAvPlayer(
         var isFsFocused = isFs ?
             focusedControl === "fullscreen-toggle" :
             fFocusedExt;
-        var primaryControlsFocused = !!(isPpFocused || isFsFocused);
+        var isFsArFocused = isFs ? focusedControl === "ar" : false;
+        var primaryControlsFocused = !!(isPpFocused || isFsFocused || isFsArFocused);
 
         if (areControlsVisible) {
             // Only show the secondary bar in windowed mode.
@@ -765,6 +767,7 @@ function LiveAvPlayer(
         if (isLoading || isLoaderVisible) {
             if (c) c.classList.add("hidden");
             if (f) f.classList.add("hidden");
+            if (fsAr) fsAr.classList.add("hidden");
             var errPnl = document.querySelector(".av-live-error-pnl");
             if (errPnl && !errPnl.classList.contains("hidden")) return;
             return;
@@ -790,6 +793,18 @@ function LiveAvPlayer(
                 c.classList.add("hidden");
                 c.style.display = "none";
                 c.style.pointerEvents = "none";
+            }
+        }
+
+        if (fsAr) {
+            if (isFs && hasActiveVideo && (areControlsVisible || primaryControlsFocused)) {
+                fsAr.classList.remove("hidden");
+                fsAr.style.display = "flex";
+                fsAr.style.pointerEvents = "auto";
+            } else {
+                fsAr.classList.add("hidden");
+                fsAr.style.display = "none";
+                fsAr.style.pointerEvents = "none";
             }
         }
 
@@ -838,6 +853,16 @@ function LiveAvPlayer(
                 e.preventDefault();
                 e.stopPropagation();
                 toggleFullscreenMode();
+            });
+        }
+
+        var fsArBtn = document.getElementById("live-fs-ar-btn");
+        if (fsArBtn) {
+            fsArBtn.style.cursor = "pointer";
+            fsArBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                cycleAspectRatio();
             });
         }
     }
@@ -931,14 +956,10 @@ function LiveAvPlayer(
                 )
                     focusedControl = "play-pause";
             } else if (dir === "left") {
-                if (focusedControl === "fullscreen-toggle")
-                    focusedControl = "play-pause";
-                else if (focusedControl === "audio") focusedControl = "ar";
+                if (focusedControl === "audio") focusedControl = "ar";
                 else if (focusedControl === "subtitle") focusedControl = "audio";
             } else if (dir === "right") {
-                if (focusedControl === "play-pause")
-                    focusedControl = "fullscreen-toggle";
-                else if (focusedControl === "ar") focusedControl = "audio";
+                if (focusedControl === "ar") focusedControl = "audio";
                 else if (focusedControl === "audio") focusedControl = "subtitle";
             }
         }
@@ -1483,6 +1504,7 @@ function LiveAvPlayer(
         "</span>" +
         "</div>" +
         '<div id="live-play-pause-btn" class="av-live-pp-btn av-live-nav-btn hidden" data-id="play-pause"><i class="fa-solid fa-pause"></i></div>' +
+        '<div id="live-fs-ar-btn" class="av-live-fs-ar-btn av-live-nav-btn hidden" data-id="ar" style="position: absolute; top: 60%; left: 50%; transform: translate(-50%, -50%); display: none; align-items: center; justify-content: center; gap: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px 20px; border-radius: 8px; font-size: 20px; transition: all 0.2s;"><i class="fa-solid fa-rectangle-list"></i> Aspect Ratio</div>' +
         '<div id="lp-fullscreen-btn" class="av-live-fs-btn av-live-nav-btn hidden" data-id="fullscreen-toggle"><i class="fa-solid fa-expand"></i></div>' +
         '<div id="av-live-bottom-bar" class="av-live-bottom-ctrls hidden">' +
         '<div class="av-live-seek-row">' +
