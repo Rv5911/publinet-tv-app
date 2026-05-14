@@ -193,12 +193,40 @@ function LiveAvPlayer(
         document.body.style.backgroundColor = "transparent";
     }
 
+    function getVideoSurface() {
+        return document.getElementById("avplay-live-raw");
+    }
+
+    function setVideoSurfaceVisible(visible) {
+        var surface = getVideoSurface();
+        if (!surface) return;
+
+        surface.style.visibility = visible ? "visible" : "hidden";
+        surface.style.opacity = visible ? "1" : "0";
+        surface.style.pointerEvents = visible ? "auto" : "none";
+    }
+
+    function clearErrorState() {
+        errorActive = false;
+
+        var errPnl = document.querySelector(".av-live-error-pnl");
+        if (errPnl) errPnl.classList.add("hidden");
+
+        var errTxt = document.getElementById("av-live-err-text");
+        if (errTxt) errTxt.textContent = "";
+
+        setVideoSurfaceVisible(true);
+    }
+
     function setLoaderVisible(visible) {
         var loader = document.getElementById("av-live-loader");
         if (!loader) return;
         if (visible) {
+            var errPnl = document.querySelector(".av-live-error-pnl");
+            if (errPnl) errPnl.classList.add("hidden");
             loader.classList.remove("hidden");
             loader.style.display = "flex";
+            setVideoSurfaceVisible(true);
         } else {
             loader.classList.add("hidden");
             loader.style.display = "none";
@@ -444,11 +472,13 @@ function LiveAvPlayer(
 
             var listener = {
                 onbufferingstart: function() {
+                    clearErrorState();
                     setLoaderVisible(true);
                     applyControlsVisibility();
                 },
                 onbufferingcomplete: function() {
                     setLoaderVisible(false);
+                    clearErrorState();
                     isLoading = false;
                     syncFullscreenUI();
                 },
@@ -491,6 +521,7 @@ function LiveAvPlayer(
                     avplay.setSilentSubtitle(false);
                     avplay.play();
                     setLoaderVisible(false);
+                    clearErrorState();
                     isLoading = false;
                     // Track fetching deferred until user opens the sidebar via Enter key
                     showControls();
@@ -506,11 +537,8 @@ function LiveAvPlayer(
     }
 
     function retryPlayback() {
-        errorActive = false;
+        clearErrorState();
         isLoading = true;
-
-        var errPnl = document.querySelector(".av-live-error-pnl");
-        if (errPnl) errPnl.classList.add("hidden");
 
         var topInfo = document.querySelector(".av-live-top-info-row");
         if (topInfo) topInfo.classList.remove("hidden");
@@ -533,6 +561,7 @@ function LiveAvPlayer(
         var topInfo = document.querySelector(".av-live-top-info-row");
         if (topInfo) topInfo.classList.add("hidden");
         setLoaderVisible(false);
+        setVideoSurfaceVisible(false);
         var b = document.getElementById("av-live-bottom-bar");
         if (b) b.classList.add("hidden");
         var c = document.getElementById("live-play-pause-btn");
@@ -546,7 +575,9 @@ function LiveAvPlayer(
             pnl.innerHTML =
                 '<div class="av-live-error-content">' +
                 '<i class="fa-solid fa-triangle-exclamation"></i>' +
-                "<p>Something went wrong, try again</p>" +
+                '<p id="av-live-err-text">' +
+                (m || "Something went wrong, try again") +
+                "</p>" +
                 '<div id="av-live-retry-btn">Retry</div>' +
                 "</div>";
         }
@@ -1355,7 +1386,7 @@ function LiveAvPlayer(
             var newUrl = typeof urlData === "object" ? urlData.src : urlData;
             try {
                 isLoading = true;
-                errorActive = false;
+                clearErrorState();
                 audioTracks = [];
                 subtitleTracks = [];
                 selectedAudioTrackIndex = -1;
@@ -1385,6 +1416,7 @@ function LiveAvPlayer(
                     function() {
                         avplay.play();
                         setLoaderVisible(false);
+                        clearErrorState();
                         isLoading = false;
                         showControls();
                     },
@@ -1397,6 +1429,7 @@ function LiveAvPlayer(
                         if (errPnl) errPnl.classList.remove("hidden");
                         var errTxt = document.getElementById("av-live-err-text");
                         if (errTxt) errTxt.textContent = "Playback Error";
+                        setVideoSurfaceVisible(false);
                         showControls();
                     },
                 );

@@ -25,7 +25,7 @@
 @keyframes splashFade {
   0% {
     opacity: 0;
-    transform: scale(1.05);
+    transform: scale(1);
   }
   30% {
     opacity: 1;
@@ -43,17 +43,17 @@
 @keyframes logoFade {
   0% {
     opacity: 0;
-    transform: scale(0);
+    transform: scale(2);
   }
   40% {
     opacity: 1;
     transform: scale(2);
   }
   70% {
-    transform: scale(1.5); 
+    transform: scale(2); 
   }
   100% {
-    transform: scale(1.4);
+    transform: scale(2);
     opacity: 1;
   }
 }

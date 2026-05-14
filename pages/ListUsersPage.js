@@ -127,9 +127,9 @@ function ListUsersPage() {
           break;
         default:
           if (isBackKey(e)) {
-            // localStorage.setItem("currentPage", "loginPage");
-            // ListUsersPage.cleanup();
-            // Router.showPage("login");
+            localStorage.setItem("currentPage", "loginPage");
+            ListUsersPage.cleanup();
+            Router.showPage("login");
           }
           break;
       }
