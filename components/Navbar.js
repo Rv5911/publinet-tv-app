@@ -891,6 +891,27 @@ function initNavbar() {
 
     switch (key) {
       case "ArrowRight":
+        if (isSearchFocused) {
+          const selectionStart = searchInput.selectionStart;
+          const selectionEnd = searchInput.selectionEnd;
+          const valueLength = searchInput.value.length;
+          const isAtEnd =
+            selectionStart !== null &&
+            selectionEnd !== null &&
+            selectionStart === valueLength &&
+            selectionEnd === valueLength;
+
+          if (!isAtEnd) {
+            return;
+          }
+
+          e.preventDefault();
+          searchInput.blur();
+          currentIndex = 1;
+          highlightNavItem(currentIndex);
+          break;
+        }
+
         if (profileIcon.classList.contains("active")) {
           return;
         } else {
