@@ -31,7 +31,7 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; */
     color: white;
 }
 
@@ -213,9 +213,9 @@
     background-position: center !important;
     background-repeat: no-repeat !important;
     cursor: pointer;
-    transition:
+    /* transition:
         border 0.2s ease,
-        transform 0.2s ease;
+        transform 0.2s ease; */
     z-index: 0;
     will-change: transform, border;
     transform: translateZ(0);
@@ -347,9 +347,9 @@
     flex: 1;
     opacity: 0;
     visibility: hidden;
-    transition:
+    /* transition:
         opacity 0.2s ease,
-        visibility 0.2s ease;
+        visibility 0.2s ease; */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -375,9 +375,9 @@
     width: 100%;
     opacity: 0;
     visibility: hidden;
-    transition:
+    /* transition:
         opacity 0.2s ease,
-        visibility 0.2s ease;
+        visibility 0.2s ease; */
 }
 
 .movie-card.focused .movie-card-bottom {
@@ -737,7 +737,7 @@
     width: fit-content;
     padding: 8px 16px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; */
 }
 
 .back-indicator.focused {

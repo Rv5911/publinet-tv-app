@@ -17,7 +17,7 @@ function LivePage() {
   let sidebarIndex = 0;
   let channelIndex = 0;
   let buttonFocusIndex = -1; // -1 = no button focused, 0 = heart, 1 = remove
-  let playerSubFocus = 0; // 0 = Video Border, 1 = Play/Pause, 2 = Aspect Ratio
+  let playerSubFocus = 0; // 0 = Fullscreen, 1 = Play/Pause, 2 = Aspect Ratio
 
   let playerVisualFocus = true; // Separate variable to track player visual focus (red border)
 
@@ -51,6 +51,7 @@ function LivePage() {
 
   // DOM Elements
   let container;
+  const isTizenPlatform = typeof tizen !== "undefined";
 
   // Get current playlist - MOVED UP to avoid reference error
   const getCurrentPlaylist = () => {
@@ -166,7 +167,14 @@ function LivePage() {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
-    if (!checkIsFullscreen()) {
+    const isEnteringFullscreen = !checkIsFullscreen();
+    document.body.classList.add("lp-fullscreen-transitioning");
+    playerContainer.classList.add("lp-fullscreen-transitioning");
+    if (isEnteringFullscreen) {
+      playerContainer.classList.add("fullscreen-mode");
+    }
+
+    if (isEnteringFullscreen) {
       // Enter fullscreen
       if (playerContainer.requestFullscreen) {
         playerContainer.requestFullscreen();
@@ -1057,35 +1065,48 @@ function LivePage() {
           videoWrapper &&
           !videoWrapper.innerText.includes("Select a channel to play");
 
+        if (playPauseIcon) {
+          playPauseIcon.classList.remove("lp-control-focused", "focused");
+        }
+        if (aspectRatioBtn) {
+          aspectRatioBtn.classList.remove("lp-control-focused", "focused");
+        }
+        if (fullscreenBtn) {
+          fullscreenBtn.classList.remove("lp-control-focused", "focused");
+        }
+
         if (isLoaderVisible || !hasVideo) {
           // Force hide controls if loader is visible or NO video
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
           if (fullscreenBtn) fullscreenBtn.style.display = "none";
         } else {
-          // In fullscreen, always show both controls when player is focused
+          // In fullscreen, show play/pause and aspect ratio while keeping
+          // fullscreen button hidden. In windowed mode, show both primary
+          // controls only when one of them is actively focused.
           if (isFullscreen) {
             if (playPauseIcon) playPauseIcon.style.display = "flex";
             if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
             // Fullscreen button is handled via CSS (hidden in fullscreen)
           } else {
-            // Non-fullscreen logic
-            if (fullscreenBtn) fullscreenBtn.style.display = "flex"; // Show only if video playing & no loader
+            const showPrimaryControls = playerSubFocus === 0 || playerSubFocus === 1;
 
             if (playPauseIcon) {
-              if (playerSubFocus === 1) {
-                playPauseIcon.style.display = "flex";
-              } else {
-                playPauseIcon.style.display = "flex";
-              }
+              playPauseIcon.style.display = showPrimaryControls ? "flex" : "none";
+            }
+            if (fullscreenBtn) {
+              fullscreenBtn.style.display = showPrimaryControls ? "flex" : "none";
             }
           }
 
           // Apply focus styling
           if (playerSubFocus === 1) {
-            if (playPauseIcon)
+            if (playPauseIcon) {
               playPauseIcon.classList.add("lp-control-focused");
-            const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+            }
+            const icon = fullscreenBtn
+              ? fullscreenBtn.querySelector(".lp-fullscreen-icon")
+              : null;
             if (icon) {
               icon.style.color = "white";
               icon.style.zoom = "2";
@@ -1093,7 +1114,9 @@ function LivePage() {
           } else if (playerSubFocus === 2) {
             if (aspectRatioBtn) {
               aspectRatioBtn.classList.add("lp-control-focused");
-              const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
+              const icon = fullscreenBtn
+                ? fullscreenBtn.querySelector(".lp-fullscreen-icon")
+                : null;
               if (icon) {
                 icon.style.color = "white";
                 icon.style.zoom = "2";
@@ -1101,6 +1124,7 @@ function LivePage() {
             }
           } else if (playerSubFocus === 0) {
             if (fullscreenBtn) {
+              fullscreenBtn.classList.add("lp-control-focused");
               const icon = fullscreenBtn.querySelector(".lp-fullscreen-icon");
               if (icon) {
                 icon.style.color = "#fdbd0f";
@@ -1113,6 +1137,13 @@ function LivePage() {
           if (!isFullscreen && (playerSubFocus === 1 || playerSubFocus === 2)) {
             if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
           }
+        }
+
+        if (
+          window.livePlayer &&
+          typeof window.livePlayer.refreshControlsVisibility === "function"
+        ) {
+          window.livePlayer.refreshControlsVisibility();
         }
       }
       document.activeElement.blur();
@@ -1296,7 +1327,15 @@ function LivePage() {
           window.livePlayer = null;
         }
 
-        if (typeof LiveVideoJsComponent === "function") {
+        if (isTizenPlatform && typeof LiveAvPlayer === "function") {
+          videoWrapper.innerHTML = LiveAvPlayer(
+            stream.stream_id,
+            liveVideoUrl,
+            stream.stream_icon,
+            "100%",
+            stream.name || "",
+          );
+        } else if (typeof LiveVideoJsComponent === "function") {
           videoWrapper.innerHTML = LiveVideoJsComponent(
             stream.stream_id,
             liveVideoUrl,
@@ -1626,6 +1665,15 @@ function LivePage() {
       playerSubFocus = 1;
       updateFocus();
     }
+
+    if (window._lpFullscreenTransitionTimer) {
+      clearTimeout(window._lpFullscreenTransitionTimer);
+    }
+    window._lpFullscreenTransitionTimer = setTimeout(() => {
+      playerContainer.classList.remove("lp-fullscreen-transitioning");
+      document.body.classList.remove("lp-fullscreen-transitioning");
+      window._lpFullscreenTransitionTimer = null;
+    }, 180);
   };
 
   const handleSortChange = (e) => {

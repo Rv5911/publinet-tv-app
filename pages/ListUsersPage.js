@@ -184,6 +184,12 @@ function ListUsersPage() {
               console.error("Playlist not found:", playlistName);
               return;
             }
+    const loadingEl = document.querySelector("#loading-overlay");
+
+                if (loadingEl) {
+      loadingEl.style.background = "rgba(0, 0, 0, 0.7)";
+      loadingEl.style.marginTop = "0%";
+    }
 
             loginApi(
               "",

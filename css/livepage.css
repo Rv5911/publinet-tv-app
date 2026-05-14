@@ -10,10 +10,11 @@
     max-height: 100vh;
     box-sizing: border-box;
     color: white;
-    background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
+    background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%) !important;
     animation: fadeInOut 1s ease-in-out;
     display: flex;
 }
+
 
 :root {
     --dark-gold: #fdbd0f;
@@ -117,7 +118,7 @@
     padding: 15px 20px;
     cursor: pointer;
     border-left: 3px solid transparent;
-    transition: all 0.2s;
+    /* transition: all 0.2s; */
 }
 
 .lp-category-item:hover {
@@ -352,7 +353,7 @@
     font-size: 20px;
     padding: 5px 10px;
     color: #aaa;
-    transition: all 0.2s;
+    /* transition: all 0.2s; */
 }
 
 .lp-epg-fav-btn.lp-focused {
@@ -446,7 +447,7 @@
     height: auto;
     overflow: visible;
     cursor: pointer;
-    transition: all 0.2s;
+    /* transition: all 0.2s; */
     border: 3px solid transparent;
     display: flex;
     flex-direction: column;
@@ -624,7 +625,7 @@
     border: none;
     color: #8888aa;
     cursor: pointer;
-    transition: all 0.2s;
+    /* transition: all 0.2s; */
     font-size: 16px;
     width: 24px;
     height: 24px;
@@ -639,7 +640,7 @@
     border: none;
     color: #8888aa;
     cursor: pointer;
-    transition: all 0.2s;
+    /* transition: all 0.2s; */
     font-size: 16px;
     width: 24px;
     height: 24px;
@@ -1111,6 +1112,37 @@
 #lp-fullscreen-btn .lp-fullscreen-icon.lp-control-focused {
     color: #fdbd0f !important;
     transform: scale(1.2);
+}
+
+#live-play-pause-btn.lp-control-focused,
+#lp-fullscreen-btn.lp-control-focused {
+    outline: 4px solid #fdbd0f;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 4px rgba(253, 189, 15, 0.25),
+        0 0 18px rgba(253, 189, 15, 0.55);
+}
+
+body.lp-fullscreen-transitioning {
+    background: #000 !important;
+}
+
+body.lp-fullscreen-transitioning .lp-sidebar,
+body.lp-fullscreen-transitioning .lp-epg-container,
+body.lp-fullscreen-transitioning .lp-channels-section {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.lp-player-container.lp-fullscreen-transitioning {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    z-index: 99999 !important;
+    border-radius: 0 !important;
 }
 
 .lp-cat-lock-icon {
