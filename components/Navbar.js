@@ -673,9 +673,12 @@ function initNavbar() {
   buildDynamicSidebarOptions();
 
   let searchDebounceTimer = null;
-  const SEARCH_DEBOUNCE_MS = 150;
+  const SEARCH_DEBOUNCE_MS = 500;
   searchInput.addEventListener("input", (e) => {
-    window.searchQuery = e.target.value || "";
+    const newVal = e.target.value || "";
+    if (window.searchQuery === newVal) return;
+    window.searchQuery = newVal;
+
     window.dispatchEvent(
       new CustomEvent("global-search", {
         detail: window.searchQuery,
@@ -686,7 +689,9 @@ function initNavbar() {
     searchDebounceTimer = setTimeout(() => {
       if (currentPage === "moviesPage") {
         try {
-          if (typeof window.rerenderMoviesPage === "function") {
+          if (typeof window.refreshMoviesSearchResults === "function") {
+            window.refreshMoviesSearchResults();
+          } else {
             Router.showPage("moviesPage");
             localStorage.setItem("navigationFocus", "navbar");
             searchInput.focus();
@@ -694,7 +699,9 @@ function initNavbar() {
         } catch (err) {}
       } else if (currentPage === "seriesPage") {
         try {
-          if (typeof window.rerenderSeriesPage === "function") {
+          if (typeof window.refreshSeriesSearchResults === "function") {
+            window.refreshSeriesSearchResults();
+          } else {
             Router.showPage("seriesPage");
             localStorage.setItem("navigationFocus", "navbar");
             searchInput.focus();

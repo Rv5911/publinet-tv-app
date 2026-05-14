@@ -187,25 +187,26 @@ function getAPICategories(sortType = "default") {
     return [];
   }
 
+  // Use cached Map for O(1) category lookup
+  const moviesByCategory = getMoviesByCategoryMap();
+
   let categories = [];
+  const q = getMoviesSearchQuery();
+
   for (let i = 0; i < allMoviesCategoriesData.length; i++) {
     let category = allMoviesCategoriesData[i];
     if (!category) continue;
 
-    let movies = [];
-
-    for (let j = 0; j < allMoviesStreamsData.length; j++) {
-      let stream = allMoviesStreamsData[j];
-      if (!stream) continue;
-
-      if (stream.category_id == category.category_id) {
-        movies.push(stream);
-      }
+    let movies = moviesByCategory.get(category.category_id) || [];
+    
+    // Filter by search query if applicable
+    if (q) {
+      movies = movies.filter((s) => normalizeText(s && s.name).includes(q));
     }
-    movies = deduplicateStreamsByName(filterStreamsByQuery(movies)).slice(
-      0,
-      50,
-    );
+
+    if (movies.length === 0) continue;
+
+    movies = deduplicateStreamsByName(movies).slice(0, 50);
 
     categories.push({
       title: category.category_name
@@ -2067,8 +2068,10 @@ function validateMoviesData() {
   }
 }
 
-function MoviesPage() {
-  validateMoviesData();
+  let moviesPageTimeout = null;
+  function MoviesPage() {
+    if (moviesPageTimeout) clearTimeout(moviesPageTimeout);
+    validateMoviesData();
 
   // Get current sort option
   const currentSort = localStorage.getItem("sortvalue") || "default";
@@ -2123,7 +2126,7 @@ function MoviesPage() {
 
   favoriteMoviesIds = [];
 
-  setTimeout(function () {
+  moviesPageTimeout = setTimeout(function () {
     const currentPlaylist = getCurrentPlaylist();
     const currentPlaylistFavIds = currentPlaylist
       ? currentPlaylist.favouriteMovies
@@ -2352,3 +2355,160 @@ window.moviesNavigationState = moviesNavigationState;
 window.updateMoviesFocus = updateMoviesFocus;
 window.saveMoviesNavigationState = saveMoviesNavigationState;
 window.rerenderMoviesPage = MoviesPage;
+
+let moviesSearchTimeout = null;
+let moviesByCategoryCache = null;
+
+function getMoviesByCategoryMap() {
+    const streams = window.allMoviesStreams || [];
+    if (moviesByCategoryCache && moviesByCategoryCache.data === streams) {
+        return moviesByCategoryCache.map;
+    }
+    const map = new Map();
+    for (let i = 0; i < streams.length; i++) {
+        const s = streams[i];
+        if (!s || !s.category_id) continue;
+        const cid = String(s.category_id);
+        if (!map.has(cid)) map.set(cid, []);
+        map.get(cid).push(s);
+    }
+    moviesByCategoryCache = { data: streams, map: map };
+    return map;
+}
+
+window.refreshMoviesSearchResults = function() {
+    if (moviesSearchTimeout) clearTimeout(moviesSearchTimeout);
+    
+    moviesSearchTimeout = setTimeout(() => {
+        const q = getMoviesSearchQuery();
+        if (!q) {
+            MoviesPage();
+            return;
+        }
+
+        const currentPlaylist = getCurrentPlaylist();
+        const currentPlaylistFavIds = currentPlaylist ? (currentPlaylist.favouriteMovies || []) : [];
+        const favSet = new Set(currentPlaylistFavIds.map(id => String(id)));
+        const recentSet = new Set(
+            (currentPlaylist && currentPlaylist.continueWatchingMovies)
+                ? currentPlaylist.continueWatchingMovies.filter(m => m).map(item => String(item.itemId))
+                : []
+        );
+
+        // SINGLE PASS FILTERING - Extremely fast
+        const resultsByCategoryId = new Map();
+        const favouriteMovies = [];
+        const popularMovies = [];
+        const recentMoviesArray = [];
+        
+        const allStreams = window.allMoviesStreams || [];
+        for (let i = 0; i < allStreams.length; i++) {
+            const m = allStreams[i];
+            if (!m) continue;
+            if (normalizeText(m.name).includes(q)) {
+                const sId = String(m.stream_id);
+                const cId = String(m.category_id || "uncategorized");
+                
+                // Group by category
+                if (!resultsByCategoryId.has(cId)) resultsByCategoryId.set(cId, []);
+                if (resultsByCategoryId.get(cId).length < 50) resultsByCategoryId.get(cId).push(m);
+                
+                // Top categories
+                if (favSet.has(sId) && favouriteMovies.length < 50) favouriteMovies.push(m);
+                if (m.rating_5based > 4 && popularMovies.length < 50) popularMovies.push(m);
+                if (recentSet.has(sId) && recentMoviesArray.length < 50) recentMoviesArray.push(m);
+            }
+        }
+
+        // Build categories list from results
+        let initialCategories = [];
+        if (favouriteMovies.length > 0) initialCategories.push({ title: "My Fav", movies: favouriteMovies, id: "fav", containerClass: "movies-fav-container" });
+        if (popularMovies.length > 0) initialCategories.push({ title: "Popular Movies", movies: popularMovies, id: "popular", containerClass: "movies-popular-container" });
+        if (recentMoviesArray.length > 0) initialCategories.push({ title: "Recently Watched", movies: recentMoviesArray, id: "recent", containerClass: "recently-watched-container" });
+
+        const allMoviesCategoriesData = window.moviesCategories || [];
+        for (let i = 0; i < allMoviesCategoriesData.length; i++) {
+            const cat = allMoviesCategoriesData[i];
+            if (!cat) continue;
+            const matches = resultsByCategoryId.get(String(cat.category_id));
+            if (matches && matches.length > 0) {
+                initialCategories.push({
+                    title: cat.category_name ? cat.category_name.replace(/[*]/g, "") : "Category",
+                    movies: matches,
+                    id: cat.category_id,
+                    containerClass: "movies-category-container",
+                    category_id: cat.category_id
+                });
+            }
+        }
+
+        window.allMoviesCategories = initialCategories;
+        const container = document.querySelector(".movies-page-container");
+        if (!container) return;
+
+        if (initialCategories.length === 0) {
+            container.innerHTML = createMoviesHeader() + createMoviesNoSearchMessage();
+            return;
+        }
+
+        // CHUNKED RENDERING
+        const MAX_INITIAL = 8;
+        const renderCategories = initialCategories.slice(0, MAX_INITIAL);
+        container.innerHTML = createMoviesHeader();
+        
+        moviesChunkLoadingState.loadedChunks = {};
+        moviesChunkLoadingState.loadedCategories = 0;
+        
+        let chunkIndex = 0;
+        function renderNextChunk() {
+            if (chunkIndex >= renderCategories.length) {
+                if (initialCategories.length > MAX_INITIAL) {
+                    container.insertAdjacentHTML('beforeend', '<div class="categories-loading-indicator"><p>Scroll for more results...</p></div>');
+                }
+                moviesChunkLoadingState.loadedCategories = renderCategories.length;
+                initMoviesNavigation();
+                updateMoviesFocus();
+                return;
+            }
+
+            const cat = renderCategories[chunkIndex];
+            
+            // Render category section shell
+            let html = '<div class="' + cat.containerClass + '">';
+            html += '<div class="category-header">';
+            html += "<h1>" + cat.title + "</h1>";
+            if (cat.movies.length > 7) {
+                html += `<div class="movies-view-more" data-category="${chunkIndex}" data-index="header" data-total="${cat.movies.length}">
+                          <span>See More (${cat.movies.length})</span>
+                          <i class="fas fa-chevron-right"></i>
+                        </div>`;
+            }
+            html += "</div>";
+            html += '<div class="movies-card-list ' + cat.id + '-list" data-category="' + chunkIndex + '">';
+            
+            // Manually render first 7 cards
+            const cardsToRender = Math.min(cat.movies.length, 7);
+            const size = cat.id === "popular" ? "large" : "normal";
+            for (let j = 0; j < cardsToRender; j++) {
+                const movieData = formatMovieData(cat.movies[j]);
+                if (movieData) {
+                    html += createMovieCard(movieData, size, chunkIndex, j);
+                }
+            }
+            
+            html += "</div></div>";
+            container.insertAdjacentHTML('beforeend', html);
+            
+            // Update loaded state for this category
+            setMoviesLoadedChunkCount(chunkIndex, cardsToRender);
+            
+            chunkIndex++;
+            setTimeout(renderNextChunk, 0);
+        }
+
+        moviesNavigationState.currentCategoryIndex = 0;
+        moviesNavigationState.currentCardIndex = 0;
+        
+        renderNextChunk();
+    }, 10);
+};
