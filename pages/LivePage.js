@@ -115,6 +115,17 @@ function LivePage() {
     );
   };
 
+  const getAspectRatioButton = () => {
+    if (isTizenPlatform) {
+      return document.getElementById("live-fs-ar-btn");
+    }
+
+    return (
+      document.getElementById("videojs-aspect-ratio") ||
+      document.getElementById("flow-aspect-ratio")
+    );
+  };
+
   const isCategoryAdult = (catId, catName) => {
     if (!catId) return false;
 
@@ -1054,9 +1065,7 @@ function LivePage() {
         const playPauseIcon =
           document.querySelector(".play-pause-icon") ||
           document.getElementById("live-play-pause-btn");
-        const aspectRatioBtn =
-          document.getElementById("videojs-aspect-ratio") ||
-          document.getElementById("flow-aspect-ratio");
+        const aspectRatioBtn = getAspectRatioButton();
         const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
 
         // Check if video is actually playing
@@ -1086,7 +1095,9 @@ function LivePage() {
           // controls only when one of them is actively focused.
           if (isFullscreen) {
             if (playPauseIcon) playPauseIcon.style.display = "flex";
-            if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+            if (aspectRatioBtn) {
+              aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
+            }
             // Fullscreen button is handled via CSS (hidden in fullscreen)
           } else {
             const showPrimaryControls = playerSubFocus === 0 || playerSubFocus === 1;
@@ -1135,7 +1146,9 @@ function LivePage() {
 
           // Ensure Aspect Ratio button is visible when player is focused (non-fullscreen)
           if (!isFullscreen && (playerSubFocus === 1 || playerSubFocus === 2)) {
-            if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+            if (aspectRatioBtn) {
+              aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
+            }
           }
         }
 
@@ -1152,9 +1165,7 @@ function LivePage() {
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
-      const aspectRatioBtn =
-        document.getElementById("videojs-aspect-ratio") ||
-        document.getElementById("flow-aspect-ratio");
+      const aspectRatioBtn = getAspectRatioButton();
       const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
 
       if (playPauseIcon) playPauseIcon.style.display = "none";
@@ -1464,12 +1475,12 @@ function LivePage() {
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
       document.getElementById("live-play-pause-btn");
-    const aspectRatioBtn =
-      document.getElementById("videojs-aspect-ratio") ||
-      document.getElementById("flow-aspect-ratio");
+    const aspectRatioBtn = getAspectRatioButton();
 
     if (playPauseIcon) playPauseIcon.style.display = "flex";
-    if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+    if (aspectRatioBtn) {
+      aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
+    }
 
     // Clear existing timeout
     if (window._controlsTimer) clearTimeout(window._controlsTimer);
@@ -1619,12 +1630,10 @@ function LivePage() {
       }
 
       // Handle aspect ratio button similarly
-      const aspectRatioBtn =
-        document.getElementById("videojs-aspect-ratio") ||
-        document.getElementById("flow-aspect-ratio");
+      const aspectRatioBtn = getAspectRatioButton();
       if (aspectRatioBtn) {
         if (playerSubFocus === 1 || playerSubFocus === 2) {
-          aspectRatioBtn.style.display = "block";
+          aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
         } else {
           aspectRatioBtn.style.display = "none";
         }
@@ -1637,7 +1646,7 @@ function LivePage() {
 
       // Ensure aspect ratio buttons are hidden immediately
       const arBtns = document.querySelectorAll(
-        ".videojs-aspect-ratio-div, .flow-aspect-ratio-div",
+        ".videojs-aspect-ratio-div, .flow-aspect-ratio-div, .av-live-fs-ar-btn",
       );
       arBtns.forEach((btn) => (btn.style.display = "none"));
 
@@ -1771,10 +1780,16 @@ function LivePage() {
 
       // If focused on Aspect Ratio, click it
       if (playerSubFocus === 2) {
-        const btn =
-          document.getElementById("videojs-aspect-ratio") ||
-          document.getElementById("flow-aspect-ratio");
-        if (btn) btn.click();
+        const btn = getAspectRatioButton();
+        if (
+          isTizenPlatform &&
+          window.livePlayer &&
+          typeof window.livePlayer.cycleAspectRatio === "function"
+        ) {
+          window.livePlayer.cycleAspectRatio();
+        } else if (btn) {
+          btn.click();
+        }
         resetControlsTimer();
         return;
       }
@@ -1784,13 +1799,13 @@ function LivePage() {
       const playPauseIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
-      const aspectRatioBtn =
-        document.getElementById("videojs-aspect-ratio") ||
-        document.getElementById("flow-aspect-ratio");
+      const aspectRatioBtn = getAspectRatioButton();
 
       // Show both icons in fullscreen
       if (playPauseIcon) playPauseIcon.style.display = "flex";
-      if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+      if (aspectRatioBtn) {
+        aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
+      }
 
       // Toggle Play/Pause
       togglePlayPauseGlobal();
@@ -2027,8 +2042,20 @@ function LivePage() {
       const playIcon =
         document.querySelector(".play-pause-icon") ||
         document.getElementById("live-play-pause-btn");
-      if (playIcon && playIcon.style.display === "none") return;
-      resetControlsTimer(); // If visible and moving, keep them visible
+      const aspectRatioBtn = getAspectRatioButton();
+
+      playerSubFocus = 2;
+      if (playIcon) playIcon.style.display = "flex";
+      if (aspectRatioBtn) {
+        aspectRatioBtn.style.display = isTizenPlatform ? "flex" : "block";
+      }
+      if (window.livePlayer && typeof window.livePlayer.showControls === "function") {
+        window.livePlayer.showControls();
+      } else {
+        resetControlsTimer();
+      }
+      updateFocus();
+      return;
     }
     if (focusedSection === "sidebarSearch") {
       // Blur the category search input before navigating
@@ -2355,10 +2382,16 @@ function LivePage() {
             document.getElementById("live-play-pause-btn");
           if (btn) btn.click();
         } else if (playerSubFocus === 2) {
-          const btn =
-            document.getElementById("videojs-aspect-ratio") ||
-            document.getElementById("flow-aspect-ratio");
-          if (btn) btn.click();
+          const btn = getAspectRatioButton();
+          if (
+            isTizenPlatform &&
+            window.livePlayer &&
+            typeof window.livePlayer.cycleAspectRatio === "function"
+          ) {
+            window.livePlayer.cycleAspectRatio();
+          } else if (btn) {
+            btn.click();
+          }
         }
       }
     } else if (focusedSection === "channels") {
