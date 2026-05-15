@@ -69,11 +69,10 @@ function initApp() {
     initNavbar();
   }
 
-  // Show splash screen first, before any delayed routing
+  // Show splash screen first, then move to the next flow after 3 seconds
   showSplashScreen();
 
-  requestAnimationFrame(() => {
-    setTimeout(() => {
+  setTimeout(() => {
     const playlistsData = localStorage.getItem("playlistsData")
       ? JSON.parse(localStorage.getItem("playlistsData"))
       : [];
@@ -90,8 +89,7 @@ function initApp() {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
     }
-    }, 5000);
-  });
+  }, 3000);
 
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();
@@ -117,6 +115,8 @@ function showSplashScreen() {
   `;
   splashPage.style.display = "block";
   splashPage.style.background = "transparent";
+  splashPage.style.opacity = "1";
+  splashPage.style.transform = "none";
 
   // Hide navbar during splash screen
   const navbarRoot = document.getElementById("navbar-root");
