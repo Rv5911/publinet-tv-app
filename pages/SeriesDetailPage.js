@@ -4,6 +4,11 @@ async function SeriesDetailPage() {
   const selectedSeriesItem = JSON.parse(
     localStorage.getItem("selectedSeriesItem"),
   );
+  const selectedSeriesId = localStorage.getItem("selectedSeriesId");
+  const selectedSeriesItemId =
+    selectedSeriesItem && selectedSeriesItem.series_id != null
+      ? selectedSeriesItem.series_id
+      : selectedSeriesId;
 
   let seriesIsContinueWatching = false;
   let castList = [];
@@ -1193,7 +1198,7 @@ async function SeriesDetailPage() {
           }
         } else if (focused === favBtn) {
           const result = toggleFavoriteItem(
-            selectedSeriesItem.series_id,
+            selectedSeriesItemId,
             "favouriteSeries",
           );
 
@@ -1303,7 +1308,7 @@ async function SeriesDetailPage() {
     if (favBtn) {
       favBtn.addEventListener("click", () => {
         const result = toggleFavoriteItem(
-          selectedSeriesItem.series_id,
+          selectedSeriesItemId,
           "favouriteSeries",
         );
         favBtn.textContent = result.isFav
@@ -1323,7 +1328,7 @@ async function SeriesDetailPage() {
 
   function removeItemfromContiueWatchingSerie() {
     removeItemFromHistoryById(
-      selectedSeriesItem.series_id,
+      selectedSeriesItemId,
       "continueWatchingSeries",
     );
     if (selectedSeriesItem) {
@@ -1440,7 +1445,7 @@ async function SeriesDetailPage() {
 
     // Add favorite button
     const isFavorite = isItemFavoriteForPlaylist(
-      selectedSeriesItem.series_id,
+      selectedSeriesItemId,
       "favouriteSeries",
     );
 

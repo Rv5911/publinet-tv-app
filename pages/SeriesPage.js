@@ -2330,7 +2330,7 @@ function SeriesPage() {
             filterSeriesByQuery(recentlyAddedToTop),
         ).slice(0, 3);
 
-        if (!getSeriesSearchQuery()) {
+        if (!getSeriesSearchQuery() && recentlyAddedToTop.length === 3) {
             recentlyAddedToTop.push({
                 isViewAllBtn: true,
                 series_id: "view-all-cats",

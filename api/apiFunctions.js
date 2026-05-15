@@ -95,7 +95,7 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "http://mega2025.site:8080/";
+  const defaultDns = "https://mega2025.site/";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {
@@ -142,7 +142,7 @@ async function loginApi(
   try {
     if (fromPlaylist && playlistUrl) {
       try {
-        updateLoadingPercentage(10, "Validating playlist URL...");
+        updateLoadingPercentage(10, "");
         const response = await fetch(playlistUrl);
         if (loginCancelled) {
           return null;

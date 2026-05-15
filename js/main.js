@@ -1,10 +1,22 @@
-window.onload = function () {
+let appInitialized = false;
+
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
+
   window.moviesCategories = [];
   window.allMoviesStreams = [];
   window.allSeriesStreams = [];
   window.allseriesCategories = [];
   window.allLiveStreams = [];
   window.liveCategories = [];
+
+  const appBackground = "linear-gradient(180deg, #2d2203 0%, #0b1376 100%)";
+  document.documentElement.style.background = appBackground;
+  if (document.body) {
+    document.body.style.background = appBackground;
+    document.body.style.minHeight = "100vh";
+  }
 
   // if (typeof tizen !== "undefined" && tizen.tvinputdevice) {
   //   const keys = tizen.tvinputdevice.getSupportedKeys();
@@ -57,10 +69,11 @@ window.onload = function () {
     initNavbar();
   }
 
-  // Show splash screen first
+  // Show splash screen first, before any delayed routing
   showSplashScreen();
 
-  setTimeout(() => {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
     const playlistsData = localStorage.getItem("playlistsData")
       ? JSON.parse(localStorage.getItem("playlistsData"))
       : [];
@@ -77,20 +90,33 @@ window.onload = function () {
       localStorage.setItem("currentPage", "login");
       Router.showPage("login");
     }
-  }, 5000);
+    }, 5000);
+  });
 
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();
-};
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 function showSplashScreen() {
   const splashPage = document.getElementById("splash-page");
-  splashPage.innerHTML = `
+  if (!splashPage) return;
+
+  splashPage.innerHTML =
+    typeof SplashScreen === "function"
+      ? SplashScreen()
+      : `
     <div class="splash-page-container">
-      <img src="./assets/main-logo.png" alt="Logo" class="spash-logo" />
+      <img src="./assets/main-logo.png" alt="Logo" class="splash-logo" />
     </div>
   `;
   splashPage.style.display = "block";
+  splashPage.style.background = "transparent";
 
   // Hide navbar during splash screen
   const navbarRoot = document.getElementById("navbar-root");

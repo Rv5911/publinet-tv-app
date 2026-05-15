@@ -2182,7 +2182,7 @@ function validateMoviesData() {
 
     recentlyAddedToTop = deduplicateStreamsByName(filterStreamsByQuery(recentlyAddedToTop)).slice(0, 3);
 
-    if (!getMoviesSearchQuery()) {
+    if (!getMoviesSearchQuery() && recentlyAddedToTop.length === 3) {
       recentlyAddedToTop.push({
         isViewAllBtn: true,
         stream_id: "view-all-cats",
