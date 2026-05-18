@@ -56,11 +56,21 @@ function ParentalControl() {
       // Autofill both fields
       inputs[0].value = savedPassword;
       inputs[1].value = savedPassword;
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.style.opacity = "0.5";
+        saveButton.style.pointerEvents = "none";
+      }
     } else {
       inputs.forEach(function (inp) {
         inp.type = "text";
         inp.readOnly = false;
       });
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.style.opacity = "1";
+        saveButton.style.pointerEvents = "auto";
+      }
     }
 
     // Set initial focus styles without focusing the input
@@ -176,6 +186,9 @@ function ParentalControl() {
             document.activeElement.blur();
           }
           currentFocus = (currentFocus + 1) % totalElements;
+          if (currentFocus === inputs.length && saveButton && saveButton.disabled) {
+            currentFocus = (currentFocus + 1) % totalElements;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
@@ -188,6 +201,9 @@ function ParentalControl() {
             document.activeElement.blur();
           }
           currentFocus = (currentFocus - 1 + totalElements) % totalElements;
+          if (currentFocus === inputs.length && saveButton && saveButton.disabled) {
+            currentFocus = (currentFocus - 1 + totalElements) % totalElements;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
@@ -195,10 +211,12 @@ function ParentalControl() {
         case "ArrowLeft":
           // If Clear button is focused, move to Save button
           if (currentFocus === inputs.length + 1) {
-            currentFocus = inputs.length;
-            updateFocusStyles();
-            e.preventDefault();
-            break;
+            if (saveButton && !saveButton.disabled) {
+              currentFocus = inputs.length;
+              updateFocusStyles();
+              e.preventDefault();
+              break;
+            }
           }
 
           // Exit subpage back to Settings list
@@ -232,9 +250,14 @@ function ParentalControl() {
           }
 
           // Navigate between buttons only
-          var buttonIndex = currentFocus - inputs.length;
-          buttonIndex = (buttonIndex + 1) % buttons.length;
-          currentFocus = inputs.length + buttonIndex;
+          if (saveButton && saveButton.disabled) {
+            // Stay on clear button
+            currentFocus = inputs.length + 1;
+          } else {
+            var buttonIndex = currentFocus - inputs.length;
+            buttonIndex = (buttonIndex + 1) % buttons.length;
+            currentFocus = inputs.length + buttonIndex;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
@@ -380,6 +403,11 @@ function ParentalControl() {
         lockPasswordFields();
         inputs[0].value = password;
         inputs[1].value = password;
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.style.opacity = "0.5";
+          saveButton.style.pointerEvents = "none";
+        }
 
         // Remove focus styles after saving
         removeAllFocusStyles();
@@ -410,6 +438,11 @@ function ParentalControl() {
         inputs[0].value = "";
         inputs[1].value = "";
         unlockPasswordFields();
+        if (saveButton) {
+          saveButton.disabled = false;
+          saveButton.style.opacity = "1";
+          saveButton.style.pointerEvents = "auto";
+        }
 
         updatePlaylistData(
           currentPlaylist.playlistName,

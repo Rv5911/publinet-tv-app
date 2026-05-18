@@ -1058,9 +1058,12 @@ function LivePage() {
           player.classList.remove("lp-focused");
         }
 
-        // Check for loader
-        const loader = document.querySelector(".live-video-loader");
-        const isLoaderVisible = loader && !loader.classList.contains("hidden");
+        // Check for loader and error
+        const loader = document.querySelector(".live-video-loader") || document.getElementById("av-live-loader");
+        const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
+        
+        const errPnl = document.querySelector(".av-live-error-pnl");
+        const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
 
         const playPauseIcon =
           document.querySelector(".play-pause-icon") ||
@@ -1070,9 +1073,11 @@ function LivePage() {
 
         // Check if video is actually playing
         const videoWrapper = document.querySelector(".lp-video-wrapper");
-        const hasVideo =
+        const hasVideoElement =
           videoWrapper &&
           !videoWrapper.innerText.includes("Select a channel to play");
+
+        const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
 
         if (playPauseIcon) {
           playPauseIcon.classList.remove("lp-control-focused", "focused");
@@ -1084,8 +1089,8 @@ function LivePage() {
           fullscreenBtn.classList.remove("lp-control-focused", "focused");
         }
 
-        if (isLoaderVisible || !hasVideo) {
-          // Force hide controls if loader is visible or NO video
+        if (!isPlayerActive) {
+          // Force hide controls if loader is visible, error, or NO video
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
           if (fullscreenBtn) fullscreenBtn.style.display = "none";
@@ -1977,40 +1982,29 @@ function LivePage() {
         }
       }
     } else if (focusedSection === "channelSearch") {
-      // Blur the channel search input before navigating
-      const chanInput = document.getElementById("lp-chan-search-input");
-      if (chanInput) chanInput.blur();
       // From Channel Search
+      // Arrow Up to focus on fullscreen (0) if video is playing and not loading or error state
       const videoWrapper = document.querySelector(".lp-video-wrapper");
-      const hasVideo =
+      const hasVideoElement =
         videoWrapper &&
         !videoWrapper.innerText.includes("Select a channel to play");
+        
+      const loader = document.querySelector(".live-video-loader") || document.getElementById("av-live-loader");
+      const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
+      
+      const errPnl = document.querySelector(".av-live-error-pnl");
+      const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
 
-      if (hasVideo && !checkIsFullscreen()) {
-        // Go to Fullscreen Button (0)
+      const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
+
+      if (isPlayerActive && !checkIsFullscreen()) {
+        const chanInput = document.getElementById("lp-chan-search-input");
+        if (chanInput) chanInput.blur();
         focusedSection = "player";
-        playerSubFocus = 0;
+        playerSubFocus = 0; // Focus on fullscreen
         return;
       }
-
-      if (!hasVideo) {
-        // No video playing - go directly to Navbar
-        localStorage.setItem("navigationFocus", "navbar");
-        const navItem = document.querySelector(
-          '.nav-item[data-page="liveTvPage"]',
-        );
-        if (navItem) navItem.focus();
-      } else {
-        // Video is playing
-        focusedSection = "player";
-        // If Fullscreen, go to Aspect Ratio, else go to Play/Pause
-        // (Skipping Aspect Ratio in non-fullscreen)
-        if (checkIsFullscreen()) {
-          playerSubFocus = 2;
-        } else {
-          playerSubFocus = 1;
-        }
-      }
+      return;
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex >= 0) {
         buttonFocusIndex = -1;
@@ -2251,11 +2245,19 @@ function LivePage() {
 
       // From Category to Video Player or Channel List
       const videoWrapper = document.querySelector(".lp-video-wrapper");
-      const hasVideo =
+      const hasVideoElement =
         videoWrapper &&
         !videoWrapper.innerText.includes("Select a channel to play");
+        
+      const loader = document.querySelector(".live-video-loader") || document.getElementById("av-live-loader");
+      const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
+      
+      const errPnl = document.querySelector(".av-live-error-pnl");
+      const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
 
-      if (hasVideo) {
+      const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
+
+      if (isPlayerActive) {
         focusedSection = "player";
         playerSubFocus = 1;
       } else {

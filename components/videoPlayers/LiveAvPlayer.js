@@ -565,9 +565,15 @@ function LiveAvPlayer(
         var b = document.getElementById("av-live-bottom-bar");
         if (b) b.classList.add("hidden");
         var c = document.getElementById("live-play-pause-btn");
-        if (c) c.classList.add("hidden");
+        if (c) {
+            c.classList.add("hidden");
+            c.classList.remove("lp-control-focused", "focused");
+        }
         var f = document.getElementById("lp-fullscreen-btn");
-        if (f) f.classList.add("hidden");
+        if (f) {
+            f.classList.add("hidden");
+            f.classList.remove("lp-control-focused", "focused");
+        }
 
         var pnl = document.querySelector(".av-live-error-pnl");
         if (pnl) {
@@ -765,9 +771,18 @@ function LiveAvPlayer(
         var loader = document.getElementById("av-live-loader");
         var isLoaderVisible = loader && !loader.classList.contains("hidden");
         if (isLoading || isLoaderVisible) {
-            if (c) c.classList.add("hidden");
-            if (f) f.classList.add("hidden");
-            if (fsAr) fsAr.classList.add("hidden");
+            if (c) {
+                c.classList.add("hidden");
+                c.classList.remove("lp-control-focused", "focused");
+            }
+            if (f) {
+                f.classList.add("hidden");
+                f.classList.remove("lp-control-focused", "focused");
+            }
+            if (fsAr) {
+                fsAr.classList.add("hidden");
+                fsAr.classList.remove("lp-control-focused", "focused");
+            }
             var errPnl = document.querySelector(".av-live-error-pnl");
             if (errPnl && !errPnl.classList.contains("hidden")) return;
             return;
@@ -793,6 +808,7 @@ function LiveAvPlayer(
                 c.classList.add("hidden");
                 c.style.display = "none";
                 c.style.pointerEvents = "none";
+                c.classList.remove("lp-control-focused", "focused");
             }
         }
 
@@ -805,6 +821,7 @@ function LiveAvPlayer(
                 fsAr.classList.add("hidden");
                 fsAr.style.display = "none";
                 fsAr.style.pointerEvents = "none";
+                fsAr.classList.remove("lp-control-focused", "focused");
             }
         }
 
@@ -819,6 +836,7 @@ function LiveAvPlayer(
                 f.classList.add("hidden");
                 f.style.display = "none";
                 f.style.pointerEvents = "none";
+                f.classList.remove("lp-control-focused", "focused");
             }
         }
 
