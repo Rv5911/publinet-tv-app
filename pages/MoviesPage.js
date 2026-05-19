@@ -2414,6 +2414,7 @@ window.rerenderMoviesPage = MoviesPage;
 
 let moviesSearchTimeout = null;
 let moviesByCategoryCache = null;
+let moviesSearchRenderVersion = 0;
 
 function getMoviesByCategoryMap() {
     const streams = window.allMoviesStreams || [];
@@ -2434,8 +2435,12 @@ function getMoviesByCategoryMap() {
 
 window.refreshMoviesSearchResults = function() {
     if (moviesSearchTimeout) clearTimeout(moviesSearchTimeout);
+    moviesSearchRenderVersion += 1;
+    const renderVersion = moviesSearchRenderVersion;
     
     moviesSearchTimeout = setTimeout(() => {
+        if (renderVersion !== moviesSearchRenderVersion) return;
+
         const q = getMoviesSearchQuery();
         if (!q) {
             MoviesPage();
@@ -2503,6 +2508,7 @@ window.refreshMoviesSearchResults = function() {
         if (!container) return;
 
         if (initialCategories.length === 0) {
+            if (renderVersion !== moviesSearchRenderVersion) return;
             container.innerHTML = createMoviesHeader() + createMoviesNoSearchMessage();
             return;
         }
@@ -2517,6 +2523,7 @@ window.refreshMoviesSearchResults = function() {
         
         let chunkIndex = 0;
         function renderNextChunk() {
+            if (renderVersion !== moviesSearchRenderVersion) return;
             if (chunkIndex >= renderCategories.length) {
                 moviesChunkLoadingState.loadedCategories = renderCategories.length;
                 initMoviesNavigation();
@@ -2549,6 +2556,7 @@ window.refreshMoviesSearchResults = function() {
             }
             
             html += "</div></div>";
+            if (renderVersion !== moviesSearchRenderVersion) return;
             container.insertAdjacentHTML('beforeend', html);
             
             // Update loaded state for this category

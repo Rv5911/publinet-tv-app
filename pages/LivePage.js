@@ -969,6 +969,47 @@ function LivePage() {
       }
     };
 
+    const resetPlayerControlStyles = () => {
+      const playPauseIcon =
+        document.querySelector(".play-pause-icon") ||
+        document.getElementById("live-play-pause-btn");
+      const aspectRatioBtn = getAspectRatioButton();
+      const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
+
+      if (playPauseIcon) {
+        playPauseIcon.classList.remove("lp-control-focused", "focused");
+        playPauseIcon.style.outline = "";
+        playPauseIcon.style.outlineOffset = "";
+        playPauseIcon.style.boxShadow = "";
+        playPauseIcon.style.transform = "";
+      }
+
+      if (aspectRatioBtn) {
+        aspectRatioBtn.classList.remove("lp-control-focused", "focused");
+        aspectRatioBtn.style.outline = "";
+        aspectRatioBtn.style.outlineOffset = "";
+        aspectRatioBtn.style.boxShadow = "";
+        aspectRatioBtn.style.transform = "";
+      }
+
+      if (fullscreenBtn) {
+        fullscreenBtn.classList.remove("lp-control-focused", "focused");
+        fullscreenBtn.style.outline = "";
+        fullscreenBtn.style.outlineOffset = "";
+        fullscreenBtn.style.boxShadow = "";
+        fullscreenBtn.style.transform = "";
+      }
+
+      const fullscreenIcon = fullscreenBtn
+        ? fullscreenBtn.querySelector(".lp-fullscreen-icon")
+        : null;
+      if (fullscreenIcon) {
+        fullscreenIcon.style.color = "";
+        fullscreenIcon.style.zoom = "";
+        fullscreenIcon.style.transform = "";
+      }
+    };
+
     if (localStorage.getItem("navigationFocus") === "navbar") {
       clearFast("lp-focused");
       clearFast("lp-control-focused");
@@ -1074,6 +1115,7 @@ function LivePage() {
         player.classList.add("lp-player-active"); // Keep controls visible
 
         const isFullscreen = checkIsFullscreen();
+        resetPlayerControlStyles();
 
         if (
           !isFullscreen &&
@@ -1106,16 +1148,6 @@ function LivePage() {
           !videoWrapper.innerText.includes("Select a channel to play");
 
         const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
-
-        if (playPauseIcon) {
-          playPauseIcon.classList.remove("lp-control-focused", "focused");
-        }
-        if (aspectRatioBtn) {
-          aspectRatioBtn.classList.remove("lp-control-focused", "focused");
-        }
-        if (fullscreenBtn) {
-          fullscreenBtn.classList.remove("lp-control-focused", "focused");
-        }
 
         if (!isPlayerActive) {
           // Force hide controls if loader is visible, error, or NO video
@@ -2015,8 +2047,7 @@ function LivePage() {
         }
       }
     } else if (focusedSection === "channelSearch") {
-      // From Channel Search
-      // Arrow Up to focus on fullscreen (0) if video is playing and not loading or error state
+      // From Channel Search, return to the player controls when video is active
       const videoWrapper = document.querySelector(".lp-video-wrapper");
       const hasVideoElement =
         videoWrapper &&
@@ -2034,7 +2065,7 @@ function LivePage() {
         const chanInput = document.getElementById("lp-chan-search-input");
         if (chanInput) chanInput.blur();
         focusedSection = "player";
-        playerSubFocus = 0; // Focus on fullscreen
+        playerSubFocus = 1; // Focus on play/pause
         return;
       }
       return;

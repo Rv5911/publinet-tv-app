@@ -2571,6 +2571,7 @@ window.rerenderSeriesPage = SeriesPage;
 
 let seriesSearchTimeout = null;
 let seriesByCategoryCache = null;
+let seriesSearchRenderVersion = 0;
 
 function getSeriesByCategoryMap() {
     const streams = window.allSeriesStreams || [];
@@ -2594,8 +2595,12 @@ function getSeriesByCategoryMap() {
 
 window.refreshSeriesSearchResults = function() {
     if (seriesSearchTimeout) clearTimeout(seriesSearchTimeout);
+    seriesSearchRenderVersion += 1;
+    const renderVersion = seriesSearchRenderVersion;
 
     seriesSearchTimeout = setTimeout(() => {
+        if (renderVersion !== seriesSearchRenderVersion) return;
+
         const q = getSeriesSearchQuery();
         if (!q) {
             SeriesPage();
@@ -2686,6 +2691,7 @@ window.refreshSeriesSearchResults = function() {
         if (!container) return;
 
         if (initialCategories.length === 0) {
+            if (renderVersion !== seriesSearchRenderVersion) return;
             container.innerHTML =
                 createSeriesHeader() + createSeriesNoSearchMessage();
             return;
@@ -2702,6 +2708,7 @@ window.refreshSeriesSearchResults = function() {
         let chunkIndex = 0;
 
         function renderNextChunk() {
+            if (renderVersion !== seriesSearchRenderVersion) return;
             if (chunkIndex >= renderCategories.length) {
                 seriesChunkLoadingState.loadedCategories = renderCategories.length;
                 initSeriesNavigation();
@@ -2739,6 +2746,7 @@ window.refreshSeriesSearchResults = function() {
             }
 
             html += "</div></div>";
+            if (renderVersion !== seriesSearchRenderVersion) return;
             container.insertAdjacentHTML("beforeend", html);
 
             setSeriesLoadedChunkCount(chunkIndex, cardsToRender);
