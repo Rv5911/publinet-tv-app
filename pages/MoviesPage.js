@@ -9,6 +9,10 @@ let moviesNavigationState = {
 let allMoviesStreamsData = window.allMoviesStreams || [];
 let favoriteMoviesIds = [];
 const unlockedMovieAdultIds = new Set();
+const unlockedMovieAdultCategoryIds = new Set();
+
+window.unlockedMovieAdultIds = unlockedMovieAdultIds;
+window.unlockedMovieAdultCategoryIds = unlockedMovieAdultCategoryIds;
 
 const isMovieAdult = (name) => {
   const normalized = (name || "").trim().toLowerCase();
@@ -19,6 +23,7 @@ const isMovieAdult = (name) => {
 
 window.resetMoviesParentalState = () => {
   unlockedMovieAdultIds.clear();
+  unlockedMovieAdultCategoryIds.clear();
 };
 
 let isMoviesNavigationInitialized = false;
@@ -311,6 +316,7 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
   let isLarge = size === "large";
   let cardClass = isLarge ? "movie-card movie-card-large" : "movie-card";
   let movieId = String(movieData.stream_id || movieData.id);
+  let categoryId = movieData.category_id != null ? String(movieData.category_id) : "";
 
   let isMovieFav =
     Array.isArray(favoriteMoviesIds) &&
@@ -331,18 +337,29 @@ function createMovieCard(movieData, size, categoryIndex, movieIndex) {
       ? currentCardCategory[0].category_name
       : movieData.genre || "Movie"; // Use genre as fallback
 
-  const isAdult = isMovieAdult(movieData.genre) || isMovieAdult(categoryName);
+  const isAdultCategory = isMovieAdult(categoryName);
+  const isAdultTitle = isMovieAdult(movieData.title);
   const currentPlaylist = getCurrentPlaylist();
   const hasParentalPassword =
     currentPlaylist && currentPlaylist.parentalPassword;
-  const isLocked = isAdult && !unlockedMovieAdultIds.has(String(movieId));
+  const isCategoryUnlocked =
+    categoryId && unlockedMovieAdultCategoryIds.has(categoryId);
+  const isLocked =
+    hasParentalPassword &&
+    ((isAdultCategory && !isCategoryUnlocked) ||
+      (isAdultTitle && !isAdultCategory && !unlockedMovieAdultIds.has(String(movieId))));
+  const isAdult = isAdultCategory || isAdultTitle;
 
   let overlayHtml = "";
   if (isLocked) {
     if (hasParentalPassword) {
-      overlayHtml = `<div class="adult-overlay"><i class="fas fa-lock card-lock-icon"></i></div>`;
+      overlayHtml = `
+        <div class="adult-overlay">
+          <div class="adult-overlay-bg"></div>
+          <i class="fas fa-lock card-lock-icon"></i>
+        </div>`;
     } else {
-      overlayHtml = `<div class="adult-overlay"></div>`;
+      overlayHtml = `<div class="adult-overlay"><div class="adult-overlay-bg"></div></div>`;
     }
   }
 
@@ -817,21 +834,33 @@ function handleMoviesSimpleEnter() {
       return;
     }
     let streamId = currentCard.getAttribute("data-stream-id");
+    const category = window.allMoviesCategories
+      ? window.allMoviesCategories[categoryIndex]
+      : null;
+    const categoryId = category ? String(category.id) : "";
+    const isAdultCategory = category ? isMovieAdult(category.title) : false;
 
-    const isAdult = currentCard.getAttribute("data-is-adult") === "true";
-    const isLocked = currentCard.getAttribute("data-is-locked") === "true";
     const currentPlaylist = getCurrentPlaylist();
     const hasParentalPassword =
       currentPlaylist && currentPlaylist.parentalPassword;
+    const isCategoryUnlocked =
+      categoryId && unlockedMovieAdultCategoryIds.has(categoryId);
+    const isCardLocked =
+      hasParentalPassword &&
+      ((isAdultCategory && !isCategoryUnlocked) ||
+        (!isAdultCategory &&
+          currentCard.getAttribute("data-is-adult") === "true" &&
+          !unlockedMovieAdultIds.has(String(streamId))));
 
-    if (isAdult && isLocked) {
+    if (isCardLocked) {
       if (hasParentalPassword) {
         ParentalPinDialog(
           () => {
-            unlockedMovieAdultIds.add(String(streamId));
-            const overlay = currentCard.querySelector(".adult-overlay");
-            if (overlay) overlay.remove();
-            currentCard.setAttribute("data-is-locked", "false");
+            if (isAdultCategory && categoryId) {
+              unlockedMovieAdultCategoryIds.add(categoryId);
+            } else {
+              unlockedMovieAdultIds.add(String(streamId));
+            }
             proceedToMovieDetail(categoryIndex, cardIndex, streamId);
           },
           () => {
@@ -856,29 +885,56 @@ function handleMoviesViewMoreClick(type, categoryIndex) {
   let category = categories[categoryIndex];
 
   if (category) {
-    saveMoviesNavigationState();
-    localStorage.removeItem("categoryViewReturnPage");
-    localStorage.removeItem("categoryViewReturnCategoryIndex");
-    localStorage.removeItem("categoryViewReturnCardIndex");
-    localStorage.removeItem("categoryViewSourcePage");
-    localStorage.removeItem("categoryViewSourceCategoryIndex");
-    localStorage.removeItem("categoryViewSourceCardIndex");
-    localStorage.removeItem("categoryReturnPage");
-    localStorage.setItem("viewMoreType", type);
-    localStorage.setItem("viewMoreCategoryId", category.id);
-    localStorage.setItem("viewMoreCategoryTitle", category.title);
-    localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnPage", "moviesPage");
-    localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewReturnCardIndex", "header");
-    localStorage.setItem("categoryViewSourcePage", "moviesPage");
-    localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
-    localStorage.setItem("categoryViewSourceCardIndex", "header");
+    const currentPlaylist = getCurrentPlaylist();
+    const hasParentalPassword =
+      currentPlaylist && currentPlaylist.parentalPassword;
+    const categoryId = String(category.id);
+    const isAdultCategory = isMovieAdult(category.title);
+    const isCategoryLocked =
+      hasParentalPassword &&
+      isAdultCategory &&
+      !unlockedMovieAdultCategoryIds.has(categoryId);
 
-    localStorage.setItem("currentPage", "categoryViewPage");
-    localStorage.setItem("navigationFocus", "categoryViewPage");
+    const openCategoryView = () => {
+      unlockedMovieAdultCategoryIds.add(categoryId);
+      saveMoviesNavigationState();
+      localStorage.removeItem("categoryViewReturnPage");
+      localStorage.removeItem("categoryViewReturnCategoryIndex");
+      localStorage.removeItem("categoryViewReturnCardIndex");
+      localStorage.removeItem("categoryViewSourcePage");
+      localStorage.removeItem("categoryViewSourceCategoryIndex");
+      localStorage.removeItem("categoryViewSourceCardIndex");
+      localStorage.removeItem("categoryReturnPage");
+      localStorage.setItem("viewMoreType", type);
+      localStorage.setItem("viewMoreCategoryId", category.id);
+      localStorage.setItem("viewMoreCategoryTitle", category.title);
+      localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
+      localStorage.setItem("categoryViewReturnPage", "moviesPage");
+      localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
+      localStorage.setItem("categoryViewReturnCardIndex", "header");
+      localStorage.setItem("categoryViewSourcePage", "moviesPage");
+      localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
+      localStorage.setItem("categoryViewSourceCardIndex", "header");
 
-    Router.showPage("categoryViewPage");
+      localStorage.setItem("currentPage", "categoryViewPage");
+      localStorage.setItem("navigationFocus", "categoryViewPage");
+
+      Router.showPage("categoryViewPage");
+    };
+
+    if (isCategoryLocked) {
+      ParentalPinDialog(
+        openCategoryView,
+        () => {
+          // Stay on page
+        },
+        currentPlaylist,
+        "moviesPage",
+      );
+      return;
+    }
+
+    openCategoryView();
   }
 }
 
@@ -2462,9 +2518,6 @@ window.refreshMoviesSearchResults = function() {
         let chunkIndex = 0;
         function renderNextChunk() {
             if (chunkIndex >= renderCategories.length) {
-                if (initialCategories.length > MAX_INITIAL) {
-                    container.insertAdjacentHTML('beforeend', '<div class="categories-loading-indicator"><p>Scroll for more results...</p></div>');
-                }
                 moviesChunkLoadingState.loadedCategories = renderCategories.length;
                 initMoviesNavigation();
                 updateMoviesFocus();

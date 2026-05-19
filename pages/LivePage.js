@@ -2097,8 +2097,13 @@ function LivePage() {
       if (sidebarIndex < loadedCats.length - 1) {
         sidebarIndex++;
       } else if (loadedCats.length < allCats.length) {
-        // Stay on the last visible category item instead of auto-loading more
-        sidebarIndex = loadedCats.length - 1;
+        // Load the next batch of categories when we reach the end of the visible list
+        const nextIndex = loadedCats.length;
+        categoryChunk++;
+        renderCategories();
+        sidebarIndex = nextIndex;
+        updateFocus();
+        return;
       }
     } else if (focusedSection === "player") {
       if (playerSubFocus === 1) {

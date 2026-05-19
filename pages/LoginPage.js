@@ -15,8 +15,20 @@ function LoginPage() {
     const loginButton = document.querySelector(".login-button");
     const listButton = document.querySelector(".list-button");
 
+    const moveCaretToEnd = (input) => {
+      if (!input) return;
+      requestAnimationFrame(() => {
+        if (document.activeElement !== input) return;
+        const len = input.value.length;
+        if (typeof input.setSelectionRange === "function") {
+          input.setSelectionRange(len, len);
+        }
+      });
+    };
+
     passwordInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
+      moveCaretToEnd(passwordInput);
     });
 
     passwordInput.addEventListener("blur", () => {
@@ -47,11 +59,18 @@ function LoginPage() {
 
     usernameInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
+      moveCaretToEnd(usernameInput);
     });
 
     usernameInput.addEventListener("blur", () => {
       document.querySelector(".login-form-div").classList.remove("shift-up");
     });
+
+    if (playlistInput) {
+      playlistInput.addEventListener("focus", () => {
+        moveCaretToEnd(playlistInput);
+      });
+    }
 
     // Exit early if passwordInput not found
     if (!passwordInput) return;
@@ -306,6 +325,7 @@ function LoginPage() {
           if (focused.classList.contains("login-input")) {
             focused.focus();
             lastFocusedInput = focused;
+            moveCaretToEnd(focused);
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {

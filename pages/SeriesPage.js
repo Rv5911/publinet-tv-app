@@ -8,6 +8,10 @@ let seriesNavigationState = {
 let allSeriesStreamsData = window.allSeriesStreams || [];
 let favoriteSeriesIds = [];
 const unlockedSeriesAdultIds = new Set();
+const unlockedSeriesAdultCategoryIds = new Set();
+
+window.unlockedSeriesAdultIds = unlockedSeriesAdultIds;
+window.unlockedSeriesAdultCategoryIds = unlockedSeriesAdultCategoryIds;
 
 const isSeriesAdult = (name) => {
     const normalized = (name || "").trim().toLowerCase();
@@ -18,6 +22,7 @@ const isSeriesAdult = (name) => {
 
 window.resetSeriesParentalState = () => {
     unlockedSeriesAdultIds.clear();
+    unlockedSeriesAdultCategoryIds.clear();
 };
 
 let isSeriesNavigationInitialized = false;
@@ -313,6 +318,7 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
     let isLarge = size === "large";
     let cardClass = isLarge ? "series-card series-card-large" : "series-card";
     let seriesId = String(seriesData.series_id || seriesData.id);
+    let categoryId = seriesData.category_id != null ? String(seriesData.category_id) : "";
 
     let isSeriesFav =
         Array.isArray(favoriteSeriesIds) &&
@@ -332,19 +338,31 @@ function createSeriesCard(seriesData, size, categoryIndex, seriesIndex) {
         currentCardCategory[0].category_name :
         seriesData.genre || "Series";
 
-    const isAdult =
-        isSeriesAdult(seriesData.genre) || isSeriesAdult(categoryName);
+    const isAdultCategory = isSeriesAdult(categoryName);
+    const isAdultTitle = isSeriesAdult(seriesData.title);
     const currentPlaylist = getCurrentPlaylist();
     const hasParentalPassword =
         currentPlaylist && currentPlaylist.parentalPassword;
-    const isLocked = isAdult && !unlockedSeriesAdultIds.has(String(seriesId));
+    const isCategoryUnlocked =
+        categoryId && unlockedSeriesAdultCategoryIds.has(categoryId);
+    const isLocked =
+        hasParentalPassword &&
+        ((isAdultCategory && !isCategoryUnlocked) ||
+            (isAdultTitle &&
+                !isAdultCategory &&
+                !unlockedSeriesAdultIds.has(String(seriesId))));
+    const isAdult = isAdultCategory || isAdultTitle;
 
     let overlayHtml = "";
     if (isLocked) {
         if (hasParentalPassword) {
-            overlayHtml = `<div class="adult-overlay"><i class="fas fa-lock card-lock-icon"></i></div>`;
+            overlayHtml = `
+                <div class="adult-overlay">
+                    <div class="adult-overlay-bg"></div>
+                    <i class="fas fa-lock card-lock-icon"></i>
+                </div>`;
         } else {
-            overlayHtml = `<div class="adult-overlay"></div>`;
+            overlayHtml = `<div class="adult-overlay"><div class="adult-overlay-bg"></div></div>`;
         }
     }
 
@@ -839,27 +857,39 @@ function handleSeriesSimpleEnter() {
             Router.showPage("categoryListPage");
             return;
         }
-        let seriesId = currentCard.getAttribute("data-series-id");
+    let seriesId = currentCard.getAttribute("data-series-id");
+    const category = window.allSeriesCategories
+      ? window.allSeriesCategories[categoryIndex]
+      : null;
+    const categoryId = category ? String(category.id) : "";
+    const isAdultCategory = category ? isSeriesAdult(category.title) : false;
 
-        const isAdult = currentCard.getAttribute("data-is-adult") === "true";
-        const isLocked = currentCard.getAttribute("data-is-locked") === "true";
-        const currentPlaylist = getCurrentPlaylist();
-        const hasParentalPassword =
-            currentPlaylist && currentPlaylist.parentalPassword;
+    const currentPlaylist = getCurrentPlaylist();
+    const hasParentalPassword =
+        currentPlaylist && currentPlaylist.parentalPassword;
+    const isCategoryUnlocked =
+        categoryId && unlockedSeriesAdultCategoryIds.has(categoryId);
+    const isCardLocked =
+        hasParentalPassword &&
+        ((isAdultCategory && !isCategoryUnlocked) ||
+            (!isAdultCategory &&
+                currentCard.getAttribute("data-is-adult") === "true" &&
+                !unlockedSeriesAdultIds.has(String(seriesId))));
 
-        if (isAdult && isLocked) {
-            if (hasParentalPassword) {
-                ParentalPinDialog(
-                    () => {
+    if (isCardLocked) {
+        if (hasParentalPassword) {
+            ParentalPinDialog(
+                () => {
+                    if (isAdultCategory && categoryId) {
+                        unlockedSeriesAdultCategoryIds.add(categoryId);
+                    } else {
                         unlockedSeriesAdultIds.add(String(seriesId));
-                        const overlay = currentCard.querySelector(".adult-overlay");
-                        if (overlay) overlay.remove();
-                        currentCard.setAttribute("data-is-locked", "false");
-                        proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
-                    },
-                    () => {
-                        // Stay on page
-                    },
+                    }
+                    proceedToSeriesDetail(categoryIndex, cardIndex, seriesId);
+                },
+                () => {
+                    // Stay on page
+                },
                     currentPlaylist,
                     "seriesPage",
                 );
@@ -905,29 +935,56 @@ function handleSeriesViewMoreClick(type, categoryIndex) {
     let category = categories[categoryIndex];
 
     if (category) {
-        saveSeriesNavigationState();
-        localStorage.removeItem("categoryViewReturnPage");
-        localStorage.removeItem("categoryViewReturnCategoryIndex");
-        localStorage.removeItem("categoryViewReturnCardIndex");
-        localStorage.removeItem("categoryViewSourcePage");
-        localStorage.removeItem("categoryViewSourceCategoryIndex");
-        localStorage.removeItem("categoryViewSourceCardIndex");
-        localStorage.removeItem("categoryReturnPage");
-        localStorage.setItem("viewMoreType", type);
-        localStorage.setItem("viewMoreCategoryId", category.id);
-        localStorage.setItem("viewMoreCategoryTitle", category.title);
-        localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
-        localStorage.setItem("categoryViewReturnPage", "seriesPage");
-        localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
-        localStorage.setItem("categoryViewReturnCardIndex", "header");
-        localStorage.setItem("categoryViewSourcePage", "seriesPage");
-        localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
-        localStorage.setItem("categoryViewSourceCardIndex", "header");
+        const currentPlaylist = getCurrentPlaylist();
+        const hasParentalPassword =
+            currentPlaylist && currentPlaylist.parentalPassword;
+        const categoryId = String(category.id);
+        const isAdultCategory = isSeriesAdult(category.title);
+        const isCategoryLocked =
+            hasParentalPassword &&
+            isAdultCategory &&
+            !unlockedSeriesAdultCategoryIds.has(categoryId);
 
-        localStorage.setItem("currentPage", "categoryViewPage");
-        localStorage.setItem("navigationFocus", "categoryViewPage");
+        const openCategoryView = () => {
+            unlockedSeriesAdultCategoryIds.add(categoryId);
+            saveSeriesNavigationState();
+            localStorage.removeItem("categoryViewReturnPage");
+            localStorage.removeItem("categoryViewReturnCategoryIndex");
+            localStorage.removeItem("categoryViewReturnCardIndex");
+            localStorage.removeItem("categoryViewSourcePage");
+            localStorage.removeItem("categoryViewSourceCategoryIndex");
+            localStorage.removeItem("categoryViewSourceCardIndex");
+            localStorage.removeItem("categoryReturnPage");
+            localStorage.setItem("viewMoreType", type);
+            localStorage.setItem("viewMoreCategoryId", category.id);
+            localStorage.setItem("viewMoreCategoryTitle", category.title);
+            localStorage.setItem("viewMoreCategoryIndex", categoryIndex);
+            localStorage.setItem("categoryViewReturnPage", "seriesPage");
+            localStorage.setItem("categoryViewReturnCategoryIndex", categoryIndex);
+            localStorage.setItem("categoryViewReturnCardIndex", "header");
+            localStorage.setItem("categoryViewSourcePage", "seriesPage");
+            localStorage.setItem("categoryViewSourceCategoryIndex", categoryIndex);
+            localStorage.setItem("categoryViewSourceCardIndex", "header");
 
-        Router.showPage("categoryViewPage");
+            localStorage.setItem("currentPage", "categoryViewPage");
+            localStorage.setItem("navigationFocus", "categoryViewPage");
+
+            Router.showPage("categoryViewPage");
+        };
+
+        if (isCategoryLocked) {
+            ParentalPinDialog(
+                openCategoryView,
+                () => {
+                    // Stay on page
+                },
+                currentPlaylist,
+                "seriesPage",
+            );
+            return;
+        }
+
+        openCategoryView();
     }
 }
 
@@ -2646,12 +2703,6 @@ window.refreshSeriesSearchResults = function() {
 
         function renderNextChunk() {
             if (chunkIndex >= renderCategories.length) {
-                if (initialCategories.length > MAX_INITIAL) {
-                    container.insertAdjacentHTML(
-                        "beforeend",
-                        '<div class="categories-loading-indicator"><p>Scroll for more results...</p></div>',
-                    );
-                }
                 seriesChunkLoadingState.loadedCategories = renderCategories.length;
                 initSeriesNavigation();
                 updateSeriesFocus();
