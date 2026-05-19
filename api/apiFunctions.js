@@ -95,7 +95,7 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://mega2025.site/";
+  const defaultDns = "https://mega2025.site:443";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {

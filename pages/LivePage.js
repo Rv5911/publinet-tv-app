@@ -958,6 +958,7 @@ function LivePage() {
     clearFast("lp-focused");
     clearFast("lp-control-focused");
     clearFast("lp-player-permanent-focus");
+    currentFocusElement = null;
 
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
@@ -2064,10 +2065,8 @@ function LivePage() {
       if (sidebarIndex < loadedCats.length - 1) {
         sidebarIndex++;
       } else if (loadedCats.length < allCats.length) {
-        // Load more categories
-        categoryChunk++;
-        renderCategories();
-        sidebarIndex++;
+        // Stay on the last visible category item instead of auto-loading more
+        sidebarIndex = loadedCats.length - 1;
       }
     } else if (focusedSection === "player") {
       if (playerSubFocus === 1) {
@@ -2166,7 +2165,9 @@ function LivePage() {
       // From Video Player to Category List - ONLY IF NOT FULLSCREEN
       if (!checkIsFullscreen()) {
         focusedSection = "sidebar";
-        if (sidebarIndex === -1) sidebarIndex = 0;
+        const cats = getFilteredCategories();
+        const activeIndex = cats.findIndex(c => String(c.category_id) === String(selectedCategoryId));
+        sidebarIndex = activeIndex !== -1 ? activeIndex : 0;
       } else {
         // In fullscreen, maybe just go back to border focus
         playerSubFocus = 0;
@@ -2176,6 +2177,9 @@ function LivePage() {
       const chanInput = document.getElementById("lp-chan-search-input");
       if (chanInput) chanInput.blur();
       focusedSection = "sidebar";
+      const cats = getFilteredCategories();
+      const activeIndex = cats.findIndex(c => String(c.category_id) === String(selectedCategoryId));
+      sidebarIndex = activeIndex !== -1 ? activeIndex : 0;
     } else if (focusedSection === "channels") {
       if (buttonFocusIndex > 0) {
         buttonFocusIndex--;
@@ -2183,7 +2187,9 @@ function LivePage() {
         buttonFocusIndex = -1;
       } else if (channelIndex % 4 === 0) {
         focusedSection = "sidebar";
-        if (sidebarIndex === -1) sidebarIndex = 0;
+        const cats = getFilteredCategories();
+        const activeIndex = cats.findIndex(c => String(c.category_id) === String(selectedCategoryId));
+        sidebarIndex = activeIndex !== -1 ? activeIndex : 0;
       } else {
         channelIndex--;
       }
@@ -2668,17 +2674,22 @@ function LivePage() {
           e.preventDefault();
           e.stopPropagation();
           catInput.blur();
-          if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-            focusedSection = "sidebar";
-            sidebarIndex = 0;
-          } else if (e.key === "ArrowUp") {
-            focusedSection = "player";
-            playerSubFocus = 0;
-          } else if (e.key === "ArrowLeft") {
-            focusedSection = "sidebar";
-            sidebarIndex = 0;
-          }
-          updateFocus();
+          const applyFocusChange = () => {
+            currentFocusElement = null;
+            if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+              focusedSection = "sidebar";
+              sidebarIndex = 0;
+            } else if (e.key === "ArrowUp") {
+              focusedSection = "player";
+              playerSubFocus = 0;
+            } else if (e.key === "ArrowLeft") {
+              focusedSection = "sidebar";
+              sidebarIndex = 0;
+            }
+            updateFocus();
+          };
+
+          requestAnimationFrame(applyFocusChange);
         }
       });
     }
@@ -2702,7 +2713,7 @@ function LivePage() {
 
         if (
           isInputFocused &&
-          (key === "ArrowLeft" || key === "ArrowRight")
+          key === "ArrowRight"
         ) {
           return; // Let the browser move the text cursor normally
         }
@@ -2721,7 +2732,9 @@ function LivePage() {
             playerSubFocus = 1;
           } else if (e.key === "ArrowLeft") {
             focusedSection = "sidebar";
-            sidebarIndex = 0;
+            const cats = getFilteredCategories();
+            const activeIndex = cats.findIndex(c => String(c.category_id) === String(selectedCategoryId));
+            sidebarIndex = activeIndex !== -1 ? activeIndex : 0;
           }
           updateFocus();
         }
