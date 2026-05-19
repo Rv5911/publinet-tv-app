@@ -4,7 +4,7 @@
     padding: 250px 60px 100px;
     overflow-x: hidden;
     height: 100vh;
-    animation: fadeInOut 1s ease-in-out;
+
 
     color: white;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
@@ -662,7 +662,6 @@
     align-items: center;
     min-height: 100vh;
     padding: 250px 60px 100px;
-    animation: fadeInOut 1s ease-in-out;
     color: white;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
@@ -710,7 +709,7 @@
     box-sizing: border-box;
     overflow-y: auto;
     overflow-x: hidden;
-    animation: fadeInOut 1s ease-in-out;
+
 
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }

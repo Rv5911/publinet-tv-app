@@ -2520,7 +2520,6 @@ window.refreshMoviesSearchResults = function() {
             if (chunkIndex >= renderCategories.length) {
                 moviesChunkLoadingState.loadedCategories = renderCategories.length;
                 initMoviesNavigation();
-                updateMoviesFocus();
                 return;
             }
 

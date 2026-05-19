@@ -2705,7 +2705,6 @@ window.refreshSeriesSearchResults = function() {
             if (chunkIndex >= renderCategories.length) {
                 seriesChunkLoadingState.loadedCategories = renderCategories.length;
                 initSeriesNavigation();
-                updateSeriesFocus();
                 return;
             }
 
