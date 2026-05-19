@@ -1522,7 +1522,7 @@ function LiveAvPlayer(
         "</span>" +
         "</div>" +
         '<div id="live-play-pause-btn" class="av-live-pp-btn av-live-nav-btn hidden" data-id="play-pause"><i class="fa-solid fa-pause"></i></div>' +
-        '<div id="live-fs-ar-btn" class="av-live-fs-ar-btn av-live-nav-btn hidden" data-id="ar" style="position: absolute; bottom: 0%; zoom:1.6; left: 50%; transform: translate(-50%, -50%); display: none; align-items: center; justify-content: center; gap: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px 20px; border-radius: 8px; font-size: 20px; "><i class="fa-solid fa-rectangle-list"></i> Aspect Ratio</div>' +
+        '<div id="live-fs-ar-btn" class="av-live-fs-ar-btn av-live-nav-btn hidden" data-id="ar" style="position: absolute; bottom: 2%; zoom:1.6; left: 41%; transform: translate(-50%, -50%); display: none; align-items: center; justify-content: center; gap: 10px; background: rgba(0,0,0,0.6); color: white; padding: 10px 20px; border-radius: 8px; font-size: 20px; "><i class="fa-solid fa-rectangle-list"></i> Aspect Ratio</div>' +
         '<div id="lp-fullscreen-btn" class="av-live-fs-btn av-live-nav-btn hidden" data-id="fullscreen-toggle"><i class="fa-solid fa-expand"></i></div>' +
         '<div id="av-live-bottom-bar" class="av-live-bottom-ctrls hidden">' +
         '<div class="av-live-seek-row">' +
