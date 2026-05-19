@@ -126,6 +126,26 @@ function LivePage() {
     );
   };
 
+  const moveCaretToEnd = (input) => {
+    if (!input) return;
+    requestAnimationFrame(() => {
+      const len = input.value.length;
+      if (document.activeElement === input && typeof input.setSelectionRange === "function") {
+        input.setSelectionRange(len, len);
+      }
+    });
+  };
+
+  const focusNavbarItem = () => {
+    localStorage.setItem("navigationFocus", "navbar");
+    const navItem = document.querySelector('.nav-item[data-page="liveTvPage"]');
+    if (navItem) {
+      navItem.focus({
+        preventScroll: true,
+      });
+    }
+  };
+
   const isCategoryAdult = (catId, catName) => {
     if (!catId) return false;
 
@@ -497,6 +517,13 @@ function LivePage() {
     return (window.allLiveStreams || []).filter(
       (s) => String(s.category_id) === String(catId),
     ).length;
+  };
+
+  const setChannelSearchExpanded = (expanded) => {
+    const content = document.querySelector(".lp-content");
+    if (content) {
+      content.classList.toggle("lp-channel-search-active", expanded);
+    }
   };
 
   const render = () => {
@@ -1196,7 +1223,11 @@ function LivePage() {
       if (box) {
         box.classList.add("lp-focused");
       }
-    } else if (focusedSection === "channels") {
+    } else {
+      setChannelSearchExpanded(false);
+    }
+
+    if (focusedSection === "channels") {
       // Check if Warning Banner exists
       const warning = document.querySelector(".lp-adult-warning-banner");
       if (warning) {
@@ -1848,6 +1879,7 @@ function LivePage() {
         chanInput.focus({
           preventScroll: true,
         });
+        setChannelSearchExpanded(true);
         e.preventDefault();
         return;
       }
@@ -2658,6 +2690,7 @@ function LivePage() {
         localStorage.setItem("navigationFocus", "liveTvPage");
         focusedSection = "sidebarSearch";
         updateFocus();
+        moveCaretToEnd(catInput);
       });
       catInput.addEventListener("keydown", (e) => {
         const isInputFocused = document.activeElement === catInput;
@@ -2680,8 +2713,8 @@ function LivePage() {
               focusedSection = "sidebar";
               sidebarIndex = 0;
             } else if (e.key === "ArrowUp") {
-              focusedSection = "player";
-              playerSubFocus = 0;
+              focusNavbarItem();
+              return;
             } else if (e.key === "ArrowLeft") {
               focusedSection = "sidebar";
               sidebarIndex = 0;
@@ -2705,23 +2738,38 @@ function LivePage() {
         localStorage.setItem("navigationFocus", "liveTvPage");
         focusedSection = "channelSearch";
         updateFocus();
+        moveCaretToEnd(chanInput);
+      });
+      chanInput.addEventListener("blur", () => {
+        setChannelSearchExpanded(false);
       });
       // Handle arrow keys to blur input and navigate
       chanInput.addEventListener("keydown", (e) => {
-        const isInputFocused = document.activeElement === chanInput;
         const key = e.key;
+        const cursorStart = chanInput.selectionStart ?? 0;
+        const cursorEnd = chanInput.selectionEnd ?? 0;
+        const inputLength = chanInput.value.length;
 
-        if (
-          isInputFocused &&
-          key === "ArrowRight"
-        ) {
-          return; // Let the browser move the text cursor normally
+        if (key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          setChannelSearchExpanded(true);
+          return;
         }
 
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+          if (key === "ArrowLeft" && cursorStart > 0 && cursorStart === cursorEnd) {
+            return; // Move left within the text field
+          }
+
+          if (key === "ArrowRight" && cursorEnd < inputLength && cursorStart === cursorEnd) {
+            return; // Move right within the text field
+          }
+
           e.preventDefault();
           e.stopPropagation();
           chanInput.blur();
+          setChannelSearchExpanded(false);
           // Update focusedSection immediately to prevent double navigation in document handler
           if (e.key === "ArrowDown" || e.key === "ArrowRight") {
             focusedSection = "channels";

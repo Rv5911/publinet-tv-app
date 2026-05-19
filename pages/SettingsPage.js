@@ -145,6 +145,7 @@ function SettingsPage() {
         </div>
       </div>
       <div class="settings-second-container"></div>
+      <p class="settings-version">v1.0.1</p>
     </div>
   `;
 }
