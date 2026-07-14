@@ -88,6 +88,18 @@ function buildLoginUrl(dns, username, password) {
   return `${dns}player_api.php?username=${username}&password=${password}`;
 }
 
+function getLoginDnsFromPlaylistUrl(playlistUrl) {
+  try {
+    const url = new URL(playlistUrl);
+    const basePath = url.pathname
+      .replace(/\/?player_api\.php$/, "")
+      .replace(/\/+$/, "");
+    return `${url.origin}${basePath}`.replace(/\/+$/, "");
+  } catch (error) {
+    return playlistUrl.split("player_api.php")[0].replace(/\/+$/, "");
+  }
+}
+
 async function loginApi(
   username,
   password,
@@ -165,17 +177,16 @@ async function loginApi(
               playlistName,
               playlistUrl,
               playlistUsername: username,
-              
             };
 
             localStorage.setItem(
               "selectedPlaylist",
               JSON.stringify(newPlaylist),
             );
-           localStorage.setItem(
-    "loginDns",
-    dnsToCheck[i].replace(/\/+$/, "")
-);
+            localStorage.setItem(
+              "loginDns",
+              getLoginDnsFromPlaylistUrl(playlistUrl),
+            );
             const newCurrentPlaylistData = {
               ...data,
               playlistName: playlistName,
@@ -315,10 +326,10 @@ async function loginApi(
               "selectedPlaylist",
               JSON.stringify(newPlaylist),
             );
-               localStorage.setItem(
-    "loginDns",
-    dnsToCheck[i].replace(/\/+$/, "")
-);
+            localStorage.setItem(
+              "loginDns",
+              dnsToCheck[i].replace(/\/+$/, ""),
+            );
             const newCurrentPlaylistData = {
               ...data,
               playlistName: playlistName,
