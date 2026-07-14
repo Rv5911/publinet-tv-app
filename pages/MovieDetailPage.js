@@ -336,9 +336,7 @@ async function MovieDetailPage() {
             movieDetailData.movie_data.container_extension
           ) {
             movieVideoUrl =
-           localStorage.getItem(
-    "loginDns",
-);+
+          localStorage.getItem("loginDns")+
               "/movie/" +
               currentPlaylistData.user_info.username +
               "/" +
