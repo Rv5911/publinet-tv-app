@@ -1386,9 +1386,7 @@ function LivePage() {
       }
 
       const liveVideoUrl = `${
-        currentPlaylistData.server_info.server_protocol
-      }://${currentPlaylistData.server_info.url}:${
-        currentPlaylistData.server_info.port
+         localStorage.getItem("loginDns")
       }/live/${currentPlaylistData.user_info.username}/${
         currentPlaylistData.user_info.password
       }/${stream.stream_id}.${playlistLiveExtension.streamFormat || "m3u8"}`;
@@ -2782,8 +2780,8 @@ function LivePage() {
       // Handle arrow keys to blur input and navigate
       chanInput.addEventListener("keydown", (e) => {
         const key = e.key;
-        const cursorStart = chanInput.selectionStart ?? 0;
-        const cursorEnd = chanInput.selectionEnd ?? 0;
+        const cursorStart = chanInput.selectionStart ? chanInput.selectionStart : 0;
+        const cursorEnd = chanInput.selectionEnd ? chanInput.selectionEnd : 0;
         const inputLength = chanInput.value.length;
 
         if (key === "Enter") {

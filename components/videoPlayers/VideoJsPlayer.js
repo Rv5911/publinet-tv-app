@@ -260,6 +260,115 @@ function VideoJsPlayer(poster = "") {
         if (muteIcon) muteIcon.style.display = "none";
     }
 
+    function keyMatches(e, values) {
+        const keyCode = e.keyCode || e.which;
+        return (
+            values.includes(keyCode) ||
+            values.includes(e.key) ||
+            values.includes(e.code)
+        );
+    }
+
+    function getRemotePlaybackAction(e) {
+        const forwardKeys = [
+            417, // Tizen MediaFastForward
+            10233, // Tizen MediaTrackNext
+            "MediaFastForward",
+            "FastForward",
+            "MediaTrackNext",
+            "Next",
+            "XF86AudioForward",
+        ];
+        const backwardKeys = [
+            412, // Tizen MediaRewind
+            10232, // Tizen MediaTrackPrevious
+            "MediaRewind",
+            "Rewind",
+            "MediaTrackPrevious",
+            "Previous",
+            "XF86AudioRewind",
+        ];
+        const playPauseKeys = [
+            10252, // Tizen MediaPlayPause
+            179, // Browser MediaPlayPause
+            "MediaPlayPause",
+            "PlayPause",
+        ];
+        const playKeys = [
+            415, // Tizen MediaPlay
+            "MediaPlay",
+            "Play",
+            "XF86AudioPlay",
+        ];
+        const pauseKeys = [
+            19, // Tizen MediaPause
+            "MediaPause",
+            "Pause",
+            "XF86AudioPause",
+        ];
+        const stopKeys = [
+            413, // Tizen MediaStop
+            "MediaStop",
+            "Stop",
+            "XF86AudioStop",
+        ];
+        const recordKeys = [
+            416, // Tizen MediaRecord
+            "MediaRecord",
+            "Record",
+        ];
+        const previousKeys = [
+            10232, // Tizen MediaTrackPrevious
+            "MediaTrackPrevious",
+            "Previous",
+        ];
+        const nextKeys = [
+            10233, // Tizen MediaTrackNext
+            "MediaTrackNext",
+            "Next",
+        ];
+
+        if (keyMatches(e, forwardKeys)) return "forward";
+        if (keyMatches(e, backwardKeys)) return "backward";
+        if (keyMatches(e, playPauseKeys)) return "toggle";
+        if (keyMatches(e, playKeys)) return "play";
+        if (keyMatches(e, pauseKeys)) return "pause";
+        if (keyMatches(e, stopKeys)) return "stop";
+        if (keyMatches(e, recordKeys)) return "record";
+        if (keyMatches(e, previousKeys)) return "previous";
+        if (keyMatches(e, nextKeys)) return "next";
+
+        return null;
+    }
+
+    function registerTizenPlaybackKeys() {
+        if (
+            typeof window.tizen === "undefined" ||
+            !window.tizen.tvinputdevice ||
+            typeof window.tizen.tvinputdevice.registerKey !== "function"
+        ) {
+            return;
+        }
+
+        [
+            "MediaFastForward",
+            "MediaRewind",
+            "MediaPlayPause",
+            "MediaPlay",
+            "MediaPause",
+            "MediaStop",
+            "MediaRecord",
+            "MediaTrackPrevious",
+            "MediaTrackNext",
+        ].forEach((keyName) => {
+            try {
+                window.tizen.tvinputdevice.registerKey(keyName);
+            } catch (err) {
+                console.warn("Tizen key registration failed:", keyName, err);
+            }
+        });
+    }
+
     function showOverlay(type) {
         if (errorActive) return;
 
@@ -453,6 +562,89 @@ function VideoJsPlayer(poster = "") {
                 hideAllControls();
             }
         }, 5000);
+    }
+
+    function canSeekVideo() {
+        return (
+            !isLive &&
+            player &&
+            hasStartedPlayingOnce &&
+            typeof player.currentTime === "function"
+        );
+    }
+
+    function seekVideoBy(offset) {
+        if (!canSeekVideo()) return false;
+
+        try {
+            showAllControls();
+            focusPlayPause();
+            debouncedSeek(offset);
+            showOverlay(offset > 0 ? "forward" : "backward");
+            resetControlsTimer();
+            return true;
+        } catch (err) {
+            console.warn("Player seek error:", err);
+            return false;
+        }
+    }
+
+    function playVideo() {
+        if (!player || typeof player.paused !== "function") return false;
+
+        try {
+            userManuallyPaused = false;
+            if (typeof player.play === "function") player.play();
+            showOverlay("play");
+            resetControlsTimer();
+            return true;
+        } catch (err) {
+            console.warn("Player play error:", err);
+            return false;
+        }
+    }
+
+    function pauseVideo() {
+        if (!player || typeof player.paused !== "function") return false;
+
+        try {
+            userManuallyPaused = true;
+            if (typeof player.pause === "function") player.pause();
+            showAllControls();
+            focusPlayPause();
+            showOverlay("pause");
+            return true;
+        } catch (err) {
+            console.warn("Player pause error:", err);
+            return false;
+        }
+    }
+
+    function toggleVideoPlayback() {
+        if (!player || typeof player.paused !== "function") return false;
+        return player.paused() ? playVideo() : pauseVideo();
+    }
+
+    function handleRemotePlaybackAction(action) {
+        switch (action) {
+            case "forward":
+            case "next":
+                return seekVideoBy(10);
+            case "backward":
+            case "previous":
+                return seekVideoBy(-10);
+            case "toggle":
+                return toggleVideoPlayback();
+            case "play":
+                return playVideo();
+            case "pause":
+            case "stop":
+                return pauseVideo();
+            case "record":
+                return true;
+            default:
+                return false;
+        }
     }
 
     function initPlayer(attempt = 0) {
@@ -1411,6 +1603,14 @@ function VideoJsPlayer(poster = "") {
                 return;
             }
 
+            const remotePlaybackAction = getRemotePlaybackAction(e);
+            if (remotePlaybackAction) {
+                handleRemotePlaybackAction(remotePlaybackAction);
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             // 🔴 If arrow keys are pressed and controls are hidden, show them and reset timer
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.key)) {
                 const controlsBarWrapper = document.querySelector(".custom-video-controls");
@@ -1745,7 +1945,10 @@ function VideoJsPlayer(poster = "") {
         };
     }
 
-    setTimeout(() => initPlayer(), 0);
+    setTimeout(() => {
+        registerTizenPlaybackKeys();
+        initPlayer();
+    }, 0);
 
     setTimeout(() => {
         const videoHtmlElement = document.querySelector(

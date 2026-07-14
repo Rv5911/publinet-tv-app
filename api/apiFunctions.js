@@ -165,12 +165,17 @@ async function loginApi(
               playlistName,
               playlistUrl,
               playlistUsername: username,
+              
             };
 
             localStorage.setItem(
               "selectedPlaylist",
               JSON.stringify(newPlaylist),
             );
+           localStorage.setItem(
+    "loginDns",
+    dnsToCheck[i].replace(/\/+$/, "")
+);
             const newCurrentPlaylistData = {
               ...data,
               playlistName: playlistName,
@@ -310,6 +315,10 @@ async function loginApi(
               "selectedPlaylist",
               JSON.stringify(newPlaylist),
             );
+               localStorage.setItem(
+    "loginDns",
+    dnsToCheck[i].replace(/\/+$/, "")
+);
             const newCurrentPlaylistData = {
               ...data,
               playlistName: playlistName,

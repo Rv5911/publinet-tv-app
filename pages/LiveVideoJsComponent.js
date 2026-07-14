@@ -7,6 +7,8 @@ function LiveVideoJsComponent(
 ) {
   const id = "live-videojs-player";
   let epgData = [];
+  let handleAspectRatioChange = null;
+  let focusedControl = "play-pause";
 
   // Store reference to previous cleanup to avoid race conditions
   const previousCleanup = LiveVideoJsComponent.cleanup;
@@ -167,32 +169,288 @@ function LiveVideoJsComponent(
   }
 
   function togglePlayPause() {
-    if (!window.livePlayer) return;
+    if (!window.livePlayer) return false;
+
+    try {
+      return isLivePaused() ? playLive() : pauseLive();
+    } catch (err) {
+      console.warn("Play/Pause toggle failed:", err);
+      return false;
+    }
+  }
+
+  function keyMatches(e, values) {
+    const keyCode = e.keyCode || e.which;
+    return (
+      values.includes(keyCode) ||
+      values.includes(e.key) ||
+      values.includes(e.code)
+    );
+  }
+
+  function getRemotePlaybackAction(e) {
+    if (keyMatches(e, [10252, 179, "MediaPlayPause", "PlayPause"])) {
+      return "toggle";
+    }
+    if (keyMatches(e, [415, "MediaPlay", "Play", "XF86AudioPlay"])) {
+      return "play";
+    }
+    if (keyMatches(e, [19, "MediaPause", "Pause", "XF86AudioPause"])) {
+      return "pause";
+    }
+    if (keyMatches(e, [413, "MediaStop", "Stop", "XF86AudioStop"])) {
+      return "stop";
+    }
+    return null;
+  }
+
+  function registerTizenPlaybackKeys() {
+    if (
+      typeof window.tizen === "undefined" ||
+      !window.tizen.tvinputdevice ||
+      typeof window.tizen.tvinputdevice.registerKey !== "function"
+    ) {
+      return;
+    }
+
+    [
+      "MediaPlayPause",
+      "MediaPlay",
+      "MediaPause",
+      "MediaStop",
+    ].forEach((keyName) => {
+      try {
+        window.tizen.tvinputdevice.registerKey(keyName);
+      } catch (err) {
+        console.warn("Tizen key registration failed:", keyName, err);
+      }
+    });
+  }
+
+  function getLiveHtml5Video() {
+    return (
+      document.querySelector("#live-videojs-player_html5_api") ||
+      document.querySelector("#flowplayer-live video")
+    );
+  }
+
+  function isLivePaused() {
+    if (!window.livePlayer) return true;
+    try {
+      if (window.livePlayer._fp) {
+        const videoEl = getLiveHtml5Video();
+        if (videoEl) return videoEl.paused;
+        return !window.livePlayer._fp.playing;
+      }
+      if (typeof window.livePlayer.paused === "function") {
+        return window.livePlayer.paused();
+      }
+    } catch (err) {
+      console.warn("Unable to read live pause state:", err);
+    }
+    return false;
+  }
+
+  function playLive() {
+    if (!window.livePlayer) return false;
 
     try {
       if (window.livePlayer._fp) {
-        // Flowplayer implementation
-        const fp = window.livePlayer._fp;
-        if (fp.playing) {
-          fp.pause();
-          updatePlayPauseIcon(false);
+        if (typeof window.livePlayer._fp.resume === "function") {
+          window.livePlayer._fp.resume();
         } else {
-          fp.resume();
-          updatePlayPauseIcon(true);
+          const videoEl = getLiveHtml5Video();
+          if (videoEl) videoEl.play();
         }
-      } else {
-        // Video.js implementation
-        if (window.livePlayer.paused()) {
-          window.livePlayer.play();
-          updatePlayPauseIcon(true);
-        } else {
-          window.livePlayer.pause();
-          updatePlayPauseIcon(false);
-        }
+      } else if (typeof window.livePlayer.play === "function") {
+        window.livePlayer.play();
       }
+      updatePlayPauseIcon(true);
+      return true;
     } catch (err) {
-      console.warn("Play/Pause toggle failed:", err);
+      console.warn("Live play failed:", err);
+      return false;
     }
+  }
+
+  function pauseLive() {
+    if (!window.livePlayer) return false;
+
+    try {
+      if (window.livePlayer._fp) {
+        if (typeof window.livePlayer._fp.pause === "function") {
+          window.livePlayer._fp.pause();
+        } else {
+          const videoEl = getLiveHtml5Video();
+          if (videoEl) videoEl.pause();
+        }
+      } else if (typeof window.livePlayer.pause === "function") {
+        window.livePlayer.pause();
+      }
+      updatePlayPauseIcon(false);
+      return true;
+    } catch (err) {
+      console.warn("Live pause failed:", err);
+      return false;
+    }
+  }
+
+  function handleRemotePlaybackAction(action) {
+    switch (action) {
+      case "toggle":
+        return togglePlayPause();
+      case "play":
+        return playLive();
+      case "pause":
+      case "stop":
+        return pauseLive();
+      default:
+        return false;
+    }
+  }
+
+  function getLivePlayerContainer() {
+    return (
+      document.getElementById("lp-player-container") ||
+      document.querySelector(".live-video-player-div")
+    );
+  }
+
+  function isLivePlayerFocused() {
+    const container = getLivePlayerContainer();
+    return !!(
+      container &&
+      (container.classList.contains("lp-focused") ||
+        container.classList.contains("focused") ||
+        document.fullscreenElement === container ||
+        document.webkitFullscreenElement === container)
+    );
+  }
+
+  function showLiveControls() {
+    const playPauseIcon = document.querySelector(".play-pause-icon");
+    const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
+    const aspectRatioBtn = document.getElementById("videojs-aspect-ratio");
+
+    if (playPauseIcon) playPauseIcon.style.display = "flex";
+    if (fullscreenBtn) fullscreenBtn.style.display = "flex";
+    if (aspectRatioBtn) aspectRatioBtn.style.display = "block";
+  }
+
+  function updateLiveControlFocus() {
+    const focusMap = [
+      {
+        id: "play-pause",
+        el: document.querySelector(".play-pause-icon"),
+        cls: "pp-focused",
+      },
+      {
+        id: "fullscreen-toggle",
+        el: document.getElementById("lp-fullscreen-btn"),
+        cls: "fs-focused",
+      },
+      {
+        id: "ar",
+        el: document.getElementById("videojs-aspect-ratio"),
+        cls: "ar-focused",
+      },
+    ];
+
+    focusMap.forEach(({ id, el, cls }) => {
+      if (!el) return;
+      el.classList.remove(
+        "focused",
+        "lp-control-focused",
+        "pp-focused",
+        "fs-focused",
+        "ar-focused"
+      );
+      if (id === focusedControl) {
+        el.classList.add("focused", "lp-control-focused", cls);
+      }
+    });
+  }
+
+  function moveLiveControlFocus(direction) {
+    if (direction === "left") {
+      focusedControl = "play-pause";
+    } else if (direction === "right") {
+      focusedControl =
+        focusedControl === "play-pause" ? "fullscreen-toggle" : "ar";
+    } else if (direction === "up") {
+      focusedControl = "play-pause";
+    } else if (direction === "down") {
+      focusedControl = "ar";
+    }
+
+    showLiveControls();
+    updateLiveControlFocus();
+  }
+
+  function toggleLiveFullscreen() {
+    const playerContainer = document.querySelector(".live-video-player-div");
+    if (!playerContainer) return false;
+
+    try {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (playerContainer.requestFullscreen) playerContainer.requestFullscreen();
+        else if (playerContainer.webkitRequestFullscreen)
+          playerContainer.webkitRequestFullscreen();
+        else if (playerContainer.msRequestFullscreen)
+          playerContainer.msRequestFullscreen();
+      } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      return true;
+    } catch (err) {
+      console.warn("Live fullscreen toggle failed:", err);
+      return false;
+    }
+  }
+
+  function handleLiveControlEnter() {
+    showLiveControls();
+    updateLiveControlFocus();
+
+    if (focusedControl === "play-pause") return togglePlayPause();
+    if (focusedControl === "fullscreen-toggle") return toggleLiveFullscreen();
+    if (focusedControl === "ar" && handleAspectRatioChange) {
+      handleAspectRatioChange();
+      return true;
+    }
+    return false;
+  }
+
+  function handleLiveArrowKey(e) {
+    if (!isLivePlayerFocused()) return false;
+
+    switch (e.keyCode) {
+      case 37:
+        moveLiveControlFocus("left");
+        break;
+      case 39:
+        moveLiveControlFocus("right");
+        break;
+      case 38:
+        moveLiveControlFocus("up");
+        break;
+      case 40:
+        moveLiveControlFocus("down");
+        break;
+      case 13:
+        handleLiveControlEnter();
+        break;
+      default:
+        return false;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    return true;
   }
 
   function updatePlayPauseIcon(isPlaying) {
@@ -570,46 +828,50 @@ function LiveVideoJsComponent(
           });
         }
 
-        // Remove existing listener if any
-        if (window._liveTvVolumeHandler) {
-          document.removeEventListener("keydown", window._liveTvVolumeHandler);
-        }
-
-        // Create new handler function
-        window._liveTvVolumeHandler = (e) => {
-          if (localStorage.getItem("currentPage") !== "liveTvPage") return;
-
-          switch (e.keyCode) {
-            case 447:
-              updateVolume("up");
-              e.preventDefault();
-              break;
-            case 448:
-              updateVolume("down");
-              e.preventDefault();
-              break;
-            case 449:
-              toggleMute();
-              e.preventDefault();
-              break;
-            case 10252: // Play/Pause key
-              togglePlayPause();
-              e.preventDefault();
-              break;
-          }
-        };
-
-        // Add the event listener
-        document.addEventListener("keydown", window._liveTvVolumeHandler);
       }
     }
+
+    registerTizenPlaybackKeys();
+    if (window._liveTvVolumeHandler) {
+      document.removeEventListener("keydown", window._liveTvVolumeHandler);
+    }
+
+    window._liveTvVolumeHandler = (e) => {
+      if (localStorage.getItem("currentPage") !== "liveTvPage") return;
+
+      switch (e.keyCode) {
+        case 447:
+          updateVolume("up");
+          e.preventDefault();
+          return;
+        case 448:
+          updateVolume("down");
+          e.preventDefault();
+          return;
+        case 449:
+          toggleMute();
+          e.preventDefault();
+          return;
+      }
+
+      const playbackAction = getRemotePlaybackAction(e);
+      if (playbackAction && handleRemotePlaybackAction(playbackAction)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      handleLiveArrowKey(e);
+    };
+
+    document.addEventListener("keydown", window._liveTvVolumeHandler);
 
     // Add click event listener for play/pause icon
     const playPauseIcon = document.querySelector(".play-pause-icon");
     if (playPauseIcon) {
       playPauseIcon.addEventListener("click", togglePlayPause);
     }
-    const handleAspectRatioChange = () => {
+    handleAspectRatioChange = () => {
       const videoEl =
         document.querySelector("#live-videojs-player_html5_api") ||
         document.querySelector("#flowplayer-live video");

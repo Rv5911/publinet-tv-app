@@ -627,15 +627,102 @@ function LiveAvPlayer(
     }
 
     function togglePlayPause() {
-        if (!avplay || errorActive) return;
-        var s = avplay.getState();
-        if (s === "PLAYING") {
-            avplay.pause();
-        } else {
-            avplay.play();
+        if (!avplay || errorActive) return false;
+        try {
+            var s = avplay.getState();
+            return s === "PLAYING" ? pauseLive() : playLive();
+        } catch (e) {
+            console.warn("[LiveAvPlayer] togglePlayPause failed", e);
+            return false;
         }
-        syncPlayPauseIcon();
-        showControls();
+    }
+
+    function playLive() {
+        if (!avplay || errorActive) return false;
+        try {
+            avplay.play();
+            syncPlayPauseIcon();
+            showControls();
+            return true;
+        } catch (e) {
+            console.warn("[LiveAvPlayer] play failed", e);
+            return false;
+        }
+    }
+
+    function pauseLive() {
+        if (!avplay || errorActive) return false;
+        try {
+            avplay.pause();
+            syncPlayPauseIcon();
+            showControls();
+            return true;
+        } catch (e) {
+            console.warn("[LiveAvPlayer] pause failed", e);
+            return false;
+        }
+    }
+
+    function keyMatches(e, values) {
+        var keyCode = e.keyCode || e.which;
+        return (
+            values.indexOf(keyCode) !== -1 ||
+            values.indexOf(e.key) !== -1 ||
+            values.indexOf(e.code) !== -1
+        );
+    }
+
+    function getRemotePlaybackAction(e) {
+        if (keyMatches(e, [10252, 179, "MediaPlayPause", "PlayPause"])) {
+            return "toggle";
+        }
+        if (keyMatches(e, [415, "MediaPlay", "Play", "XF86AudioPlay"])) {
+            return "play";
+        }
+        if (keyMatches(e, [19, "MediaPause", "Pause", "XF86AudioPause"])) {
+            return "pause";
+        }
+        if (keyMatches(e, [413, "MediaStop", "Stop", "XF86AudioStop"])) {
+            return "stop";
+        }
+        return null;
+    }
+
+    function handleRemotePlaybackAction(action) {
+        switch (action) {
+            case "toggle":
+                return togglePlayPause();
+            case "play":
+                return playLive();
+            case "pause":
+            case "stop":
+                return pauseLive();
+            default:
+                return false;
+        }
+    }
+
+    function registerTizenPlaybackKeys() {
+        if (
+            typeof window.tizen === "undefined" ||
+            !window.tizen.tvinputdevice ||
+            typeof window.tizen.tvinputdevice.registerKey !== "function"
+        ) {
+            return;
+        }
+
+        [
+            "MediaPlayPause",
+            "MediaPlay",
+            "MediaPause",
+            "MediaStop",
+        ].forEach(function(keyName) {
+            try {
+                window.tizen.tvinputdevice.registerKey(keyName);
+            } catch (err) {
+                console.warn("[LiveAvPlayer] Tizen key registration failed", keyName, err);
+            }
+        });
     }
 
     function toggleFullscreenMode() {
@@ -901,10 +988,17 @@ function LiveAvPlayer(
 
         if (isLoading) return;
 
-        // In non-fullscreen, let LivePage.js handle all navigation, but still refresh UI visibility
-        if (!isFs) {
-            setTimeout(applyControlsVisibility, 20);
+        var playbackAction = getRemotePlaybackAction(e);
+        if (playbackAction && handleRemotePlaybackAction(playbackAction)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
             return;
+        }
+
+        // In non-fullscreen, keep the live player controls keyboard-addressable
+        // when the page has focused the player container.
+        if (!isFs) {
+            showControls();
         }
 
         if (isSidebarOpen) {
@@ -1400,6 +1494,7 @@ function LiveAvPlayer(
     document.addEventListener("mozfullscreenchange", syncFullscreenUI);
     document.addEventListener("msfullscreenchange", syncFullscreenUI);
     document.addEventListener("keydown", handleKey);
+    registerTizenPlaybackKeys();
 
     window.livePlayer = {
         dispose: function() {
