@@ -5,6 +5,11 @@
 }
 
 .video-js-player-container {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
     background: black !important;
 }
 
@@ -13,7 +18,39 @@
 } */
 
 .videojs-player-class {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
     background: black !important;
+}
+
+#videojs-player-tag,
+.video-js,
+.video-js .vjs-tech {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #000 !important;
+}
+
+#videojs-player-tag::-webkit-media-controls,
+#videojs-player-tag::-webkit-media-controls-enclosure,
+.html-live-player::-webkit-media-controls,
+.html-live-player::-webkit-media-controls-enclosure {
+    display: none !important;
+}
+
+#videojs-player-tag,
+.html-live-player {
+    object-fit: fill !important;
 }
 
 .video-buffer-loader {
@@ -236,7 +273,7 @@
 
 .video-js .vjs-tech {
     background: rgb(0, 0, 0) !important;
-    height: 100vh !important;
+    height: 100% !important;
 }
 
 /* -------------------------------- */

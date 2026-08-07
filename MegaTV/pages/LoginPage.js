@@ -1,4 +1,5 @@
 function LoginPage() {
+  localStorage.removeItem("loginDns");
   let playlistsData = JSON.parse(localStorage.getItem("playlistsData"))
     ? JSON.parse(localStorage.getItem("playlistsData"))
     : [];
@@ -15,8 +16,20 @@ function LoginPage() {
     const loginButton = document.querySelector(".login-button");
     const listButton = document.querySelector(".list-button");
 
+    const moveCaretToEnd = (input) => {
+      if (!input) return;
+      requestAnimationFrame(() => {
+        if (document.activeElement !== input) return;
+        const len = input.value.length;
+        if (typeof input.setSelectionRange === "function") {
+          input.setSelectionRange(len, len);
+        }
+      });
+    };
+
     passwordInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
+      moveCaretToEnd(passwordInput);
     });
 
     passwordInput.addEventListener("blur", () => {
@@ -47,11 +60,18 @@ function LoginPage() {
 
     usernameInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
+      moveCaretToEnd(usernameInput);
     });
 
     usernameInput.addEventListener("blur", () => {
       document.querySelector(".login-form-div").classList.remove("shift-up");
     });
+
+    if (playlistInput) {
+      playlistInput.addEventListener("focus", () => {
+        moveCaretToEnd(playlistInput);
+      });
+    }
 
     // Exit early if passwordInput not found
     if (!passwordInput) return;
@@ -306,6 +326,7 @@ function LoginPage() {
           if (focused.classList.contains("login-input")) {
             focused.focus();
             lastFocusedInput = focused;
+            moveCaretToEnd(focused);
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
@@ -351,9 +372,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input  login-input"    type="text"  placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input"   type="text" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input" type="password"  placeholder="Enter Password"></div>
+          <div><input class="playlistname-input  login-input" value="TEST202665256"    type="text"  placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input"  value="TEST202665256"  type="text" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input" value="AeWg47C7Tb" type="password"  placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>

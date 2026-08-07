@@ -153,12 +153,16 @@
 
 .sidebar-content {
     padding: 25px;
+    height: 100%;
 }
 
 .sidebar-content ul {
     list-style: none;
     margin: 0;
     padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar-content li {
@@ -186,12 +190,9 @@
     display: flex !important;
     justify-content: center;
     align-items: center;
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
     text-decoration: underline;
     background-color: transparent !important;
-    transform: translateX(-50%);
+    margin-top: auto;
 }
 
 .sidebar-link-logo {

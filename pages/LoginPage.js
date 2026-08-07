@@ -1,4 +1,5 @@
 function LoginPage() {
+    localStorage.removeItem("loginDns");
   let playlistsData = JSON.parse(localStorage.getItem("playlistsData"))
     ? JSON.parse(localStorage.getItem("playlistsData"))
     : [];

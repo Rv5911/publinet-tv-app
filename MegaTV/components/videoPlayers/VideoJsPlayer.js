@@ -26,11 +26,9 @@ function VideoJsPlayer(poster = "") {
     const currentPlaylistName = JSON.parse(
         localStorage.getItem("selectedPlaylist")
     ).playlistName;
-
-    const getPlaylistsData = () => JSON.parse(localStorage.getItem("playlistsData")) || [];
-    const getCurrentPlaylist = () => getPlaylistsData().find((pl) => pl.playlistName === currentPlaylistName) || {};
-
-    const currentPlaylist = getCurrentPlaylist();
+    const currentPlaylist = JSON.parse(
+        localStorage.getItem("playlistsData")
+    ).filter((pl) => pl.playlistName === currentPlaylistName)[0];
 
     const continueWatchingMoviesData = currentPlaylist.continueWatchingMovies ?
         currentPlaylist.continueWatchingMovies :
@@ -40,10 +38,12 @@ function VideoJsPlayer(poster = "") {
         [];
 
     const isLive = localStorage.getItem("isLive") === "true";
+    const isTizenPlatform = typeof window.tizen !== "undefined";
+    const useNativeHtmlVideo = !isTizenPlatform;
 
     let player = null;
     let overlayTimeout;
-    let controlsTimer = null; // 🔴 NEW: For 5s auto-hide
+    let controlsTimer = null;
     let errorActive = false;
     let currentTimeEl = null;
     let durationEl = null;
@@ -107,8 +107,8 @@ function VideoJsPlayer(poster = "") {
 
         // Store play state before seeking (only once per seek session)
         const isFirstSeek = pendingSeekTimeout === null;
-        if (isFirstSeek && player) {
-            wasPlayingBeforeSeek = !player.paused;
+        if (isFirstSeek) {
+            wasPlayingBeforeSeek = !player.paused();
             if (wasPlayingBeforeSeek && !userManuallyPaused) {
                 player.pause();
             }
@@ -123,10 +123,10 @@ function VideoJsPlayer(poster = "") {
             loadingEl.classList.remove("hidden");
         }
 
-        if (seekBar && player && !isNaN(player.currentTime)) {
+        if (seekBar && player && player.currentTime) {
             try {
-                const currentTime = player.currentTime;
-                const duration = player.duration || 0;
+                const currentTime = player.currentTime();
+                const duration = player.duration();
                 const newTime = Math.max(
                     0,
                     Math.min(duration, currentTime + accumulatedSeekOffset)
@@ -139,11 +139,11 @@ function VideoJsPlayer(poster = "") {
                 }
 
                 // Update seek bar background gradient
-                const percent = duration > 0 ? (newTime / duration) * 100 : 0;
+                const percent = (newTime / duration) * 100;
                 let bufferedPercent = 0;
-                if (player.buffered && player.buffered.length > 0) {
+                if (player.buffered().length > 0) {
                     bufferedPercent =
-                        (player.buffered.end(player.buffered.length - 1) / duration) *
+                        (player.buffered().end(player.buffered().length - 1) / duration) *
                         100;
                 }
                 seekBar.style.background = `linear-gradient(to right,
@@ -157,21 +157,21 @@ function VideoJsPlayer(poster = "") {
 
         // Set a new timeout to execute the seek after 300ms of no input
         pendingSeekTimeout = setTimeout(() => {
-            if (!player || isNaN(player.currentTime) || errorActive) {
+            if (!player || !player.currentTime || errorActive) {
                 accumulatedSeekOffset = 0;
                 return;
             }
 
             try {
-                const currentTime = player.currentTime;
-                const duration = player.duration || 0;
+                const currentTime = player.currentTime();
+                const duration = player.duration();
                 const newTime = Math.max(
                     0,
                     Math.min(duration, currentTime + accumulatedSeekOffset)
                 );
 
                 // Execute the accumulated seek
-                player.currentTime = newTime;
+                player.currentTime(newTime);
 
                 // Update seek bar
                 const seekBar = document.getElementById("customSeek");
@@ -192,11 +192,9 @@ function VideoJsPlayer(poster = "") {
                 // Resume playback if it was playing before
                 if (wasPlayingBeforeSeek && !userManuallyPaused) {
                     pendingResumeTimeout = setTimeout(() => {
-                        if(player) {
-                            player.play().catch((err) => {
-                                console.log("Resume after debounced seek failed:", err);
-                            });
-                        }
+                        player.play().catch((err) => {
+                            console.log("Resume after debounced seek failed:", err);
+                        });
                     }, 200);
                 }
             } catch (err) {
@@ -218,15 +216,6 @@ function VideoJsPlayer(poster = "") {
             }
             window.tizen.tvaudiocontrol.setVolume(currentVolume);
             showVolumeDisplay(currentVolume);
-        } else if (player) {
-            let currentVolume = player.volume * 100;
-            if (direction === "up") {
-                currentVolume = Math.min(currentVolume + 10, 100);
-            } else if (direction === "down") {
-                currentVolume = Math.max(currentVolume - 10, 0);
-            }
-            player.volume = currentVolume / 100;
-            showVolumeDisplay(currentVolume);
         }
     }
 
@@ -236,8 +225,6 @@ function VideoJsPlayer(poster = "") {
                 window.tizen.tvaudiocontrol.isMute &&
                 window.tizen.tvaudiocontrol.isMute();
             window.tizen.tvaudiocontrol.setMute(!isMuted);
-        } else if (player) {
-            player.muted = !player.muted;
         }
     }
 
@@ -273,6 +260,115 @@ function VideoJsPlayer(poster = "") {
     function hideMuteIcon() {
         const muteIcon = document.getElementById("muteIcon");
         if (muteIcon) muteIcon.style.display = "none";
+    }
+
+    function keyMatches(e, values) {
+        const keyCode = e.keyCode || e.which;
+        return (
+            values.includes(keyCode) ||
+            values.includes(e.key) ||
+            values.includes(e.code)
+        );
+    }
+
+    function getRemotePlaybackAction(e) {
+        const forwardKeys = [
+            417, // Tizen MediaFastForward
+            10233, // Tizen MediaTrackNext
+            "MediaFastForward",
+            "FastForward",
+            "MediaTrackNext",
+            "Next",
+            "XF86AudioForward",
+        ];
+        const backwardKeys = [
+            412, // Tizen MediaRewind
+            10232, // Tizen MediaTrackPrevious
+            "MediaRewind",
+            "Rewind",
+            "MediaTrackPrevious",
+            "Previous",
+            "XF86AudioRewind",
+        ];
+        const playPauseKeys = [
+            10252, // Tizen MediaPlayPause
+            179, // Browser MediaPlayPause
+            "MediaPlayPause",
+            "PlayPause",
+        ];
+        const playKeys = [
+            415, // Tizen MediaPlay
+            "MediaPlay",
+            "Play",
+            "XF86AudioPlay",
+        ];
+        const pauseKeys = [
+            19, // Tizen MediaPause
+            "MediaPause",
+            "Pause",
+            "XF86AudioPause",
+        ];
+        const stopKeys = [
+            413, // Tizen MediaStop
+            "MediaStop",
+            "Stop",
+            "XF86AudioStop",
+        ];
+        const recordKeys = [
+            416, // Tizen MediaRecord
+            "MediaRecord",
+            "Record",
+        ];
+        const previousKeys = [
+            10232, // Tizen MediaTrackPrevious
+            "MediaTrackPrevious",
+            "Previous",
+        ];
+        const nextKeys = [
+            10233, // Tizen MediaTrackNext
+            "MediaTrackNext",
+            "Next",
+        ];
+
+        if (keyMatches(e, forwardKeys)) return "forward";
+        if (keyMatches(e, backwardKeys)) return "backward";
+        if (keyMatches(e, playPauseKeys)) return "toggle";
+        if (keyMatches(e, playKeys)) return "play";
+        if (keyMatches(e, pauseKeys)) return "pause";
+        if (keyMatches(e, stopKeys)) return "stop";
+        if (keyMatches(e, recordKeys)) return "record";
+        if (keyMatches(e, previousKeys)) return "previous";
+        if (keyMatches(e, nextKeys)) return "next";
+
+        return null;
+    }
+
+    function registerTizenPlaybackKeys() {
+        if (
+            typeof window.tizen === "undefined" ||
+            !window.tizen.tvinputdevice ||
+            typeof window.tizen.tvinputdevice.registerKey !== "function"
+        ) {
+            return;
+        }
+
+        [
+            "MediaFastForward",
+            "MediaRewind",
+            "MediaPlayPause",
+            "MediaPlay",
+            "MediaPause",
+            "MediaStop",
+            "MediaRecord",
+            "MediaTrackPrevious",
+            "MediaTrackNext",
+        ].forEach((keyName) => {
+            try {
+                window.tizen.tvinputdevice.registerKey(keyName);
+            } catch (err) {
+                console.warn("Tizen key registration failed:", keyName, err);
+            }
+        });
     }
 
     function showOverlay(type) {
@@ -460,14 +556,177 @@ function VideoJsPlayer(poster = "") {
             controlsTimer = null;
         }
 
-        // Don't auto-hide if player isn't playing or in error
-        if (!player || player.paused || errorActive) return;
+        // Keep controls visible while paused or in error.
+        if (!player || player.paused() || errorActive) return;
 
         controlsTimer = setTimeout(() => {
-            if (player && !player.paused && !errorActive) {
+            if (player && !player.paused() && !errorActive) {
                 hideAllControls();
             }
-        }, 5000);
+        }, 4000);
+    }
+
+    function canSeekVideo() {
+        return (
+            !isLive &&
+            player &&
+            hasStartedPlayingOnce &&
+            typeof player.currentTime === "function"
+        );
+    }
+
+    function seekVideoBy(offset) {
+        if (!canSeekVideo()) return false;
+
+        try {
+            showAllControls();
+            focusPlayPause();
+            debouncedSeek(offset);
+            showOverlay(offset > 0 ? "forward" : "backward");
+            resetControlsTimer();
+            return true;
+        } catch (err) {
+            console.warn("Player seek error:", err);
+            return false;
+        }
+    }
+
+    function playVideo() {
+        if (!player || typeof player.paused !== "function") return false;
+
+        try {
+            userManuallyPaused = false;
+            if (typeof player.play === "function") player.play();
+            showOverlay("play");
+            resetControlsTimer();
+            return true;
+        } catch (err) {
+            console.warn("Player play error:", err);
+            return false;
+        }
+    }
+
+    function pauseVideo() {
+        if (!player || typeof player.paused !== "function") return false;
+
+        try {
+            userManuallyPaused = true;
+            if (typeof player.pause === "function") player.pause();
+            showAllControls();
+            focusPlayPause();
+            showOverlay("pause");
+            return true;
+        } catch (err) {
+            console.warn("Player pause error:", err);
+            return false;
+        }
+    }
+
+    function toggleVideoPlayback() {
+        if (!player || typeof player.paused !== "function") return false;
+        return player.paused() ? playVideo() : pauseVideo();
+    }
+
+    function handleRemotePlaybackAction(action) {
+        switch (action) {
+            case "forward":
+            case "next":
+                return seekVideoBy(10);
+            case "backward":
+            case "previous":
+                return seekVideoBy(-10);
+            case "toggle":
+                return toggleVideoPlayback();
+            case "play":
+                return playVideo();
+            case "pause":
+            case "stop":
+                return pauseVideo();
+            case "record":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    function createNativeHtmlVideoPlayer(videoElement, options) {
+        const handlers = [];
+
+        if (options.poster) {
+            videoElement.poster = options.poster;
+        } else {
+            videoElement.removeAttribute("poster");
+        }
+
+        videoElement.controls = false;
+        videoElement.autoplay = !!options.autoplay;
+        videoElement.preload = options.preload || "auto";
+        videoElement.playsInline = true;
+        videoElement.setAttribute("playsinline", "");
+        videoElement.setAttribute("webkit-playsinline", "");
+        videoElement.removeAttribute("controls");
+
+        const source = options.sources && options.sources[0];
+        if (source && source.src) {
+            videoElement.src = source.src;
+            if (source.type) videoElement.type = source.type;
+        }
+
+        const adapter = {
+            ready(callback) {
+                if (typeof callback !== "function") return;
+                if (videoElement.readyState >= 1) {
+                    setTimeout(callback, 0);
+                } else {
+                    const onLoaded = () => callback();
+                    videoElement.addEventListener("loadedmetadata", onLoaded, { once: true });
+                    handlers.push(["loadedmetadata", onLoaded]);
+                }
+            },
+            on(eventName, callback) {
+                if (typeof callback !== "function") return;
+                videoElement.addEventListener(eventName, callback);
+                handlers.push([eventName, callback]);
+            },
+            paused() {
+                return videoElement.paused;
+            },
+            play() {
+                return videoElement.play();
+            },
+            pause() {
+                return videoElement.pause();
+            },
+            currentTime(value) {
+                if (typeof value === "number") {
+                    videoElement.currentTime = value;
+                }
+                return videoElement.currentTime || 0;
+            },
+            duration() {
+                return Number.isFinite(videoElement.duration) ? videoElement.duration : 0;
+            },
+            buffered() {
+                return videoElement.buffered;
+            },
+            seeking() {
+                return videoElement.seeking;
+            },
+            error() {
+                return videoElement.error;
+            },
+            dispose() {
+                handlers.forEach(([eventName, callback]) => {
+                    videoElement.removeEventListener(eventName, callback);
+                });
+                videoElement.pause();
+                videoElement.removeAttribute("src");
+                videoElement.load();
+            },
+        };
+
+        videoElement.load();
+        return adapter;
     }
 
     function initPlayer(attempt = 0) {
@@ -478,6 +737,32 @@ function VideoJsPlayer(poster = "") {
             }
             return;
         }
+
+        const options = {
+            autoplay: true,
+            controls: false,
+            preload: "auto",
+            fluid: true,
+            poster: isYouTube &&
+                (fromValue === "trailer_movie" || fromValue === "trailer_series") ?
+                "" :
+                poster || "",
+            liveui: isLive,
+            techOrder: isYouTube ? ["youtube"] : ["html5"],
+            sources: [
+                isYouTube ?
+                {
+                    src: srcUrl,
+                    type: "video/youtube",
+                } :
+                {
+                    src: srcUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+                    type: srcUrl.endsWith(".m3u8") ?
+                        "application/x-mpegURL" :
+                        "video/mp4",
+                },
+            ],
+        };
 
         let resumeTime = 0;
 
@@ -503,29 +788,29 @@ function VideoJsPlayer(poster = "") {
             }
         }
 
-        player = videoElement;
-        
-        player.autoplay = true;
-        player.preload = "auto";
-        
-        if (isYouTube && (fromValue === "trailer_movie" || fromValue === "trailer_series")) {
-            // No poster
-        } else if (poster) {
-            player.poster = poster;
-        }
+        player =
+            useNativeHtmlVideo || typeof videojs === "undefined"
+                ? createNativeHtmlVideoPlayer(videoElement, options)
+                : videojs(videoElement, options);
 
-        player.src = srcUrl || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+        player.ready(() => {
+            if (player.paused() && !userManuallyPaused && !errorActive) {
+                player.play().catch((err) => {
+                    console.log("Initial auto-play failed, will retry on canplay:", err);
+                });
+            }
+        });
 
-        player.addEventListener("seeking", () => {
+        player.on("seeking", () => {
             console.log("Seeking started...");
         });
 
-        player.addEventListener("seeked", () => {
+        player.on("seeked", () => {
             console.log("Seek completed");
 
             // Only auto-play if video wasn't manually paused AND not dragging
             if (
-                player.paused &&
+                player.paused() &&
                 !errorActive &&
                 !isSeekBarDragging &&
                 !userManuallyPaused
@@ -540,9 +825,9 @@ function VideoJsPlayer(poster = "") {
 
         // Apply resume time after metadata is loaded
         if (resumeTime > 0) {
-            player.addEventListener("loadedmetadata", () => {
-                if (resumeTime < player.duration) {
-                    player.currentTime = resumeTime;
+            player.on("loadedmetadata", () => {
+                if (resumeTime < player.duration()) {
+                    player.currentTime(resumeTime);
                 }
             });
         }
@@ -565,6 +850,11 @@ function VideoJsPlayer(poster = "") {
         if (isLive && seekBar) {
             seekBar.style.display = "none";
         }
+        if (seekBar) {
+            seekBar.value = 0;
+            seekBar.style.background =
+                "linear-gradient(to right, var(--gold) 0%, var(--gold) 0%, #888 0%, #888 100%)";
+        }
 
         // Show title at start for 3 seconds, then hide if video is playing
         if (titleBar) {
@@ -582,7 +872,7 @@ function VideoJsPlayer(poster = "") {
                 }
             }
             setTimeout(() => {
-                if (player && !player.paused) {
+                if (!player.paused()) {
                     titleBar.classList.add("hidden");
                 }
             }, 3000);
@@ -594,7 +884,7 @@ function VideoJsPlayer(poster = "") {
                 if (
                     !errorActive &&
                     player &&
-                    !isNaN(player.currentTime)
+                    typeof player.currentTime === "function"
                 ) {
                     // Throttle seek bar updates to prevent buffer overload
                     const now = Date.now();
@@ -612,10 +902,14 @@ function VideoJsPlayer(poster = "") {
                     }
 
                     // Store play state before seeking
-                    wasPlayingBeforeSeek = !player.paused;
+                    wasPlayingBeforeSeek = !player.paused();
 
                     try {
-                        player.currentTime = parseFloat(seekBar.value);
+                        const nextTime = parseFloat(seekBar.value);
+                        if (Number.isFinite(nextTime)) {
+                            player.currentTime(nextTime);
+                            if (currentTimeEl) currentTimeEl.textContent = formatTime(nextTime);
+                        }
                     } catch (err) {
                         console.warn("Seek bar error:", err);
                     }
@@ -635,38 +929,37 @@ function VideoJsPlayer(poster = "") {
                 }
             });
 
-            player.addEventListener("timeupdate", () => {
+            player.on("timeupdate", () => {
                 if (errorActive) return;
 
-                if (!seekBar.getAttribute("max") && player.duration) {
-                    seekBar.setAttribute("max", player.duration || 0);
+                const duration = player.duration() || 0;
+                const currentTime = player.currentTime() || 0;
+
+                if (duration > 0 && seekBar.getAttribute("max") !== String(duration)) {
+                    seekBar.setAttribute("max", duration);
                 }
 
                 // Only update seek bar value if user is not actively dragging it
-                if (!isSeekBarDragging && !isNaN(player.currentTime)) {
-                    seekBar.value = player.currentTime;
+                if (!isSeekBarDragging) {
+                    seekBar.value = currentTime;
                 }
 
                 // Update current time display
                 if (currentTimeEl) {
-                    currentTimeEl.textContent = formatTime(player.currentTime);
+                    currentTimeEl.textContent = formatTime(currentTime);
                 }
 
                 // Update duration display (only once when available)
-                if (
-                    durationEl &&
-                    player.duration &&
-                    durationEl.textContent === "0:00"
-                ) {
-                    durationEl.textContent = formatTime(player.duration);
+                if (durationEl && duration > 0) {
+                    durationEl.textContent = formatTime(duration);
                 }
 
-                const duration = player.duration || 0;
-                const percent = duration > 0 ? (player.currentTime / duration) * 100 : 0;
+                const percent = duration > 0 ? (currentTime / duration) * 100 : 0;
                 let bufferedPercent = 0;
-                if (player.buffered && player.buffered.length > 0 && duration > 0) {
+                if (duration > 0 && player.buffered().length > 0) {
                     bufferedPercent =
-                        (player.buffered.end(player.buffered.length - 1) / duration) *
+                        (player.buffered().end(player.buffered().length - 1) /
+                            duration) *
                         100;
                 }
 
@@ -677,9 +970,9 @@ function VideoJsPlayer(poster = "") {
             });
         }
 
-        player.addEventListener("waiting", () => {
+        player.on("waiting", () => {
             if (!errorActive) {
-                loadingEl.classList.remove("hidden");
+                if (loadingEl) loadingEl.classList.remove("hidden");
                 // Hide pause overlay when loading starts
                 const playOverlay = document.querySelector(
                     ".video-action-overlay.center"
@@ -690,12 +983,12 @@ function VideoJsPlayer(poster = "") {
             }
         });
 
-        player.addEventListener("canplay", () => {
+        player.on("canplay", () => {
             if (!errorActive) {
-                loadingEl.classList.add("hidden");
+                if (loadingEl) loadingEl.classList.add("hidden");
                 // 🔴 UPDATED: Auto-play if not manually paused and not dragging seek bar
                 if (
-                    player.paused &&
+                    player.paused() &&
                     !isSeekBarDragging &&
                     !userManuallyPaused &&
                     !errorActive
@@ -703,38 +996,50 @@ function VideoJsPlayer(poster = "") {
                     player.play().catch((err) => {
                         console.log("Auto-play on canplay failed:", err);
                     });
-                } else if (player.paused && !isSeekBarDragging) {
+                } else if (player.paused() && !isSeekBarDragging) {
                     // Show pause overlay if user manually paused or is seeking
                     showOverlay("pause");
                 }
             }
         });
 
-        player.addEventListener("stalled", () => {
+        player.on("stalled", () => {
             if (!errorActive) {
-                loadingEl.classList.remove("hidden");
+                if (loadingEl) loadingEl.classList.remove("hidden");
             }
         });
 
-        player.addEventListener("loadstart", () => {
+        player.on("loadstart", () => {
             if (!errorActive) {
-                loadingEl.classList.remove("hidden");
+                if (loadingEl) loadingEl.classList.remove("hidden");
+            }
+
+            // Always hide poster for YouTube trailers
+            if (
+                isYouTube &&
+                (fromValue === "trailer_movie" || fromValue === "trailer_series")
+            ) {
+                const posterEl = document.querySelector(".vjs-poster");
+                if (posterEl) {
+                    posterEl.style.opacity = "0";
+                    posterEl.style.display = "none";
+                }
             }
         });
 
-        player.addEventListener("ended", () => {
+        player.on("ended", () => {
             goBack();
         });
 
-        player.addEventListener("playing", () => {
+        player.on("playing", () => {
             if (!errorActive) {
                 hasStartedPlayingOnce = true;
-                loadingEl.classList.add("hidden");
+                if (loadingEl) loadingEl.classList.add("hidden");
                 // Reset timer when playing starts
                 resetControlsTimer();
                 
                 // Only show play overlay if we're not seeking
-                if (!isSeekBarDragging && !player.seeking) {
+                if (!isSeekBarDragging && !player.seeking()) {
                     showOverlay("play");
                 }
 
@@ -743,45 +1048,58 @@ function VideoJsPlayer(poster = "") {
             }
         });
 
-        player.addEventListener("pause", () => {
+        player.on("pause", () => {
             // Don't show pause UI if video is still loading/buffering
-            if (!errorActive && !loadingEl.classList.contains("hidden")) {
+            if (!errorActive && loadingEl && !loadingEl.classList.contains("hidden")) {
                 return;
             }
 
             // Always show pause overlay when paused, even during seeking
             if (!errorActive) {
-                controlsBar.classList.remove("hidden");
-                titleBar.style.display = "flex";
+                if (controlsBar) controlsBar.classList.remove("hidden");
+                if (titleBar) titleBar.style.display = "flex";
                 showOverlay("pause");
                 setTimeout(() => focusPlayPause(), 100);
 
                 // Mark that user manually paused (unless it's from seeking)
-                if (!player.seeking) {
+                if (!player.seeking()) {
                     userManuallyPaused = true;
                 }
             }
         });
 
-        player.addEventListener("error", (e) => {
-            console.log("❌ Player error:", player.error);
+        player.on("error", () => {
+            console.log("❌ Player error:", player.error());
             errorActive = true;
 
-            loadingEl.classList.add("hidden");
-            controlsBar.classList.add("hidden");
-            liveBadge.classList.add("hidden");
-            titleBar.style.display = "none";
+            if (loadingEl) loadingEl.classList.add("hidden");
+            if (controlsBar) controlsBar.classList.add("hidden");
+            if (liveBadge) liveBadge.classList.add("hidden");
+            if (titleBar) titleBar.style.display = "none";
 
             overlays.forEach((o) => o.classList.add("hidden"));
 
-            const errorMsgEl = document.getElementById("errorDialogMessage");
-            if (errorMsgEl) {
-                const playerError = player.error;
-                let errorMessage = "Something went wrong";
-                if (playerError) {
-                    errorMessage = playerError.message || `Error Code: ${playerError.code}`;
+            // Hide Poster
+            const poster = document.querySelector(".vjs-poster");
+            if (poster) {
+                poster.style.opacity = "0"; // Use opacity to hide
+                poster.style.display = "none";
+            }
+
+            if (
+                isYouTube &&
+                (fromValue === "trailer_movie" || fromValue === "trailer_series")
+            ) {
+                const errorMsgEl = document.getElementById("errorDialogMessage");
+                if (errorMsgEl) {
+                    const playerError = player.error();
+                    let errorMessage = "Something went wrong";
+                    if (playerError) {
+                        errorMessage =
+                            playerError.message || `Error Code: ${playerError.code}`;
+                    }
+                    errorMsgEl.innerText = `⚠️ ${errorMessage}`;
                 }
-                errorMsgEl.innerText = `⚠️ ${errorMessage}`;
             }
 
             if (errorDialog) errorDialog.classList.remove("hidden");
@@ -795,7 +1113,8 @@ function VideoJsPlayer(poster = "") {
             const allRecentlyWatchedSeries = currentPlaylist.continueWatchingSeries ?
                 currentPlaylist.continueWatchingSeries :
                 [];
-            
+            const selectedMovieId = localStorage.getItem("selectedMovieId");
+
             const navbarEl = document.querySelector("#navbar-root");
             if (navbarEl) {
                 navbarEl.style.display = "block";
@@ -813,11 +1132,11 @@ function VideoJsPlayer(poster = "") {
                     let duration = 0;
 
                     try {
-                        if (!isNaN(player.currentTime)) {
-                            resumeTime = player.currentTime;
+                        if (typeof player.currentTime === "function") {
+                            resumeTime = player.currentTime();
                         }
-                        if (!isNaN(player.duration)) {
-                            duration = player.duration;
+                        if (typeof player.duration === "function") {
+                            duration = player.duration();
                         }
                     } catch (e) {
                         resumeTime = 0;
@@ -842,7 +1161,8 @@ function VideoJsPlayer(poster = "") {
                         };
 
                         // Load playlists
-                        let playlists = getPlaylistsData();
+                        let playlists =
+                            JSON.parse(localStorage.getItem("playlistsData")) || [];
 
                         playlists = playlists.map((pl) => {
                             if (pl.playlistName !== currentPlaylistName) return pl;
@@ -883,11 +1203,36 @@ function VideoJsPlayer(poster = "") {
                         } else {
                             addItemToHistory(continueWatchingItem, "continueWatchingMovies");
                         }
+                    } else {
+                        console.log(
+                            "❌ Not saving - resumeTime:",
+                            resumeTime,
+                            "isVideoCompleted:",
+                            isVideoCompleted
+                        );
                     }
+                } else {
+                    console.log(
+                        "❌ Skipping continue watching - isYouTube:",
+                        isYouTube,
+                        "isLive:",
+                        isLive,
+                        "errorActive:",
+                        errorActive,
+                        "player:",
+                        !!player
+                    );
                 }
 
                 // Dispose player before navigating
-                disposePlayer();
+                if (player) {
+                    try {
+                        player.dispose();
+                        player = null;
+                    } catch (e) {
+                        console.warn("Error disposing player", e);
+                    }
+                }
 
                 // Set fromHome to false
                 localStorage.setItem("fromHome", "false");
@@ -901,6 +1246,7 @@ function VideoJsPlayer(poster = "") {
                     const homeButton = document.querySelector('[data-page="homePage"]');
                     if (homeButton) {
                         homeButton.focus();
+                        console.log("✅ Focused on home button in navbar");
                     }
                 }, 100);
 
@@ -935,9 +1281,7 @@ function VideoJsPlayer(poster = "") {
             function disposePlayer() {
                 if (player) {
                     try {
-                        player.pause();
-                        player.removeAttribute("src");
-                        player.load();
+                        player.dispose();
                         player = null;
                     } catch (e) {
                         console.warn("Error disposing player", e);
@@ -951,11 +1295,11 @@ function VideoJsPlayer(poster = "") {
                     let duration = 0;
 
                     try {
-                        if (!isLive && !isNaN(currentPlayer.currentTime)) {
-                            resumeTime = currentPlayer.currentTime;
+                        if (!isLive && typeof currentPlayer.currentTime === "function") {
+                            resumeTime = currentPlayer.currentTime();
                         }
-                        if (!isNaN(currentPlayer.duration)) {
-                            duration = currentPlayer.duration;
+                        if (typeof currentPlayer.duration === "function") {
+                            duration = currentPlayer.duration();
                         }
                     } catch (e) {
                         resumeTime = 0;
@@ -1018,6 +1362,7 @@ function VideoJsPlayer(poster = "") {
                                 "continueWatchingMovies"
                             );
                         }
+                        // If there are still incomplete episodes, keep the series in continue watching
                     } else if (resumeTime > 5 && !isVideoCompleted && !errorActive) {
                         const continueWatchingItem = {
                             itemId: playingItemData.season ?
@@ -1032,7 +1377,8 @@ function VideoJsPlayer(poster = "") {
                         };
 
                         // Load playlists
-                        let playlists = getPlaylistsData();
+                        let playlists =
+                            JSON.parse(localStorage.getItem("playlistsData")) || [];
 
                         playlists = playlists.map((pl) => {
                             if (pl.playlistName !== currentPlaylistName) return pl;
@@ -1080,9 +1426,17 @@ function VideoJsPlayer(poster = "") {
 
                     // Then safely dispose
                     try {
-                        currentPlayer.pause();
-                        currentPlayer.removeAttribute("src");
-                        currentPlayer.load();
+                        if (typeof currentPlayer.pause === "function") {
+                            currentPlayer.pause();
+                        }
+                    } catch (err) {
+                        console.warn("Player pause error:", err);
+                    }
+
+                    try {
+                        if (typeof currentPlayer.dispose === "function") {
+                            currentPlayer.dispose();
+                        }
                     } catch (err) {
                         console.warn("Player dispose error:", err);
                     }
@@ -1118,7 +1472,9 @@ function VideoJsPlayer(poster = "") {
                     Router.showPage("seriesDetailPage");
                 }
             } else {
-                disposePlayer();
+                if (typeof currentPlayer.dispose === "function") {
+                    currentPlayer.dispose();
+                }
                 if (fromValue == "movie") {
                     localStorage.setItem("currentPage", "movieDetailPage");
                     Router.showPage("movieDetailPage");
@@ -1136,10 +1492,11 @@ function VideoJsPlayer(poster = "") {
                 const currentPlaylistName = JSON.parse(
                     localStorage.getItem("selectedPlaylist")
                 ).playlistName;
-                const playlistsData = getPlaylistsData();
-                const currentPlaylist = playlistsData.find(
+                const playlistsData =
+                    JSON.parse(localStorage.getItem("playlistsData")) || [];
+                const currentPlaylist = playlistsData.filter(
                     (pl) => pl.playlistName === currentPlaylistName
-                );
+                )[0];
 
                 if (!currentPlaylist || !currentPlaylist.continueWatchingSeries) return;
 
@@ -1166,6 +1523,10 @@ function VideoJsPlayer(poster = "") {
 
                 // Save back to localStorage
                 localStorage.setItem("playlistsData", JSON.stringify(updatedPlaylists));
+
+                console.log(
+                    `Removed episode ${completedEpisodeId} from continue watching`
+                );
             } catch (error) {
                 console.warn("Error removing episode from continue watching:", error);
             }
@@ -1178,10 +1539,11 @@ function VideoJsPlayer(poster = "") {
                 const currentPlaylistName = JSON.parse(
                     localStorage.getItem("selectedPlaylist")
                 ).playlistName;
-                const playlistsData = getPlaylistsData();
-                const currentPlaylist = playlistsData.find(
+                const playlistsData =
+                    JSON.parse(localStorage.getItem("playlistsData")) || [];
+                const currentPlaylist = playlistsData.filter(
                     (pl) => pl.playlistName === currentPlaylistName
-                );
+                )[0];
                 const continueWatchingEpisodes = currentPlaylist ?
                     currentPlaylist.continueWatchingSeries || [] :
                     [];
@@ -1200,16 +1562,23 @@ function VideoJsPlayer(poster = "") {
                 });
 
                 // Check if there are any episodes that are still in continue watching
+                // (meaning they're incomplete)
                 const hasIncompleteEpisodes = allEpisodes.some((episode) => {
+                    // Skip the current episode that just got completed (we're about to remove it)
                     if (episode.id === currentEpisodeId.toString()) {
                         return false;
                     }
+
+                    // Check if this episode exists in continueWatching (meaning it's incomplete)
                     const isInContinueWatching = continueWatchingEpisodes.some(
                         (cw) => cw.itemId === seriesId && cw.episodeId === episode.id
                     );
+
+                    // If it's in continueWatching, it means it's incomplete
                     return isInContinueWatching;
                 });
 
+                // If there are NO incomplete episodes, then ALL episodes are completed
                 return !hasIncompleteEpisodes;
             } catch (error) {
                 console.warn("Error checking if all episodes completed:", error);
@@ -1233,20 +1602,88 @@ function VideoJsPlayer(poster = "") {
                 resetControlsTimer();
             }
 
-            // Tizen Volume Controls
+            // Tizen Volume Controls with keyboard (w/s/m)
             if (typeof window.tizen !== "undefined" && window.tizen.tvaudiocontrol) {
-                if (keyChar === "w" || key === 447) {
+                if (keyChar === "w") {
                     updateVolume("up");
                     e.stopPropagation();
                     return;
                 }
-                if (keyChar === "s" || key === 448) {
+                if (keyChar === "s") {
                     updateVolume("down");
                     e.stopPropagation();
                     return;
                 }
-                if (keyChar === "m" || key === 449) {
+                if (keyChar === "m") {
                     toggleMute();
+                    setTimeout(() => {
+                        const isMuted =
+                            window.tizen &&
+                            window.tizen.tvaudiocontrol &&
+                            window.tizen.tvaudiocontrol.isMute &&
+                            window.tizen.tvaudiocontrol.isMute();
+                        if (isMuted) showMuteIcon();
+                        else hideMuteIcon();
+
+                        let volDisplay = document.getElementById("volumeDisplay");
+                        setTimeout(() => hideMuteIcon(), 1000);
+                    }, 50);
+                    e.stopPropagation();
+                    return;
+                }
+            }
+
+            // Tizen Remote Keys (447/448/449)
+            if (typeof window.tizen !== "undefined" && window.tizen.systeminfo) {
+                if (key === 447) {
+                    updateVolume("up");
+                    setTimeout(() => {
+                        const isMuted =
+                            window.tizen &&
+                            window.tizen.tvaudiocontrol &&
+                            window.tizen.tvaudiocontrol.isMute &&
+                            window.tizen.tvaudiocontrol.isMute();
+                        if (!isMuted) hideMuteIcon();
+                    }, 50);
+                    e.stopPropagation();
+                    return;
+                }
+                if (key === 448) {
+                    updateVolume("down");
+                    setTimeout(() => {
+                        const isMuted =
+                            window.tizen &&
+                            window.tizen.tvaudiocontrol &&
+                            window.tizen.tvaudiocontrol.isMute &&
+                            window.tizen.tvaudiocontrol.isMute();
+                        if (!isMuted) hideMuteIcon();
+                    }, 50);
+                    e.stopPropagation();
+                    return;
+                }
+                if (key === 449) {
+                    toggleMute();
+                    setTimeout(() => {
+                        let volDisplay = document.getElementById("volumeDisplay");
+                        if (!volDisplay) {
+                            volDisplay = document.createElement("div");
+                            volDisplay.id = "volumeDisplay";
+                            volDisplay.className = "volume-display";
+                            document.body.appendChild(volDisplay);
+                        }
+                        const isMuted =
+                            window.tizen &&
+                            window.tizen.tvaudiocontrol &&
+                            window.tizen.tvaudiocontrol.isMute &&
+                            window.tizen.tvaudiocontrol.isMute();
+                        let volume = isMuted ? 0 : window.tizen.tvaudiocontrol.getVolume();
+                        volDisplay.innerText = "Volume: " + volume;
+                        volDisplay.style.display = "block";
+                        clearTimeout(window._volDisplayTimeout);
+                        window._volDisplayTimeout = setTimeout(() => {
+                            volDisplay.style.display = "none";
+                        }, 1200);
+                    }, 50);
                     e.stopPropagation();
                     return;
                 }
@@ -1259,150 +1696,249 @@ function VideoJsPlayer(poster = "") {
                 return;
             }
 
-            // Show UI on arrow keys/enter if hidden
+            const remotePlaybackAction = getRemotePlaybackAction(e);
+            if (remotePlaybackAction) {
+                handleRemotePlaybackAction(remotePlaybackAction);
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
+            // 🔴 If arrow keys are pressed and controls are hidden, show them and reset timer
             if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(e.key)) {
                 const controlsBarWrapper = document.querySelector(".custom-video-controls");
                 if (controlsBarWrapper && controlsBarWrapper.classList.contains("hidden")) {
                     showAllControls();
+                    // Restore focus to wherever it was, or default to play/pause
                     if (isSeekBarFocused) focusSeekBar();
-                    else if (isAspectRatioFocused) focusAspectRatio();
+                    else if (isAspectRatioFocused) focusPlayPause();
                     else focusPlayPause();
                 }
                 resetControlsTimer();
+                // 🔴 NOTE: We removed the 'return' here so the first key press 
+                // BOTH shows the UI and performs the action (like seeking)
             }
 
             if (isAspectRatioFocused) {
-                switch (e.key) {
-                    case "ArrowUp":
-                        focusSeekBar();
-                        e.preventDefault();
-                        break;
-                    case "Enter":
-                        const videoEl = document.querySelector("#videojs-player-tag");
-                        if (videoEl && window.VideoAspectRatio) {
-                            const newLabel = window.VideoAspectRatio.cycle(videoEl);
-                            window.VideoAspectRatio.showOverlay(newLabel);
-                        }
-                        e.preventDefault();
-                        break;
-                    default:
-                        if (isBackKey(e)) {
-                            goBack();
-                            e.preventDefault();
-                        }
-                        break;
-                }
-                return;
+                focusPlayPause();
             }
 
+            // 🔴 UPDATED: Seek bar navigation logic
             if (isSeekBarFocused) {
-                switch (e.key) {
-                    case "ArrowLeft":
-                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                            showAllControls();
-                            focusPlayPause();
-                            debouncedSeek(-10);
-                            showOverlay("backward");
-                        }
-                        e.preventDefault();
-                        break;
-                    case "ArrowRight":
-                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                            showAllControls();
-                            focusPlayPause();
-                            debouncedSeek(10);
-                            showOverlay("forward");
-                        }
-                        e.preventDefault();
-                        break;
-                    case "ArrowUp":
-                        focusPlayPause();
-                        e.preventDefault();
-                        break;
-                    case "ArrowDown":
-                        focusAspectRatio();
-                        e.preventDefault();
-                        break;
-                    case "Enter":
-                        focusPlayPause();
-                        e.preventDefault();
-                        break;
-                    default:
-                        if (isBackKey(e)) {
-                            goBack();
+                const seekBar = document.getElementById("customSeek");
+                if (seekBar) {
+                    switch (e.key) {
+                        case "ArrowLeft":
+                            if (
+                                !isLive &&
+                                player &&
+                                hasStartedPlayingOnce &&
+                                typeof player.currentTime === "function"
+                            ) {
+                                try {
+                                    // Show controls and focus pause
+                                    if (controlsBar) controlsBar.classList.remove("hidden");
+                                    if (titleBar) titleBar.style.display = "flex";
+                                    focusPlayPause();
+                                    // Use debounced seek to prevent buffer overload
+                                    debouncedSeek(-10);
+                                    showOverlay("backward");
+                                } catch (err) {
+                                    console.warn("Player seek error:", err);
+                                }
+                            }
                             e.preventDefault();
-                        }
-                        break;
+                            break;
+
+                        case "ArrowRight":
+                            if (
+                                !isLive &&
+                                player &&
+                                hasStartedPlayingOnce &&
+                                typeof player.currentTime === "function"
+                            ) {
+                                try {
+                                    // Show controls and focus pause
+                                    if (controlsBar) controlsBar.classList.remove("hidden");
+                                    if (titleBar) titleBar.style.display = "flex";
+                                    focusPlayPause();
+                                    // Use debounced seek to prevent buffer overload
+                                    debouncedSeek(10);
+                                    showOverlay("forward");
+                                } catch (err) {
+                                    console.warn("Player seek error:", err);
+                                }
+                            }
+                            e.preventDefault();
+                            break;
+
+                        case "ArrowUp":
+                            // Move focus to play/pause overlay
+                            focusPlayPause();
+                            e.preventDefault();
+                            break;
+
+                        case "ArrowDown":
+                            // Move focus to aspect ratio button
+                            focusPlayPause();
+                            e.preventDefault();
+                            break;
+
+                        case "Enter":
+                            // Just unfocus seek bar, don't play/pause
+                            focusPlayPause();
+                            e.preventDefault();
+                            break;
+
+                        default:
+                            if (isBackKey(e)) {
+                                goBack();
+                                e.preventDefault();
+                            }
+                            break;
+                    }
                 }
-                return;
+                return; // Don't process other keys when seek bar is focused
             }
 
+            // 🔴 UPDATED: Play/Pause overlay navigation logic
             if (isPlayPauseFocused) {
                 switch (e.key) {
                     case "ArrowDown":
+                        // Move focus to seek bar if not live
                         if (!isLive) focusSeekBar();
-                        else focusAspectRatio();
                         e.preventDefault();
                         break;
+
                     case "ArrowUp":
+                        // Keep focus on play/pause or show title
                         focusPlayPause();
                         e.preventDefault();
                         break;
+
                     case "Enter":
-                        if (player) {
-                            if (player.paused) player.play();
-                            else player.pause();
+                        // Toggle play/pause
+                        if (player && typeof player.paused === "function") {
+                            try {
+                                if (player.paused()) {
+                                    if (typeof player.play === "function") player.play();
+                                } else {
+                                    if (typeof player.pause === "function") player.pause();
+                                }
+                            } catch (err) {
+                                console.warn("Player control error:", err);
+                            }
                         }
                         e.preventDefault();
                         break;
+
                     case "ArrowRight":
-                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                            showAllControls();
-                            debouncedSeek(10);
-                            showOverlay("forward");
+                        if (
+                            !isLive &&
+                            player &&
+                            hasStartedPlayingOnce &&
+                            typeof player.currentTime === "function"
+                        ) {
+                            try {
+                                // Show controls
+                                showAllControls();
+                                // Use debounced seek to prevent buffer overload
+                                debouncedSeek(10);
+                                showOverlay("forward");
+                            } catch (err) {
+                                console.warn("Player seek error:", err);
+                            }
                         }
                         e.preventDefault();
                         break;
+
                     case "ArrowLeft":
-                        if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                            showAllControls();
-                            debouncedSeek(-10);
-                            showOverlay("backward");
+                        if (
+                            !isLive &&
+                            player &&
+                            hasStartedPlayingOnce &&
+                            typeof player.currentTime === "function"
+                        ) {
+                            try {
+                                // Show controls
+                                showAllControls();
+                                // Use debounced seek to prevent buffer overload
+                                debouncedSeek(-10);
+                                showOverlay("backward");
+                            } catch (err) {
+                                console.warn("Player seek error:", err);
+                            }
                         }
                         e.preventDefault();
                         break;
                 }
+
+                // If we handled the key in play/pause mode, return
                 if (["ArrowUp", "ArrowDown", "Enter", "ArrowLeft", "ArrowRight"].includes(e.key)) {
                     return;
                 }
             }
 
-            // Fallback
+            // 🔴 Fallback controls (when nothing is focused)
             switch (e.key) {
                 case "Enter":
-                    if (player) {
-                        if (player.paused) player.play();
-                        else player.pause();
+                    if (player && typeof player.paused === "function") {
+                        try {
+                            if (player.paused()) {
+                                if (typeof player.play === "function") player.play();
+                            } else {
+                                if (typeof player.pause === "function") player.pause();
+                            }
+                        } catch (err) {
+                            console.warn("Player control error:", err);
+                        }
                     }
                     break;
+
                 case "ArrowRight":
-                    if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                        showAllControls();
-                        focusPlayPause();
-                        debouncedSeek(10);
-                        showOverlay("forward");
+                    if (
+                        !isLive &&
+                        player &&
+                        hasStartedPlayingOnce &&
+                        typeof player.currentTime === "function"
+                    ) {
+                        try {
+                            // Show controls and focus pause
+                            if (controlsBar) controlsBar.classList.remove("hidden");
+                            if (titleBar) titleBar.style.display = "flex";
+                            focusPlayPause();
+                            // Use debounced seek to prevent buffer overload
+                            debouncedSeek(10);
+                            showOverlay("forward");
+                        } catch (err) {
+                            console.warn("Player seek error:", err);
+                        }
                     }
                     e.preventDefault();
                     break;
+
                 case "ArrowLeft":
-                    if (!isLive && player && hasStartedPlayingOnce && !isNaN(player.currentTime)) {
-                        showAllControls();
-                        focusPlayPause();
-                        debouncedSeek(-10);
-                        showOverlay("backward");
+                    if (
+                        !isLive &&
+                        player &&
+                        hasStartedPlayingOnce &&
+                        typeof player.currentTime === "function"
+                    ) {
+                        try {
+                            // Show controls and focus pause
+                            if (controlsBar) controlsBar.classList.remove("hidden");
+                            if (titleBar) titleBar.style.display = "flex";
+                            focusPlayPause();
+                            // Use debounced seek to prevent buffer overload
+                            debouncedSeek(-10);
+                            showOverlay("backward");
+                        } catch (err) {
+                            console.warn("Player seek error:", err);
+                        }
                     }
                     e.preventDefault();
                     break;
+
                 default:
                     if (isBackKey(e)) {
                         goBack();
@@ -1414,12 +1950,28 @@ function VideoJsPlayer(poster = "") {
         document.addEventListener("keydown", videojsPlayerdownHandler);
 
         VideoJsPlayer.cleanup = function() {
-            if (pendingSeekTimeout) clearTimeout(pendingSeekTimeout);
-            if (pendingResumeTimeout) clearTimeout(pendingResumeTimeout);
+            // Clear any pending timeouts first
+            if (pendingSeekTimeout) {
+                clearTimeout(pendingSeekTimeout);
+                pendingSeekTimeout = null;
+            }
+            if (pendingResumeTimeout) {
+                clearTimeout(pendingResumeTimeout);
+                pendingResumeTimeout = null;
+            }
+            if (controlsTimer) {
+                clearTimeout(controlsTimer);
+                controlsTimer = null;
+            }
+
+            // Remove event listener
             try {
                 document.removeEventListener("keydown", videojsPlayerdownHandler);
-            } catch (err) {}
-            
+            } catch (err) {
+                console.warn("Event listener removal error:", err);
+            }
+
+            // Reset tracking variables
             isSeekBarDragging = false;
             wasPlayingBeforeSeek = false;
             isSeekBarFocused = false;
@@ -1430,52 +1982,53 @@ function VideoJsPlayer(poster = "") {
             lastSeekTime = 0;
             hasStartedPlayingOnce = false;
 
-            if (player) {
-                const currentPlayer = player;
+            // Store player reference to avoid race conditions
+            const currentPlayer = player;
+            if (currentPlayer) {
+                // Set player to null first to prevent further access
                 player = null;
-                try { currentPlayer.pause(); } catch (err) {}
+
+                // Then safely dispose
                 try {
-                    currentPlayer.removeAttribute("src");
-                    currentPlayer.load();
-                } catch (err) {}
+                    if (typeof currentPlayer.pause === "function") {
+                        currentPlayer.pause();
+                    }
+                } catch (err) {
+                    console.warn("Player pause error during cleanup:", err);
+                }
+
+                try {
+                    if (typeof currentPlayer.dispose === "function") {
+                        currentPlayer.dispose();
+                    }
+                } catch (err) {
+                    console.warn("Player dispose error during cleanup:", err);
+                }
             }
         };
     }
 
-    setTimeout(() => initPlayer(), 0);
-
     setTimeout(() => {
-        const videoEl = document.querySelector("#videojs-player-tag");
-        if (videoEl && window.VideoAspectRatio) {
-            window.VideoAspectRatio.initialize(videoEl);
-        }
-    }, 0);
-
-    setTimeout(() => {
-        const aspectRatioButton = document.getElementById("aspectRatioButton");
-        if (aspectRatioButton) {
-            aspectRatioButton.addEventListener("click", () => {
-                const videoEl = document.querySelector("#videojs-player-tag");
-                if (videoEl && window.VideoAspectRatio) {
-                    const newLabel = window.VideoAspectRatio.cycle(videoEl);
-                    window.VideoAspectRatio.showOverlay(newLabel);
-                }
-            });
-        }
+        registerTizenPlaybackKeys();
+        initPlayer();
     }, 0);
 
     return `
   <div class="video-js-player-container">
+    <!-- Video Title -->
     <div class="video-title-bar" style="display: none;">
       <span class="video-title-text">${titleText}</span>
     </div>
 
+    <!-- Loader -->
     <div class="video-buffer-loader hidden">
       <div class="spinner"></div>
+      <div>Loading...</div>
     </div>
 
     <div class="video-live-badge hidden">LIVE</div>
 
+    <!-- Error Dialog -->
     <div class="video-error-dialog hidden">
       <div class="error-box">
         <p id="errorDialogMessage">⚠️ Something went wrong</p>
@@ -1483,38 +2036,35 @@ function VideoJsPlayer(poster = "") {
       </div>
     </div>
 
+    <!-- Overlays -->
     <div class="video-action-overlay center hidden">
-        <div class="video-action-icon"><i class="fa-solid fa-play"></i></div>
+      <div class="video-action-icon">▶️</div>
     </div>
     <div class="video-action-overlay left hidden">
-        <div class="video-action-icon"><i class="fa-solid fa-backward"></i></div>
+      <div class="video-action-icon">⏪</div>
     </div>
     <div class="video-action-overlay right hidden">
-        <div class="video-action-icon"><i class="fa-solid fa-forward"></i></div>
+      <div class="video-action-icon">⏩</div>
     </div>
 
     <video
       id="videojs-player-tag"
       class="video-js videojs-player-class"
       playsinline
-      style="width: 100%; height: 100%;"
+      webkit-playsinline
     ></video>
 
+    <!-- Custom controls with time displays -->
     <div class="custom-video-controls hidden">
       <div class="seek-bar-container">
         <span id="currentTime" class="time-display">0:00</span>
         <input id="customSeek" type="range" value="0" min="0" step="0.1" />
         <span id="duration" class="time-display">0:00</span>
       </div>
-      ${isYouTube ? "" : `
-      <div class="aspect-ratio-container">
-        <button class="aspect-ratio-button" id="aspectRatioButton">
-          <i class="fa-solid fa-compress" style="color: ${isAspectRatioFocused ? "var(--gold)" : "white"}"></i>
-          Aspect Ratio
-        </button>
-      </div>`}
     </div>
+ 
     <div id="aspectRatioOverlay" class="aspect-ratio-overlay hidden"></div>
+
   </div>
 `;
 }

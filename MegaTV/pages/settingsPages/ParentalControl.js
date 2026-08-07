@@ -17,19 +17,60 @@ function ParentalControl() {
       currentPlaylist && currentPlaylist.parentalPassword
         ? currentPlaylist.parentalPassword
         : null;
+    var passwordLocked = !!(savedPassword && savedPassword.length > 0);
+    var editLockToastShown = false;
 
-    if (savedPassword && savedPassword.length > 0) {
+    function showEditLockedToast() {
+      if (editLockToastShown) return;
+      editLockToastShown = true;
+
+      if (typeof Toaster !== "undefined" && Toaster.showToast) {
+        Toaster.showToast(
+          "error",
+          "Please clear fields to edit the password."
+        );
+      }
+
+      setTimeout(function () {
+        editLockToastShown = false;
+      }, 1500);
+    }
+
+    function lockPasswordFields() {
+      passwordLocked = true;
       inputs.forEach(function (inp) {
         inp.type = "password";
+        inp.readOnly = true;
       });
+    }
 
+    function unlockPasswordFields() {
+      passwordLocked = false;
+      inputs.forEach(function (inp) {
+        inp.readOnly = false;
+      });
+    }
+
+    if (passwordLocked) {
+      lockPasswordFields();
       // Autofill both fields
       inputs[0].value = savedPassword;
       inputs[1].value = savedPassword;
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.style.opacity = "0.5";
+        saveButton.style.pointerEvents = "none";
+      }
     } else {
       inputs.forEach(function (inp) {
         inp.type = "text";
+        inp.readOnly = false;
       });
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.style.opacity = "1";
+        saveButton.style.pointerEvents = "auto";
+      }
     }
 
     // Set initial focus styles without focusing the input
@@ -98,21 +139,23 @@ function ParentalControl() {
         return;
       }
 
-      if (isBackKey(e)) {
-        var activeInput = document.activeElement;
-        if (
-          activeInput &&
-          activeInput.tagName === "INPUT" &&
-          activeInput.classList.contains("parental-input")
-        ) {
-          if (activeInput.value.length > 0) {
-            activeInput.value = activeInput.value.slice(0, -1);
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
+      var activeInput = document.activeElement;
+      var isFocusedParentalInput =
+        activeInput &&
+        activeInput.tagName === "INPUT" &&
+        activeInput.classList.contains("parental-input");
+
+      if (isFocusedParentalInput) {
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          return; // Let the browser move the text cursor normally
         }
 
+        if (isBackKey(e) || e.key === "Delete") {
+          return; // Let the browser delete at the current cursor position
+        }
+      }
+
+      if (isBackKey(e)) {
         // Remove all focus styles before exiting
         removeAllFocusStyles();
 
@@ -143,6 +186,9 @@ function ParentalControl() {
             document.activeElement.blur();
           }
           currentFocus = (currentFocus + 1) % totalElements;
+          if (currentFocus === inputs.length && saveButton && saveButton.disabled) {
+            currentFocus = (currentFocus + 1) % totalElements;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
@@ -155,6 +201,9 @@ function ParentalControl() {
             document.activeElement.blur();
           }
           currentFocus = (currentFocus - 1 + totalElements) % totalElements;
+          if (currentFocus === inputs.length && saveButton && saveButton.disabled) {
+            currentFocus = (currentFocus - 1 + totalElements) % totalElements;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
@@ -162,10 +211,12 @@ function ParentalControl() {
         case "ArrowLeft":
           // If Clear button is focused, move to Save button
           if (currentFocus === inputs.length + 1) {
-            currentFocus = inputs.length;
-            updateFocusStyles();
-            e.preventDefault();
-            break;
+            if (saveButton && !saveButton.disabled) {
+              currentFocus = inputs.length;
+              updateFocusStyles();
+              e.preventDefault();
+              break;
+            }
           }
 
           // Exit subpage back to Settings list
@@ -199,17 +250,26 @@ function ParentalControl() {
           }
 
           // Navigate between buttons only
-          var buttonIndex = currentFocus - inputs.length;
-          buttonIndex = (buttonIndex + 1) % buttons.length;
-          currentFocus = inputs.length + buttonIndex;
+          if (saveButton && saveButton.disabled) {
+            // Stay on clear button
+            currentFocus = inputs.length + 1;
+          } else {
+            var buttonIndex = currentFocus - inputs.length;
+            buttonIndex = (buttonIndex + 1) % buttons.length;
+            currentFocus = inputs.length + buttonIndex;
+          }
           updateFocusStyles();
           e.preventDefault();
           break;
 
         case "Enter":
           if (currentFocus < inputs.length) {
-            // Focus the input when Enter is pressed
-            inputs[currentFocus].focus();
+            if (passwordLocked) {
+              showEditLockedToast();
+            } else {
+              // Focus the input when Enter is pressed
+              inputs[currentFocus].focus();
+            }
           } else {
             // Click the appropriate button
             var buttonIndex = currentFocus - inputs.length;
@@ -229,9 +289,14 @@ function ParentalControl() {
 
     // Add click handlers for custom input fields
     inputFields.forEach(function (field, index) {
-      field.addEventListener("click", function () {
+      field.addEventListener("click", function (e) {
         currentFocus = index;
         updateFocusStyles();
+        if (passwordLocked) {
+          e.preventDefault();
+          showEditLockedToast();
+          return;
+        }
         // Focus the input on click
         var input = this.querySelector(".parental-input");
         input.focus();
@@ -242,9 +307,53 @@ function ParentalControl() {
 
     // Add focus event listeners to update styles when input is actually focused
     inputs.forEach(function (input, index) {
+      input.addEventListener("click", function (e) {
+        if (passwordLocked) {
+          e.preventDefault();
+          showEditLockedToast();
+        }
+      });
+
+      input.addEventListener("keydown", function (e) {
+        if (!passwordLocked) return;
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          showEditLockedToast();
+          return;
+        }
+
+        var allowedKeys = [
+          "Tab",
+          "Shift",
+          "ArrowLeft",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowDown",
+          "Escape",
+        ];
+
+        if (allowedKeys.indexOf(e.key) !== -1) {
+          return;
+        }
+
+        e.preventDefault();
+        showEditLockedToast();
+      });
+
+      input.addEventListener("paste", function (e) {
+        if (!passwordLocked) return;
+        e.preventDefault();
+        showEditLockedToast();
+      });
+
       input.addEventListener("focus", function () {
         currentFocus = index;
         updateFocusStyles();
+        if (passwordLocked) {
+          showEditLockedToast();
+        }
       });
 
       // Remove focus styles when input loses focus
@@ -290,6 +399,16 @@ function ParentalControl() {
           password
         );
 
+        savedPassword = password;
+        lockPasswordFields();
+        inputs[0].value = password;
+        inputs[1].value = password;
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.style.opacity = "0.5";
+          saveButton.style.pointerEvents = "none";
+        }
+
         // Remove focus styles after saving
         removeAllFocusStyles();
 
@@ -304,10 +423,6 @@ function ParentalControl() {
           "Parental control password saved successfully!"
         );
         console.log("Parental control password saved");
-        // Ensure both inputs are masked after saving
-        inputs.forEach(function (inp) {
-          if (inp) inp.type = "password";
-        });
       }
     });
 
@@ -322,6 +437,12 @@ function ParentalControl() {
         // Clear both input fields
         inputs[0].value = "";
         inputs[1].value = "";
+        unlockPasswordFields();
+        if (saveButton) {
+          saveButton.disabled = false;
+          saveButton.style.opacity = "1";
+          saveButton.style.pointerEvents = "auto";
+        }
 
         updatePlaylistData(
           currentPlaylist.playlistName,

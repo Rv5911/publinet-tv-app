@@ -6,8 +6,9 @@ let categoryViewNavigationState = {
   renderedItemsCount: 0,
   isHeaderFocused: false,
   type: "movies", // "movies" or "series"
-  items: [],
+  categoryId: null,
   categoryTitle: "",
+  items: [],
   returnPage: "moviesPage",
   returnCategoryIndex: 0,
   returnCardIndex: "header",
@@ -30,6 +31,62 @@ function getCategoryViewReturnPage(type) {
   return type === "movies" ? "moviesPage" : "seriesPage";
 }
 
+function getCategoryViewLockedState(type, categoryId, categoryTitle) {
+  const currentPlaylist = getCurrentPlaylist();
+  const hasParentalPassword =
+    currentPlaylist && currentPlaylist.parentalPassword;
+  if (!hasParentalPassword) return false;
+
+  const categoryKey = String(categoryId);
+  if (type === "movies") {
+    const unlockedCategories =
+      window.unlockedMovieAdultCategoryIds ||
+      (window.unlockedMovieAdultCategoryIds = new Set());
+    return isMovieAdult(categoryTitle) && !unlockedCategories.has(categoryKey);
+  }
+
+  const unlockedCategories =
+    window.unlockedSeriesAdultCategoryIds ||
+    (window.unlockedSeriesAdultCategoryIds = new Set());
+  return isSeriesAdult(categoryTitle) && !unlockedCategories.has(categoryKey);
+}
+
+function getCategoryViewCardLockedState(type, item, categoryId, categoryTitle) {
+  const currentPlaylist = getCurrentPlaylist();
+  const hasParentalPassword =
+    currentPlaylist && currentPlaylist.parentalPassword;
+  if (!hasParentalPassword) return false;
+
+  const categoryKey = String(categoryId);
+  if (type === "movies") {
+    const unlockedCategorySet =
+      window.unlockedMovieAdultCategoryIds ||
+      (window.unlockedMovieAdultCategoryIds = new Set());
+    const unlockedCardSet =
+      window.unlockedMovieAdultIds || (window.unlockedMovieAdultIds = new Set());
+    const categoryUnlocked = unlockedCategorySet.has(categoryKey);
+    const isAdultCategory = isMovieAdult(categoryTitle);
+    const isAdultTitle = isMovieAdult(item && item.name);
+    const movieId = String((item && item.stream_id) || (item && item.id));
+
+    if (isAdultCategory) return !categoryUnlocked;
+    return isAdultTitle && !unlockedCardSet.has(movieId);
+  }
+
+  const unlockedCategorySet =
+    window.unlockedSeriesAdultCategoryIds ||
+    (window.unlockedSeriesAdultCategoryIds = new Set());
+  const unlockedCardSet =
+    window.unlockedSeriesAdultIds || (window.unlockedSeriesAdultIds = new Set());
+  const categoryUnlocked = unlockedCategorySet.has(categoryKey);
+  const isAdultCategory = isSeriesAdult(categoryTitle);
+  const isAdultTitle = isSeriesAdult(item && item.name);
+  const seriesId = String((item && item.series_id) || (item && item.id));
+
+  if (isAdultCategory) return !categoryUnlocked;
+  return isAdultTitle && !unlockedCardSet.has(seriesId);
+}
+
 function CategoryViewPage() {
   const type = localStorage.getItem("viewMoreType") || "movies";
   const categoryId = localStorage.getItem("viewMoreCategoryId");
@@ -48,6 +105,7 @@ function CategoryViewPage() {
     localStorage.getItem("categoryViewReturnCardIndex") || "header";
 
   categoryViewNavigationState.type = type;
+  categoryViewNavigationState.categoryId = categoryId;
   categoryViewNavigationState.categoryTitle = categoryTitle;
   categoryViewNavigationState.returnPage = explicitReturnPage;
   categoryViewNavigationState.returnCategoryIndex = Number.isNaN(
@@ -318,6 +376,8 @@ function updateCategoryViewFocus() {
 function handleCategoryViewEnter() {
   const index = categoryViewNavigationState.currentCardIndex;
   const type = categoryViewNavigationState.type;
+  const categoryId = categoryViewNavigationState.categoryId;
+  const categoryTitle = categoryViewNavigationState.categoryTitle;
   const cardClass = type === "movies" ? ".movie-card" : ".series-card";
   const grid = document.getElementById("category-view-grid");
   const cards = grid.querySelectorAll(cardClass);
@@ -327,11 +387,62 @@ function handleCategoryViewEnter() {
     const streamId = currentCard.getAttribute(
       type === "movies" ? "data-stream-id" : "data-series-id",
     );
+    const rawItem = categoryViewNavigationState.items[index];
+    const currentPlaylist = getCurrentPlaylist();
+    const hasParentalPassword =
+      currentPlaylist && currentPlaylist.parentalPassword;
+    const isCategoryLocked = getCategoryViewLockedState(
+      type,
+      categoryId,
+      categoryTitle,
+    );
+    const isCardLocked = getCategoryViewCardLockedState(
+      type,
+      rawItem,
+      categoryId,
+      categoryTitle,
+    );
 
     // Persist state for return
     localStorage.setItem("categoryViewLastIndex", index);
     localStorage.setItem("preserveCategoryViewFocus", "true");
     localStorage.setItem("returnPage", "categoryViewPage");
+
+    if (hasParentalPassword && (isCategoryLocked || isCardLocked)) {
+      ParentalPinDialog(
+        () => {
+          if (type === "movies") {
+            if (isCategoryLocked && categoryId !== null && categoryId !== undefined) {
+              (window.unlockedMovieAdultCategoryIds ||
+                (window.unlockedMovieAdultCategoryIds = new Set())).add(
+                String(categoryId),
+              );
+            } else {
+              (window.unlockedMovieAdultIds ||
+                (window.unlockedMovieAdultIds = new Set())).add(String(streamId));
+            }
+          } else if (type === "series") {
+            if (isCategoryLocked && categoryId !== null && categoryId !== undefined) {
+              (window.unlockedSeriesAdultCategoryIds ||
+                (window.unlockedSeriesAdultCategoryIds = new Set())).add(
+                String(categoryId),
+              );
+            } else {
+              (window.unlockedSeriesAdultIds ||
+                (window.unlockedSeriesAdultIds = new Set())).add(String(streamId));
+            }
+          }
+
+          Router.showPage("categoryViewPage");
+        },
+        () => {
+          // Stay on category view page
+        },
+        currentPlaylist,
+        type === "movies" ? "moviesPage" : "seriesPage",
+      );
+      return;
+    }
 
     if (type === "movies") {
       localStorage.setItem("selectedMovieId", streamId);

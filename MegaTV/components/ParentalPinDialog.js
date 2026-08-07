@@ -9,7 +9,14 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
   container.innerHTML = `
     <div class="parental-pin-dialog">
       <h2>Enter Parental PIN</h2>
-      <input type="number" id="parental-pin-input" placeholder="Enter PIN" />
+      <input
+        type="text"
+        id="parental-pin-input"
+        placeholder="Enter PIN"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        autocomplete="off"
+      />
       <div class="pin-buttons">
         <button id="pin-submit-btn">Submit</button>
         <button id="pin-cancel-btn">Cancel</button>
@@ -47,6 +54,7 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
       if (submitBtn) submitBtn.onclick = null;
       if (cancelBtn) cancelBtn.onclick = null;
       if (input) input.oninput = null;
+      if (input) input.removeEventListener("input", sanitizePinInput);
 
       if (container && container.parentNode) {
         container.parentNode.removeChild(container);
@@ -88,6 +96,15 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
     }
   }
 
+  function isPinInputFocused() {
+    return document.activeElement === input;
+  }
+
+  function sanitizePinInput() {
+    if (!input) return;
+    input.value = input.value.replace(/[^0-9]/g, "");
+  }
+
   function keydownHandler(e) {
     if (!isDialogActive) return;
 
@@ -95,6 +112,22 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
     e.stopImmediatePropagation();
 
     console.log("Key pressed in PIN dialog:", e.key);
+
+    if (isPinInputFocused()) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        return; // Let the browser move the text cursor normally
+      }
+
+      if (isBackKey(e) || e.key === "Delete") {
+        return; // Let the browser delete at the current cursor position
+      }
+    }
+
+    if (isBackKey(e)) {
+      e.preventDefault();
+      handleCancel();
+      return;
+    }
 
     switch (e.key) {
       case "ArrowDown":
@@ -106,9 +139,6 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         }
         break;
       case "ArrowRight":
-        if (document.activeElement === input) {
-          return; // Allow native cursor movement
-        }
         e.preventDefault();
         if (focusIndex === 1) {
           focusIndex = 2;
@@ -116,9 +146,6 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         }
         break;
       case "ArrowLeft":
-        if (document.activeElement === input) {
-          return; // Allow native cursor movement
-        }
         e.preventDefault();
         if (focusIndex === 2) {
           focusIndex = 1;
@@ -146,17 +173,6 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
         break;
 
       default:
-        if (isBackKey(e)) {
-          if (document.activeElement === input && input.value.length > 0) {
-            input.value = input.value.slice(0, -1);
-            e.preventDefault();
-            return;
-          }
-          e.preventDefault();
-          handleCancel();
-          return;
-        }
-
         // Prevent fall-through to background handlers for other keys
         // (e.g. Backspace when in background shouldn't trigger page back)
         if (
@@ -172,6 +188,10 @@ function ParentalPinDialog(onSuccess, onCancel, currentPlaylist, fromPage) {
 
   // Add event listener to document in capture phase to block background listeners
   document.addEventListener("keydown", keydownHandler, true);
+
+  if (input) {
+    input.addEventListener("input", sanitizePinInput);
+  }
 
   if (submitBtn) {
     submitBtn.onclick = function (e) {

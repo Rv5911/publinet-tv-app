@@ -1,4 +1,5 @@
 function ListUsersPage() {
+  localStorage.removeItem("loginDns");
   const listPlaylistsData = localStorage.getItem("playlistsData")
     ? JSON.parse(localStorage.getItem("playlistsData"))
     : [];
@@ -50,6 +51,15 @@ function ListUsersPage() {
         card.classList.remove("playlist-card-focused");
         img.src = "./assets/playlist-icon.png";
         img.style.backgroundColor = "";
+
+        // Restore original title
+        const titleEl = card.querySelector(".playlist-card-title");
+        if (titleEl) {
+          const originalText = titleEl.getAttribute("data-original");
+          if (originalText) {
+            titleEl.innerHTML = originalText;
+          }
+        }
       });
 
       if (!onAddUser && rows[currentRow] && rows[currentRow][currentCol]) {
@@ -58,6 +68,16 @@ function ListUsersPage() {
         const img = card.querySelector("img");
         img.src = "./assets/playlist-icon-active.png";
         img.style.backgroundColor = "var(--gold)";
+
+        // Wrap focused title inside a marquee if it exceeds width
+        const titleEl = card.querySelector(".playlist-card-title");
+        if (titleEl) {
+          const originalText = titleEl.getAttribute("data-original") || titleEl.innerText;
+          titleEl.innerHTML = originalText; // Reset to measure naturally
+          if (titleEl.scrollWidth > titleEl.clientWidth) {
+            titleEl.innerHTML = `<marquee scrollamount="5">${originalText}</marquee>`;
+          }
+        }
 
         if (currentRow === 0) {
           container.scrollTop = 0;
@@ -127,9 +147,9 @@ function ListUsersPage() {
           break;
         default:
           if (isBackKey(e)) {
-            // localStorage.setItem("currentPage", "loginPage");
-            // ListUsersPage.cleanup();
-            // Router.showPage("login");
+            localStorage.setItem("currentPage", "loginPage");
+            ListUsersPage.cleanup();
+            Router.showPage("login");
           }
           break;
       }
@@ -184,6 +204,12 @@ function ListUsersPage() {
               console.error("Playlist not found:", playlistName);
               return;
             }
+    const loadingEl = document.querySelector("#loading-overlay");
+
+                if (loadingEl) {
+      loadingEl.style.background = "rgba(0, 0, 0, 0.7)";
+      loadingEl.style.marginTop = "0%";
+    }
 
             loginApi(
               "",
@@ -337,7 +363,7 @@ function ListUsersPage() {
       <div class="playlist-card">
         <img src="./assets/playlist-icon.png" alt="Logo" class="list-top-logo" />
         <div class="playlist-card-content">
-          <p class="playlist-card-title">${user ? user.playlistName : "N/A"}</p>
+          <p class="playlist-card-title" data-original="${user ? user.playlistName : "N/A"}">${user ? user.playlistName : "N/A"}</p>
           <p class="playlist-card-username">${
             user ? user.playlistUsername : "N/A"
           }</p>

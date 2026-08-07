@@ -1,52 +1,10 @@
-// aspectRatioUtils.js
 
-/**
- * Aspect Ratio Utility for Video Players
- * Provides consistent aspect ratio management across all video players
- */
-
-window.VideoAspectRatio = (function () {
+window.VideoAspectRatio = (function() {
   // Aspect ratio configurations
   const ASPECT_RATIOS = [
-    {
-      label: "16:9",
-      value: "16:9",
-      style: {
-        width: "100%",
-        height: "100vh",
-        top: "0",
-        bottom: "0",
-        left: "0",
-        right: "0",
-        position: "absolute",
-        objectFit: "fill",
-        transform: "none",
-        clipPath: "none",
-        overflow: "hidden",
-        padding: "0",
-        margin: "0",
-      },
-    },
-    {
-      label: "4:3",
-      value: "4:3",
-      style: {
-        width: "75%",
-        height: "100vh",
-        top: "0",
-        bottom: "0",
-        left: "12.5%",
-        right: "12.5%",
-        position: "absolute",
-        objectFit: "fill",
-        transform: "none",
-        clipPath: "none",
-        overflow: "hidden",
-        padding: "0",
-        margin: "0",
-      },
-    },
-  
+    { label: "16:9", className: "video-aspect-169", value: "16:9" },
+    { label: "4:3", className: "video-aspect-43", value: "4:3" },
+    { label: "2.35:1", className: "video-aspect-235", value: "2.35:1" },
   ];
 
   let currentIndex = 0;
@@ -59,24 +17,21 @@ window.VideoAspectRatio = (function () {
    */
   function applyAspectRatio(index, videoElement) {
     if (!videoElement || index < 0 || index >= ASPECT_RATIOS.length) {
-      console.warn("Invalid parameters for applyAspectRatio");
+      console.warn('Invalid parameters for applyAspectRatio');
       return null;
     }
 
-    // Apply new aspect ratio styles directly
+    // Remove all aspect ratio classes
+    ASPECT_RATIOS.forEach(ratio => {
+      if (ratio.className) {
+        videoElement.classList.remove(ratio.className);
+      }
+    });
+
+    // Apply new aspect ratio
     const selectedRatio = ASPECT_RATIOS[index];
-    if (selectedRatio.style) {
-      Object.keys(selectedRatio.style).forEach((prop) => {
-        // Convert camelCase to kebab-case for setProperty
-        const kebabProp = prop
-          .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
-          .toLowerCase();
-        videoElement.style.setProperty(
-          kebabProp,
-          selectedRatio.style[prop],
-          "important",
-        );
-      });
+    if (selectedRatio.className) {
+      videoElement.classList.add(selectedRatio.className);
     }
 
     currentIndex = index;
@@ -108,7 +63,7 @@ window.VideoAspectRatio = (function () {
    * @returns {string} Label of applied aspect ratio
    */
   function setAspectRatioByValue(value, videoElement) {
-    const index = ASPECT_RATIOS.findIndex((ratio) => ratio.value === value);
+    const index = ASPECT_RATIOS.findIndex(ratio => ratio.value === value);
     if (index !== -1) {
       return applyAspectRatio(index, videoElement);
     }
@@ -122,7 +77,7 @@ window.VideoAspectRatio = (function () {
    */
   function showAspectOverlay(label) {
     let overlay = document.getElementById("aspectRatioOverlay");
-
+    
     // Create overlay if it doesn't exist
     if (!overlay) {
       overlay = document.createElement("div");
@@ -130,10 +85,10 @@ window.VideoAspectRatio = (function () {
       overlay.className = "aspect-ratio-overlay";
       document.body.appendChild(overlay);
     }
-
+    
     overlay.textContent = label;
     overlay.classList.add("show");
-
+    
     // Auto-hide after 1 second
     clearTimeout(window._aspectOverlayTimeout);
     window._aspectOverlayTimeout = setTimeout(() => {
@@ -171,7 +126,7 @@ window.VideoAspectRatio = (function () {
     initialize: initialize,
     reset: resetToDefault,
     getAllRatios: () => ASPECT_RATIOS,
-    getCurrentIndex: () => currentIndex,
+    getCurrentIndex: () => currentIndex
   };
 })();
 

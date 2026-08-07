@@ -9,7 +9,7 @@
     min-height: 100vh;
     color: white;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
-    animation: fadeInOut 1s ease-in-out;
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -504,6 +504,23 @@
     width: 100%;
     height: 50%;
     position: relative;
+    overflow: hidden;
+}
+
+.live-video-player-div video,
+.live-video-player-div .html-live-player {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: fill !important;
+    background: #000 !important;
+}
+
+.live-video-player-div video::-webkit-media-controls,
+.live-video-player-div video::-webkit-media-controls-enclosure {
+    display: none !important;
 }
 
 /* Top overlays container */
@@ -711,6 +728,11 @@
 
     /* opacity: 0; */
     transition: opacity 0.3s ease;
+}
+
+.live-top-overlays.hidden,
+.live-video-controls.hidden {
+    display: none !important;
 }
 
 .live-video-player-div:hover .live-video-controls {
@@ -1635,4 +1657,11 @@
 
 .livetv-right-section {
     background: linear-gradient(180deg, #090667 0%, rgba(23, 23, 23, 0) 100%);
+}
+
+.live-video-player-div .live-top-overlays.hidden,
+.live-video-player-div .live-video-controls.hidden,
+:fullscreen .live-top-overlays.hidden,
+:fullscreen .live-video-controls.hidden {
+    display: none !important;
 }

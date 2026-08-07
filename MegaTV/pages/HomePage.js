@@ -71,6 +71,20 @@ async function HomePage() {
       }
     }
 
+    function scrollHomeToTop() {
+      try {
+        const homeContainer = document.querySelector(".home-page-container");
+        if (homeContainer) {
+          homeContainer.scrollTop = 0;
+        }
+        window.scrollTo({
+          top: 0,
+        });
+      } catch (err) {
+        console.log("Scroll to top failed:", err);
+      }
+    }
+
     function updateFocus() {
       // Remove all previous focus states
       document
@@ -83,6 +97,7 @@ async function HomePage() {
       });
 
       if (navState.focus === "watchNow") {
+        scrollHomeToTop();
         // Use the globally tracked carousel index
         const activeIndex = window.carouselActiveIndex || 0;
         const activeSlide = document.querySelector(
@@ -277,20 +292,7 @@ async function HomePage() {
               });
 
             // Scroll to top
-            try {
-              const homeContainer = document.querySelector(
-                ".home-page-container"
-              );
-              if (homeContainer) {
-                homeContainer.scrollTop = 0;
-              }
-              window.scrollTo({
-                top: 0,
-                behavior: "smooth",
-              });
-            } catch (err) {
-              console.log("Scroll to top failed:", err);
-            }
+            scrollHomeToTop();
 
             // Focus navbar
             localStorage.setItem("navigationFocus", "navbar");
@@ -426,11 +428,7 @@ async function HomePage() {
               selectedItem.movie_data.container_extension
             ) {
               movieVideoUrl =
-                currentPlaylistData.server_info.server_protocol +
-                "://" +
-                currentPlaylistData.server_info.url +
-                ":" +
-                currentPlaylistData.server_info.port +
+              localStorage.getItem("loginDns") +
                 "/movie/" +
                 currentPlaylistData.user_info.username +
                 "/" +

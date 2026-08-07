@@ -1,4 +1,5 @@
 function ListUsersPage() {
+    localStorage.removeItem("loginDns");
   const listPlaylistsData = localStorage.getItem("playlistsData")
     ? JSON.parse(localStorage.getItem("playlistsData"))
     : [];

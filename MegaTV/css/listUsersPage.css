@@ -8,7 +8,6 @@
   overflow-x: hidden;
   padding-right: 82px;
   font-size: 40px;
-  animation: fadeInOut 1s ease-in-out;
   color: white;
   background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }

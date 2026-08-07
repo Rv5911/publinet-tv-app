@@ -4,7 +4,7 @@
     padding: 250px 60px 100px;
     overflow-x: hidden;
     height: 100vh;
-    animation: fadeInOut 1s ease-in-out;
+
 
     color: white;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
@@ -31,7 +31,7 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    /* transition: all 0.3s ease; */
     color: white;
 }
 
@@ -213,9 +213,9 @@
     background-position: center !important;
     background-repeat: no-repeat !important;
     cursor: pointer;
-    transition:
+    /* transition:
         border 0.2s ease,
-        transform 0.2s ease;
+        transform 0.2s ease; */
     z-index: 0;
     will-change: transform, border;
     transform: translateZ(0);
@@ -347,9 +347,9 @@
     flex: 1;
     opacity: 0;
     visibility: hidden;
-    transition:
+    /* transition:
         opacity 0.2s ease,
-        visibility 0.2s ease;
+        visibility 0.2s ease; */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -375,9 +375,9 @@
     width: 100%;
     opacity: 0;
     visibility: hidden;
-    transition:
+    /* transition:
         opacity 0.2s ease,
-        visibility 0.2s ease;
+        visibility 0.2s ease; */
 }
 
 .movie-card.focused .movie-card-bottom {
@@ -662,7 +662,6 @@
     align-items: center;
     min-height: 100vh;
     padding: 250px 60px 100px;
-    animation: fadeInOut 1s ease-in-out;
     color: white;
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
@@ -675,20 +674,29 @@
 .adult-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    z-index: 4;
+    z-index: 1;
     border-radius: 16px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    pointer-events: none;
+}
+
+.adult-overlay-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    border-radius: 16px;
+    z-index: 1;
 }
 
 .card-lock-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-size: 50px;
     color: white;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    z-index: 4;
+    pointer-events: none;
 }
 
 /* View More old card removed */
@@ -701,7 +709,7 @@
     box-sizing: border-box;
     overflow-y: auto;
     overflow-x: hidden;
-    animation: fadeInOut 1s ease-in-out;
+
 
     background: linear-gradient(180deg, #2d2203 0%, #0b1376 100%);
 }
@@ -737,7 +745,7 @@
     width: fit-content;
     padding: 8px 16px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    /* transition: all 0.2s ease; */
 }
 
 .back-indicator.focused {
