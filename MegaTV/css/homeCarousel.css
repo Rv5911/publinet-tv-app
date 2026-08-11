@@ -176,8 +176,7 @@
     position: absolute;
     bottom: 40px;
     zoom: 2;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 60px;
     display: flex;
     z-index: 10;
 }

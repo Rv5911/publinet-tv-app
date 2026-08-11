@@ -35,7 +35,7 @@ function PreLoginPage() {
   }, 0);
   return `
     <div class="prelogin-page-container">
-    <img src="./assets/main-logo.png" alt="Logo" class="prelogin-logo" />
+      <img src="./assets/main-logo.png" alt="Logo" class="prelogin-logo" />
     </div>
     `;
 }

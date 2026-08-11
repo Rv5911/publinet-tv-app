@@ -65,31 +65,28 @@ function initApp() {
 
   const navbarRoot = document.getElementById("navbar-root");
   if (navbarRoot) {
+    navbarRoot.style.display = "none";
     navbarRoot.innerHTML = Navbar();
     initNavbar();
   }
 
-  // Show splash screen first, then move to the next flow after 3 seconds
-  showSplashScreen();
+  const playlistsData = localStorage.getItem("playlistsData")
+    ? JSON.parse(localStorage.getItem("playlistsData"))
+    : [];
+  const isLogin = localStorage.getItem("isLogin") === "true";
 
-  setTimeout(() => {
-    const playlistsData = localStorage.getItem("playlistsData")
-      ? JSON.parse(localStorage.getItem("playlistsData"))
-      : [];
-    const isLogin = localStorage.getItem("isLogin") === "true";
-
-    if (isLogin) {
-      localStorage.setItem("currentPage", "preLoginPage");
-      Router.showPage("preLoginPage");
-    } else if (playlistsData.length > 0 && !isLogin) {
-      localStorage.removeItem("navigationFocus");
-      localStorage.setItem("currentPage", "listPage");
-      Router.showPage("listPage");
-    } else {
-      localStorage.setItem("currentPage", "login");
-      Router.showPage("login");
-    }
-  }, 3000);
+  if (isLogin) {
+    localStorage.setItem("currentPage", "preLoginPage");
+    Router.showPage("preLoginPage");
+  } else if (playlistsData.length > 0) {
+    localStorage.removeItem("navigationFocus");
+    localStorage.setItem("currentPage", "listPage");
+    Router.showPage("listPage");
+  } else {
+    localStorage.setItem("currentPage", "login");
+    Router.showPage("login");
+  }
+  renderNavbarVisibility();
 
   if (typeof logAllDnsEntries === "function") logAllDnsEntries();
   if (typeof getTmbdId === "function") getTmbdId();
@@ -101,43 +98,11 @@ if (document.readyState === "loading") {
   initApp();
 }
 
-function showSplashScreen() {
-  const splashPage = document.getElementById("splash-page");
-  if (!splashPage) return;
-
-  splashPage.innerHTML =
-    typeof SplashScreen === "function"
-      ? SplashScreen()
-      : `
-    <div class="splash-page-container">
-      <img src="./assets/main-logo.png" alt="Logo" class="splash-logo" />
-    </div>
-  `;
-  splashPage.style.display = "block";
-  splashPage.style.background = "transparent";
-  splashPage.style.opacity = "1";
-  splashPage.style.transform = "none";
-
-  // Hide navbar during splash screen
-  const navbarRoot = document.getElementById("navbar-root");
-  if (navbarRoot) {
-    navbarRoot.style.display = "none";
-  }
-
-  const allPages = document.querySelectorAll(".page");
-  allPages.forEach((page) => {
-    if (page.id !== "splash-page") {
-      page.style.display = "none";
-    }
-  });
-}
-
 function renderNavbarVisibility() {
   const currentPage = localStorage.getItem("currentPage");
   const hiddenPages = [
     "login",
     "listPage",
-    "splashScreen",
     "settingsPage",
     "accountPage",
     "preLoginPage",
