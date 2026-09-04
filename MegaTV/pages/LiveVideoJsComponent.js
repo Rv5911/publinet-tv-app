@@ -587,6 +587,9 @@ function LiveVideoJsComponent(
           updateAspectRatioButtonVisibility();
         });
         fp.on("buffer", () => {
+          // A paused video is never "buffering" — ignore stray buffer
+          // events that fire while the user has already paused.
+          if (isLivePaused()) return;
           if (loadingEl) loadingEl.classList.remove("hidden");
           if (errorEl) errorEl.classList.add("hidden");
           updateAspectRatioButtonVisibility();
@@ -670,6 +673,7 @@ function LiveVideoJsComponent(
         const html5Video = fpContainer.querySelector("video");
         if (html5Video) {
           const showLoader = () => {
+            if (isLivePaused()) return;
             if (loadingEl) loadingEl.classList.remove("hidden");
             if (errorEl) errorEl.classList.add("hidden");
             updateAspectRatioButtonVisibility();
@@ -701,12 +705,16 @@ function LiveVideoJsComponent(
         });
 
         window.livePlayer.on("waiting", () => {
+          // A paused video is never "buffering" — ignore stray waiting
+          // events that fire while the user has already paused.
+          if (isLivePaused()) return;
           if (loadingEl) loadingEl.classList.remove("hidden");
           if (errorEl) errorEl.classList.add("hidden");
           updateAspectRatioButtonVisibility();
         });
 
         window.livePlayer.on("stalled", () => {
+          if (isLivePaused()) return;
           if (loadingEl) loadingEl.classList.remove("hidden");
           if (errorEl) errorEl.classList.add("hidden");
           updateAspectRatioButtonVisibility();
@@ -734,7 +742,11 @@ function LiveVideoJsComponent(
         });
 
         window.livePlayer.on("pause", () => {
+          // A paused video is never "buffering" — clear the loader so it
+          // can't get stuck on screen once playback settles into paused.
+          if (loadingEl) loadingEl.classList.add("hidden");
           updatePlayPauseIcon(false);
+          updateAspectRatioButtonVisibility();
         });
 
         window.livePlayer.on("play", () => {

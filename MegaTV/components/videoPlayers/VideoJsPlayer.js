@@ -59,6 +59,11 @@ function VideoJsPlayer(poster = "") {
     // 🔴 Track play state before seeking
     let wasPlayingBeforeSeek = false;
 
+    // 🔴 True from the first key of a seek gesture until the debounced seek
+    // actually executes — lets us tell "paused because we're seeking" apart
+    // from a real user pause.
+    let isSeekGestureActive = false;
+
     // 🔴 Track if user manually paused
     let userManuallyPaused = false;
 
@@ -105,9 +110,10 @@ function VideoJsPlayer(poster = "") {
         // Accumulate the seek offset
         accumulatedSeekOffset += offset;
 
-        // Store play state before seeking (only once per seek session)
-        const isFirstSeek = pendingSeekTimeout === null;
-        if (isFirstSeek) {
+        // Store play state before seeking (only once per seek gesture, not
+        // on every key press while the debounce is pending)
+        if (!isSeekGestureActive) {
+            isSeekGestureActive = true;
             wasPlayingBeforeSeek = !player.paused();
             if (wasPlayingBeforeSeek && !userManuallyPaused) {
                 player.pause();
@@ -159,6 +165,7 @@ function VideoJsPlayer(poster = "") {
         pendingSeekTimeout = setTimeout(() => {
             if (!player || !player.currentTime || errorActive) {
                 accumulatedSeekOffset = 0;
+                isSeekGestureActive = false;
                 return;
             }
 
@@ -202,6 +209,7 @@ function VideoJsPlayer(poster = "") {
                 accumulatedSeekOffset = 0;
             }
 
+            isSeekGestureActive = false;
             pendingSeekTimeout = null;
         }, 300); // Wait 300ms after last input before executing seek
     }
@@ -971,7 +979,9 @@ function VideoJsPlayer(poster = "") {
         }
 
         player.on("waiting", () => {
-            if (!errorActive) {
+            // A paused video is never "buffering" in the UI — ignore stray
+            // waiting events that fire while the user has already paused.
+            if (!errorActive && !player.paused()) {
                 if (loadingEl) loadingEl.classList.remove("hidden");
                 // Hide pause overlay when loading starts
                 const playOverlay = document.querySelector(
@@ -1004,7 +1014,7 @@ function VideoJsPlayer(poster = "") {
         });
 
         player.on("stalled", () => {
-            if (!errorActive) {
+            if (!errorActive && !player.paused()) {
                 if (loadingEl) loadingEl.classList.remove("hidden");
             }
         });
@@ -1049,23 +1059,24 @@ function VideoJsPlayer(poster = "") {
         });
 
         player.on("pause", () => {
-            // Don't show pause UI if video is still loading/buffering
-            if (!errorActive && loadingEl && !loadingEl.classList.contains("hidden")) {
-                return;
-            }
+            if (errorActive) return;
 
-            // Always show pause overlay when paused, even during seeking
-            if (!errorActive) {
-                if (controlsBar) controlsBar.classList.remove("hidden");
-                if (titleBar) titleBar.style.display = "flex";
-                showOverlay("pause");
-                setTimeout(() => focusPlayPause(), 100);
+            // A paused video is never "buffering" — always clear the loader
+            // so it can't get stuck on screen once playback settles.
+            if (loadingEl) loadingEl.classList.add("hidden");
 
-                // Mark that user manually paused (unless it's from seeking)
-                if (!player.seeking()) {
-                    userManuallyPaused = true;
-                }
-            }
+            // debouncedSeek() pauses playback internally while a seek
+            // gesture is in flight — that's not a real user pause, so don't
+            // show the pause UI or block the auto-resume that follows it.
+            if (isSeekGestureActive || player.seeking()) return;
+
+            // Always show pause overlay for a real pause
+            if (controlsBar) controlsBar.classList.remove("hidden");
+            if (titleBar) titleBar.style.display = "flex";
+            showOverlay("pause");
+            setTimeout(() => focusPlayPause(), 100);
+
+            userManuallyPaused = true;
         });
 
         player.on("error", () => {

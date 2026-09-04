@@ -1,10 +1,10 @@
 {
   "id": "com.megatvapp.app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "vendor": "My Company",
   "type": "web",
   "main": "index.html",
-  "title": "Mega TV",
+  "title": "Mega Sapphire",
   "icon": "icon.png",
   "largeIcon": "app-icon.png",
     "splashBackground": "splash-screen.png",
