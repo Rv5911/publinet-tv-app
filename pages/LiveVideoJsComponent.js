@@ -502,6 +502,19 @@ function LiveVideoJsComponent(
     updateLiveControlFocus();
   }
 
+  function focusLiveRetryButton() {
+    const retryBtn = document.querySelector(".live-video-error .retry-btn");
+    if (!retryBtn) return;
+
+    retryBtn.classList.add("focused", "lp-control-focused");
+    retryBtn.setAttribute("tabindex", "0");
+    try {
+      retryBtn.focus({ preventScroll: true });
+    } catch (err) {
+      retryBtn.focus();
+    }
+  }
+
   function isNetworkError(error) {
     const message =
       (error && (error.message || error.description || error.code)) || "";
@@ -530,7 +543,7 @@ function LiveVideoJsComponent(
         : "Failed to load video";
     }
     if (errorEl) errorEl.classList.remove("hidden");
-    if (retryBtn) retryBtn.classList.add("focused");
+    focusLiveRetryButton();
     updateAspectRatioButtonVisibility();
   }
 
@@ -540,7 +553,7 @@ function LiveVideoJsComponent(
 
     clearLiveNetworkErrorCheck();
     if (errorEl) errorEl.classList.add("hidden");
-    if (retryBtn) retryBtn.classList.remove("focused");
+    if (retryBtn) retryBtn.classList.remove("focused", "lp-control-focused");
     updateAspectRatioButtonVisibility();
   }
 
@@ -713,6 +726,7 @@ function LiveVideoJsComponent(
           togglePlayPause,
           syncFocus: updateLiveControlFocus,
           refreshControlsVisibility,
+          retry: retryLiveVideoPlayback,
           cycleAspectRatio() {
             if (handleAspectRatioChange) handleAspectRatioChange();
           },
@@ -843,6 +857,7 @@ function LiveVideoJsComponent(
         window.livePlayer.togglePlayPause = togglePlayPause;
         window.livePlayer.syncFocus = updateLiveControlFocus;
         window.livePlayer.refreshControlsVisibility = refreshControlsVisibility;
+        window.livePlayer.retry = retryLiveVideoPlayback;
         window.livePlayer.cycleAspectRatio = function () {
           if (handleAspectRatioChange) handleAspectRatioChange();
         };
@@ -1001,19 +1016,20 @@ function LiveVideoJsComponent(
           return;
       }
 
-      const playbackAction = getRemotePlaybackAction(e);
-      if (playbackAction && handleRemotePlaybackAction(playbackAction)) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
       if (errorEl && !errorEl.classList.contains("hidden")) {
-        if (e.keyCode === 13) {
+        focusLiveRetryButton();
+        if (e.keyCode === 13 || e.key === "Enter") {
           retryLiveVideoPlayback();
           e.preventDefault();
           e.stopPropagation();
         }
+        return;
+      }
+
+      const playbackAction = getRemotePlaybackAction(e);
+      if (playbackAction && handleRemotePlaybackAction(playbackAction)) {
+        e.preventDefault();
+        e.stopPropagation();
         return;
       }
 

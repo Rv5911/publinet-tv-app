@@ -1154,6 +1154,7 @@ function LivePage() {
           if (playPauseIcon) playPauseIcon.style.display = "none";
           if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
           if (fullscreenBtn) fullscreenBtn.style.display = "none";
+          if (isErrorVisible) focusLiveErrorRetryButton();
         } else {
           // In fullscreen, show play/pause and aspect ratio while keeping
           // fullscreen button hidden. In windowed mode, show both primary
@@ -1577,6 +1578,42 @@ function LivePage() {
     resetControlsTimer();
   };
 
+  const getVisibleLiveErrorRetryButton = () => {
+    const liveErrPnl = document.querySelector(".live-video-error");
+    if (!liveErrPnl || liveErrPnl.classList.contains("hidden")) return null;
+    return liveErrPnl.querySelector(".retry-btn");
+  };
+
+  const focusLiveErrorRetryButton = () => {
+    const retryBtn = getVisibleLiveErrorRetryButton();
+    if (!retryBtn) return false;
+
+    retryBtn.classList.add("focused", "lp-control-focused");
+    retryBtn.setAttribute("tabindex", "0");
+    try {
+      retryBtn.focus({ preventScroll: true });
+    } catch (err) {
+      retryBtn.focus();
+    }
+    return true;
+  };
+
+  const retryLiveErrorPlayback = () => {
+    focusLiveErrorRetryButton();
+    if (window.livePlayer && typeof window.livePlayer.retry === "function") {
+      window.livePlayer.retry();
+      return true;
+    }
+
+    const retryBtn = getVisibleLiveErrorRetryButton();
+    if (retryBtn) {
+      retryBtn.click();
+      return true;
+    }
+
+    return false;
+  };
+
   const formatTime = (dateStr, format) => {
     let date;
     if (!isNaN(dateStr)) {
@@ -1845,6 +1882,11 @@ function LivePage() {
       e.preventDefault();
       e.stopImmediatePropagation(); // Ensure it doesn't propagate
 
+      if (getVisibleLiveErrorRetryButton()) {
+        retryLiveErrorPlayback();
+        return;
+      }
+
       // If focused on Aspect Ratio, click it
       if (playerSubFocus === 2) {
         const btn = getAspectRatioButton();
@@ -2060,13 +2102,19 @@ function LivePage() {
         (errPnl && !errPnl.classList.contains("hidden")) ||
         (liveErrPnl && !liveErrPnl.classList.contains("hidden"));
 
-      const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
+      const hasLiveRetryError =
+        liveErrPnl && !liveErrPnl.classList.contains("hidden");
+      const isPlayerActive =
+        hasVideoElement &&
+        !isLoaderVisible &&
+        (!isErrorVisible || hasLiveRetryError);
 
       if (isPlayerActive && !checkIsFullscreen()) {
         const chanInput = document.getElementById("lp-chan-search-input");
         if (chanInput) chanInput.blur();
         focusedSection = "player";
         playerSubFocus = 1; // Focus on play/pause
+        if (hasLiveRetryError) focusLiveErrorRetryButton();
         return;
       }
       return;
@@ -2333,11 +2381,17 @@ function LivePage() {
         (errPnl && !errPnl.classList.contains("hidden")) ||
         (liveErrPnl && !liveErrPnl.classList.contains("hidden"));
 
-      const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
+      const hasLiveRetryError =
+        liveErrPnl && !liveErrPnl.classList.contains("hidden");
+      const isPlayerActive =
+        hasVideoElement &&
+        !isLoaderVisible &&
+        (!isErrorVisible || hasLiveRetryError);
 
       if (isPlayerActive) {
         focusedSection = "player";
         playerSubFocus = 1;
+        if (hasLiveRetryError) focusLiveErrorRetryButton();
       } else {
         // No video - Always go to Channel Search Input as per user request
         focusedSection = "channelSearch";
@@ -2382,6 +2436,11 @@ function LivePage() {
   };
 
   const handleEnter = () => {
+    if (getVisibleLiveErrorRetryButton()) {
+      retryLiveErrorPlayback();
+      return;
+    }
+
     if (focusedSection === "sidebar") {
       const cats = getFilteredCategories();
 
