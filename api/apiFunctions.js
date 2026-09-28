@@ -107,7 +107,7 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://inthezone.pro/";
+  const defaultDns = "https://demo-app.techsmarters.com:25463/";
   // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
   let alldns = [];
 
