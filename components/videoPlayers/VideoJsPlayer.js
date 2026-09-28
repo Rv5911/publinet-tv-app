@@ -40,6 +40,7 @@ function VideoJsPlayer(poster = "") {
     const isLive = localStorage.getItem("isLive") === "true";
 
     let player = null;
+    let stopPlaybackHandler = null;
     let overlayTimeout;
     let controlsTimer = null; // 🔴 NEW: For 5s auto-hide
     let errorActive = false;
@@ -639,8 +640,11 @@ function VideoJsPlayer(poster = "") {
             case "play":
                 return playVideo();
             case "pause":
-            case "stop":
                 return pauseVideo();
+            case "stop":
+                return typeof stopPlaybackHandler === "function" ?
+                    stopPlaybackHandler() :
+                    false;
             case "record":
                 return true;
             default:
@@ -1499,6 +1503,8 @@ function VideoJsPlayer(poster = "") {
             }
         }
 
+        stopPlaybackHandler = goBack;
+
         // Helper function to remove completed episode from continue watching
         function removeEpisodeFromContinueWatching(completedEpisodeId) {
             try {
@@ -2042,6 +2048,7 @@ function VideoJsPlayer(poster = "") {
             }
 
             // Reset tracking variables
+            stopPlaybackHandler = null;
             isSeekBarDragging = false;
             wasPlayingBeforeSeek = false;
             isSeekBarFocused = false;
