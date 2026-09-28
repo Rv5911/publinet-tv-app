@@ -116,11 +116,8 @@ function LivePage() {
   };
 
   const getAspectRatioButton = () => {
-    if (isTizenPlatform) {
-      return document.getElementById("live-fs-ar-btn");
-    }
-
     return (
+      document.getElementById("live-fs-ar-btn") ||
       document.getElementById("videojs-aspect-ratio") ||
       document.getElementById("flow-aspect-ratio")
     );
@@ -1133,7 +1130,10 @@ function LivePage() {
         const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
         
         const errPnl = document.querySelector(".av-live-error-pnl");
-        const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
+        const liveErrPnl = document.querySelector(".live-video-error");
+        const isErrorVisible =
+          (errPnl && !errPnl.classList.contains("hidden")) ||
+          (liveErrPnl && !liveErrPnl.classList.contains("hidden"));
 
         const playPauseIcon =
           document.querySelector(".play-pause-icon") ||
@@ -1405,16 +1405,16 @@ function LivePage() {
           window.livePlayer = null;
         }
 
-        if (isTizenPlatform && typeof LiveAvPlayer === "function") {
-          videoWrapper.innerHTML = LiveAvPlayer(
+        if (typeof LiveVideoJsComponent === "function") {
+          videoWrapper.innerHTML = LiveVideoJsComponent(
             stream.stream_id,
             liveVideoUrl,
             stream.stream_icon,
             "100%",
             stream.name || "",
           );
-        } else if (typeof LiveVideoJsComponent === "function") {
-          videoWrapper.innerHTML = LiveVideoJsComponent(
+        } else if (isTizenPlatform && typeof LiveAvPlayer === "function") {
+          videoWrapper.innerHTML = LiveAvPlayer(
             stream.stream_id,
             liveVideoUrl,
             stream.stream_icon,
@@ -2055,7 +2055,10 @@ function LivePage() {
       const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
       
       const errPnl = document.querySelector(".av-live-error-pnl");
-      const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
+      const liveErrPnl = document.querySelector(".live-video-error");
+      const isErrorVisible =
+        (errPnl && !errPnl.classList.contains("hidden")) ||
+        (liveErrPnl && !liveErrPnl.classList.contains("hidden"));
 
       const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
 
@@ -2325,7 +2328,10 @@ function LivePage() {
       const isLoaderVisible = loader && (!loader.classList.contains("hidden") && loader.style.display !== "none");
       
       const errPnl = document.querySelector(".av-live-error-pnl");
-      const isErrorVisible = errPnl && !errPnl.classList.contains("hidden");
+      const liveErrPnl = document.querySelector(".live-video-error");
+      const isErrorVisible =
+        (errPnl && !errPnl.classList.contains("hidden")) ||
+        (liveErrPnl && !liveErrPnl.classList.contains("hidden"));
 
       const isPlayerActive = hasVideoElement && !isLoaderVisible && !isErrorVisible;
 

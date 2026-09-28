@@ -389,7 +389,7 @@ function LiveVideoJsComponent(
   }
 
   function toggleLiveFullscreen() {
-    const playerContainer = document.querySelector(".live-video-player-div");
+    const playerContainer = getLivePlayerContainer();
     if (!playerContainer) return false;
 
     try {
@@ -480,6 +480,26 @@ function LiveVideoJsComponent(
         aspectRatioBtn.style.display = "none";
       }
     }
+  }
+
+  function refreshControlsVisibility() {
+    const loadingEl = document.querySelector(".live-video-loader");
+    const errorEl = document.querySelector(".live-video-error");
+    const playPauseIcon = document.querySelector(".play-pause-icon");
+    const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
+    const aspectRatioBtn = document.getElementById("videojs-aspect-ratio");
+    const isBlocked =
+      (loadingEl && !loadingEl.classList.contains("hidden")) ||
+      (errorEl && !errorEl.classList.contains("hidden"));
+
+    if (isBlocked) {
+      if (playPauseIcon) playPauseIcon.style.display = "none";
+      if (fullscreenBtn) fullscreenBtn.style.display = "none";
+      if (aspectRatioBtn) aspectRatioBtn.style.display = "none";
+      return;
+    }
+
+    updateLiveControlFocus();
   }
 
   function isNetworkError(error) {
@@ -634,7 +654,7 @@ function LiveVideoJsComponent(
       );
       const fpContainer = document.getElementById("flowplayer-live");
       if (fpContainer) {
-        const wrapperEl = fpContainer.closest(".live-video-player-div");
+        const wrapperEl = getLivePlayerContainer();
         const fp = flowplayer(fpContainer, {
           autoplay: true,
           controls: false,
@@ -680,6 +700,22 @@ function LiveVideoJsComponent(
             } catch {}
           },
           load() {},
+          play() {
+            try {
+              if (typeof fp.resume === "function") fp.resume();
+            } catch {}
+          },
+          pause() {
+            try {
+              if (typeof fp.pause === "function") fp.pause();
+            } catch {}
+          },
+          togglePlayPause,
+          syncFocus: updateLiveControlFocus,
+          refreshControlsVisibility,
+          cycleAspectRatio() {
+            if (handleAspectRatioChange) handleAspectRatioChange();
+          },
           dispose() {
             try {
               fp.unload();
@@ -740,7 +776,7 @@ function LiveVideoJsComponent(
           updatePlayPauseIcon(false);
         });
 
-        const fullscreenBtn = document.getElementById("live-fullscreen-btn");
+        const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
         if (fullscreenBtn) {
           fullscreenBtn.addEventListener("click", () => {
             if (window.livePlayer.isFullscreen()) {
@@ -754,7 +790,7 @@ function LiveVideoJsComponent(
         const handleFullscreenChange = () => {
           const channelNameEl = document.querySelector(".live-channel-name");
           const liveBadgeEl = document.querySelector(".live-badge");
-          const isFs = window.livePlayer.isFullscreen();
+          const isFs = window.livePlayer && window.livePlayer.isFullscreen();
           if (channelNameEl)
             channelNameEl.style.display = isFs ? "none" : "flex";
           if (liveBadgeEl) liveBadgeEl.style.display = "flex";
@@ -803,6 +839,13 @@ function LiveVideoJsComponent(
           fluid: false,
           sources: [{ src: srcUrl, type: "application/x-mpegURL" }],
         });
+
+        window.livePlayer.togglePlayPause = togglePlayPause;
+        window.livePlayer.syncFocus = updateLiveControlFocus;
+        window.livePlayer.refreshControlsVisibility = refreshControlsVisibility;
+        window.livePlayer.cycleAspectRatio = function () {
+          if (handleAspectRatioChange) handleAspectRatioChange();
+        };
 
         window.livePlayer.on("waiting", () => {
           if (loadingEl) loadingEl.classList.remove("hidden");
@@ -865,9 +908,7 @@ function LiveVideoJsComponent(
         const fullscreenBtn = document.getElementById("lp-fullscreen-btn");
         if (fullscreenBtn) {
           fullscreenBtn.addEventListener("click", () => {
-            const playerContainer = document.querySelector(
-              ".live-video-player-div"
-            );
+            const playerContainer = getLivePlayerContainer();
 
             if (!document.fullscreenElement) {
               // Enter fullscreen - request on the container, not the player
@@ -895,7 +936,15 @@ function LiveVideoJsComponent(
           const techEl = document.querySelector(".vjs-tech");
           const channelNameEl = document.querySelector(".live-channel-name");
           const liveBadgeEl = document.querySelector(".live-badge");
-          const isFs = window.livePlayer.isFullscreen();
+          const playerContainer = getLivePlayerContainer();
+          const isDomFs =
+            document.fullscreenElement === playerContainer ||
+            document.webkitFullscreenElement === playerContainer;
+          const isFs =
+            isDomFs ||
+            (window.livePlayer &&
+              typeof window.livePlayer.isFullscreen === "function" &&
+              window.livePlayer.isFullscreen());
           // Do not force tech element height; let Video.js/Tizen handle it
           if (channelNameEl)
             channelNameEl.style.display = isFs ? "none" : "flex";
