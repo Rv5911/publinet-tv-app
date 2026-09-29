@@ -107,9 +107,9 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://demo-app.techsmarters.com:25463/";
-  // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
-  let alldns = [];
+  const defaultDns = "https://tv.safeconn.net/";
+  let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  // let alldns = [];
 
 
   if (alldns.length === 0) {
