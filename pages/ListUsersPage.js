@@ -15,6 +15,11 @@ function ListUsersPage() {
     let currentCol = 0;
     let rows = [];
     let enterPressTimer = null;
+    // True from an Enter keydown until its keyup, so one physical press can only act once
+    let enterHeld = false;
+    function isEnterKey(e) {
+      return e.key === "Enter" || e.keyCode === 13;
+    }
     let dialogOpen = false;
 
     function updateCards() {
@@ -160,33 +165,38 @@ function ListUsersPage() {
     function handleEnterKeyDown(e) {
       if (dialogOpen) return;
       if (localStorage.getItem("currentPage") !== "listPage") return;
-      if (e.key !== "Enter") return;
-      if (enterPressTimer) return;
+      if (!isEnterKey(e)) return;
+      if (e.repeat || enterHeld || enterPressTimer) return;
+      enterHeld = true;
 
+      // Add User has no long-press action, so act immediately on keydown
+      if (onAddUser) {
+        localStorage.setItem("currentPage", "login");
+        ListUsersPage.cleanup();
+        Router.showPage("login");
+        return;
+      }
+
+      // Long-press threshold: a normal remote click must release before this
       enterPressTimer = setTimeout(() => {
-        if (!onAddUser) {
-          computeRows();
-          const card = rows[currentRow] && rows[currentRow][currentCol];
-          if (card) showRemoveDialog(currentRow, currentCol);
-        }
+        computeRows();
+        const card = rows[currentRow] && rows[currentRow][currentCol];
+        if (card) showRemoveDialog(currentRow, currentCol);
         enterPressTimer = null;
-      }, 200);
+      }, 500);
     }
 
     function handleEnterKeyUp(e) {
+      if (!isEnterKey(e)) return;
+      enterHeld = false; // always release, even if the dialog opened mid-press
       if (dialogOpen) return;
       if (localStorage.getItem("currentPage") !== "listPage") return;
-      if (e.key !== "Enter") return;
 
       if (enterPressTimer) {
         clearTimeout(enterPressTimer);
         enterPressTimer = null;
 
-        if (onAddUser) {
-          localStorage.setItem("currentPage", "login");
-          ListUsersPage.cleanup();
-          Router.showPage("login");
-        } else {
+        {
           const card = rows[currentRow] && rows[currentRow][currentCol];
           if (card) {
             const titleElement = card.querySelector(".playlist-card-title");
@@ -293,6 +303,8 @@ function ListUsersPage() {
             break;
           case "Enter":
             e.preventDefault();
+            // Ignore the still-held long-press Enter that opened this dialog
+            if (e.repeat || enterHeld) break;
             if (dialogActiveBtn === "delete") deleteBtn.click();
             else cancelBtn.click();
             break;
@@ -353,6 +365,9 @@ function ListUsersPage() {
       document.removeEventListener("keydown", listUsersKeydownEvents);
       document.removeEventListener("keydown", handleEnterKeyDown);
       document.removeEventListener("keyup", handleEnterKeyUp);
+      clearTimeout(enterPressTimer);
+      enterPressTimer = null;
+      enterHeld = false;
       window.removeEventListener("resize", computeRows);
     };
   }, 0);
