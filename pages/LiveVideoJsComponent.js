@@ -303,8 +303,10 @@ function LiveVideoJsComponent(
       case "play":
         return playLive();
       case "pause":
-      case "stop":
         return pauseLive();
+      case "stop":
+        document.dispatchEvent(new CustomEvent("liveStopRequested"));
+        return true;
       default:
         return false;
     }

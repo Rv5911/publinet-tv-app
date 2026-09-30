@@ -230,6 +230,7 @@ function LivePage() {
   const cleanup = () => {
     document.removeEventListener("keydown", handleKeydown);
     document.removeEventListener("sortChanged", handleSortChange);
+    document.removeEventListener("liveStopRequested", handleLiveStop);
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
     document.removeEventListener(
       "webkitfullscreenchange",
@@ -292,6 +293,7 @@ function LivePage() {
     render();
     document.addEventListener("keydown", handleKeydown);
     document.addEventListener("sortChanged", handleSortChange);
+    document.addEventListener("liveStopRequested", handleLiveStop);
 
     // Add fullscreen event listeners
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -1576,6 +1578,24 @@ function LivePage() {
     }
 
     resetControlsTimer();
+  };
+
+  // Remote "Stop" press: stop the live channel and return focus to the
+  // first channel of the current category (instead of just pausing).
+  const handleLiveStop = () => {
+    if (checkIsFullscreen()) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+      else if (document.msExitFullscreen) document.msExitFullscreen();
+    }
+
+    playChannel("");
+
+    channelIndex = 0;
+    buttonFocusIndex = -1;
+    focusedSection = "channels";
+    updateFocus();
   };
 
   const getVisibleLiveErrorRetryButton = () => {
