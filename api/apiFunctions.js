@@ -108,8 +108,8 @@ async function loginApi(
   playlistUrl = "",
 ) {
   const defaultDns = "https://tv.safeconn.net/";
-  // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
-  let alldns = [];
+  let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  // let alldns = [];
 
 
   if (alldns.length === 0) {
