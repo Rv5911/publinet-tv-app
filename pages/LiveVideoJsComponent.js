@@ -609,12 +609,17 @@ function LiveVideoJsComponent(
           window.livePlayer._fp.resume();
         }
       } else {
+        // Video.js stays in its error state until explicitly cleared
+        window.livePlayer.error(null);
         window.livePlayer.src({
           src: srcUrl,
           type: "application/x-mpegURL",
         });
         window.livePlayer.load();
-        window.livePlayer.play();
+        const playPromise = window.livePlayer.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch((err) => console.warn("Live retry play failed:", err));
+        }
       }
     } catch (err) {
       console.warn("Live retry failed:", err);
@@ -1020,6 +1025,8 @@ function LiveVideoJsComponent(
 
       if (errorEl && !errorEl.classList.contains("hidden")) {
         focusLiveRetryButton();
+        // Arrows keep focus on Retry instead of TV spatial navigation moving it away
+        if (e.keyCode >= 37 && e.keyCode <= 40) e.preventDefault();
         if (e.keyCode === 13 || e.key === "Enter") {
           retryLiveVideoPlayback();
           e.preventDefault();

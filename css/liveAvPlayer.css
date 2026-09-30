@@ -539,10 +539,11 @@
 #av-live-retry-btn.focused,
 #av-live-retry-btn:focus,
 #av-live-retry-btn.active {
-    background: white !important;
-    color: black !important;
-    border-color: #ff453a !important;
+    background: var(--app-blue) !important;
+    color: white !important;
+    border-color: white !important;
     transform: scale(1.05);
+    box-shadow: 0 0 0 3px var(--app-blue), 0 4px 15px rgba(10, 132, 255, 0.5);
 }
 
 #av-live-retry-btn:active {

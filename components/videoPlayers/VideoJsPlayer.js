@@ -744,9 +744,10 @@ function VideoJsPlayer(poster = "") {
         });
 
         // Apply resume time after metadata is loaded
-        if (resumeTime > 0) {
+        // Also re-fires after Retry reloads the source; resumeTime tracks the last position
+        if (!isLive) {
             player.on("loadedmetadata", () => {
-                if (resumeTime < player.duration()) {
+                if (resumeTime > 0 && resumeTime < player.duration()) {
                     player.currentTime(resumeTime);
                 }
             });
@@ -853,6 +854,9 @@ function VideoJsPlayer(poster = "") {
                 if (!isSeekBarDragging) {
                     seekBar.value = player.currentTime();
                 }
+
+                // Remember position so Retry can resume instead of restarting at 0
+                if (player.currentTime() > 0) resumeTime = player.currentTime();
 
                 // Update current time display
                 if (currentTimeEl) {
@@ -1098,6 +1102,15 @@ function VideoJsPlayer(poster = "") {
             if (loadingEl) loadingEl.classList.remove("hidden");
             if (isLive && liveBadge) liveBadge.classList.remove("hidden");
             if (titleBar) titleBar.style.display = "flex";
+
+            // Capture before the reload resets the position to 0
+            if (!isLive) {
+                try {
+                    if (player.currentTime() > 0) resumeTime = player.currentTime();
+                } catch (err) {
+                    console.warn("Unable to read position for retry:", err);
+                }
+            }
 
             try {
                 player.error(null);

@@ -562,6 +562,10 @@ function LiveAvPlayer(
                 } catch (e) {
                     console.error("Post-prepare failed", e);
                 }
+            }, function(err) {
+                console.error("[LiveAvPlayer] prepareAsync error:", err);
+                isLoading = false;
+                showError("Playback Error: " + err);
             });
         } catch (e) {
             console.error("[LiveAvPlayer] Init Error:", e);
@@ -580,8 +584,11 @@ function LiveAvPlayer(
         applyControlsVisibility();
 
         if (avplay) {
+            // Separate blocks: stop() throws when already idle, close() must still run
             try {
                 avplay.stop();
+            } catch (e) {}
+            try {
                 avplay.close();
             } catch (e) {}
         }
@@ -1030,16 +1037,28 @@ function LiveAvPlayer(
     function handleKey(e) {
         var isFs = isPlayerFullscreen();
         var container = document.getElementById("lp-player-container");
-        if (container && !container.classList.contains("lp-focused")) return;
+        var playerFocused = !container || container.classList.contains("lp-focused");
 
         if (errorActive) {
-            if (e.keyCode === 13) {
-                retryPlayback();
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            // Windowed player marks itself lp-player-active (not lp-focused) while the Retry panel is reachable
+            if (
+                playerFocused ||
+                isFs ||
+                container.classList.contains("lp-player-active")
+            ) {
+                var retryEl = document.getElementById("av-live-retry-btn");
+                if (retryEl) retryEl.classList.add("focused", "lp-control-focused");
+                if (e.keyCode >= 37 && e.keyCode <= 40) e.preventDefault();
+                if (e.keyCode === 13) {
+                    retryPlayback();
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
             }
             return;
         }
+
+        if (!playerFocused) return;
 
         if (isLoading) return;
 

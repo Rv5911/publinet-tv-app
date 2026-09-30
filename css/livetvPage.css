@@ -700,10 +700,11 @@
 .live-video-error .retry-btn.focused,
 .live-video-error .retry-btn.active,
 .live-video-error .retry-btn-focused {
-    background: white;
-    color: black;
-    border-color: var(--gold);
+    background: var(--app-blue) !important;
+    color: white !important;
+    border-color: white !important;
     transform: scale(1.05);
+    box-shadow: 0 0 0 3px var(--app-blue), 0 4px 15px rgba(10, 132, 255, 0.5);
 }
 
 .live-video-error .retry-btn:active {

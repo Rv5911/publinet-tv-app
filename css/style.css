@@ -16,6 +16,7 @@ body {
 :root {
   --gold: #ffd700;
   --dark-gold: #fdbd0f;
+  --app-blue: #0a84ff;
 }
 
 @keyframes fadeInOut {
