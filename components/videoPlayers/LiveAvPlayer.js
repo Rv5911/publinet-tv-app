@@ -16,6 +16,7 @@ function LiveAvPlayer(
     var avplay = null;
     var isLoading = true;
     var errorActive = false;
+    var networkErrorTimeout = null;
     var controlsHideTimeout = null;
     var areControlsVisible = false;
     var controlsBound = false;
@@ -208,6 +209,10 @@ function LiveAvPlayer(
 
     function clearErrorState() {
         errorActive = false;
+        if (networkErrorTimeout) {
+            clearTimeout(networkErrorTimeout);
+            networkErrorTimeout = null;
+        }
 
         var errPnl = document.querySelector(".av-live-error-pnl");
         if (errPnl) errPnl.classList.add("hidden");
@@ -216,6 +221,28 @@ function LiveAvPlayer(
         if (errTxt) errTxt.textContent = "";
 
         setVideoSurfaceVisible(true);
+    }
+
+    function isBrowserOffline() {
+        return typeof navigator !== "undefined" && navigator.onLine === false;
+    }
+
+    function scheduleNetworkErrorCheck() {
+        if (networkErrorTimeout) {
+            clearTimeout(networkErrorTimeout);
+            networkErrorTimeout = null;
+        }
+
+        if (isBrowserOffline()) {
+            showError("Network Error");
+            return;
+        }
+
+        networkErrorTimeout = setTimeout(function() {
+            if (isLoading && !errorActive) {
+                showError("Network Error");
+            }
+        }, 12000);
     }
 
     function setLoaderVisible(visible) {
@@ -227,7 +254,12 @@ function LiveAvPlayer(
             loader.classList.remove("hidden");
             loader.style.display = "flex";
             setVideoSurfaceVisible(true);
+            scheduleNetworkErrorCheck();
         } else {
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
             loader.classList.add("hidden");
             loader.style.display = "none";
         }
@@ -453,6 +485,7 @@ function LiveAvPlayer(
             avplay = webapis.avplay;
             // console.log("[LiveAvPlayer] Opening stream:", srcUrl);
             avplay.open(srcUrl);
+            scheduleNetworkErrorCheck();
 
             // [NEW] - Apply 15-second buffer size to survive network/bitrate drops
             try {
@@ -529,6 +562,10 @@ function LiveAvPlayer(
                 } catch (e) {
                     console.error("Post-prepare failed", e);
                 }
+            }, function(err) {
+                console.error("[LiveAvPlayer] prepareAsync error:", err);
+                isLoading = false;
+                showError("Playback Error: " + err);
             });
         } catch (e) {
             console.error("[LiveAvPlayer] Init Error:", e);
@@ -547,12 +584,26 @@ function LiveAvPlayer(
         applyControlsVisibility();
 
         if (avplay) {
+            // Separate blocks: stop() throws when already idle, close() must still run
             try {
                 avplay.stop();
+            } catch (e) {}
+            try {
                 avplay.close();
             } catch (e) {}
         }
         initPlayer();
+    }
+
+    function getErrorMessage(m) {
+        var raw = (m || "").toString();
+        var isNetworkError =
+            isBrowserOffline() ||
+            /network|offline|connection|internet|timeout|manifest|segment|buffer/i.test(
+                raw
+            );
+
+        return isNetworkError ? "Network Error" : raw || "Something went wrong, try again";
     }
 
     function showError(m) {
@@ -582,10 +633,19 @@ function LiveAvPlayer(
                 '<div class="av-live-error-content">' +
                 '<i class="fa-solid fa-triangle-exclamation"></i>' +
                 '<p id="av-live-err-text">' +
-                (m || "Something went wrong, try again") +
+                getErrorMessage(m) +
                 "</p>" +
-                '<div id="av-live-retry-btn">Retry</div>' +
+                '<button id="av-live-retry-btn" class="focused lp-control-focused">Retry</button>' +
                 "</div>";
+
+            var retryBtn = document.getElementById("av-live-retry-btn");
+            if (retryBtn) {
+                retryBtn.addEventListener("click", function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    retryPlayback();
+                });
+            }
         }
     }
 
@@ -695,8 +755,10 @@ function LiveAvPlayer(
             case "play":
                 return playLive();
             case "pause":
-            case "stop":
                 return pauseLive();
+            case "stop":
+                document.dispatchEvent(new CustomEvent("liveStopRequested"));
+                return true;
             default:
                 return false;
         }
@@ -975,16 +1037,28 @@ function LiveAvPlayer(
     function handleKey(e) {
         var isFs = isPlayerFullscreen();
         var container = document.getElementById("lp-player-container");
-        if (container && !container.classList.contains("lp-focused")) return;
+        var playerFocused = !container || container.classList.contains("lp-focused");
 
         if (errorActive) {
-            if (e.keyCode === 13) {
-                retryPlayback();
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            // Windowed player marks itself lp-player-active (not lp-focused) while the Retry panel is reachable
+            if (
+                playerFocused ||
+                isFs ||
+                container.classList.contains("lp-player-active")
+            ) {
+                var retryEl = document.getElementById("av-live-retry-btn");
+                if (retryEl) retryEl.classList.add("focused", "lp-control-focused");
+                if (e.keyCode >= 37 && e.keyCode <= 40) e.preventDefault();
+                if (e.keyCode === 13) {
+                    retryPlayback();
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                }
             }
             return;
         }
+
+        if (!playerFocused) return;
 
         if (isLoading) return;
 
@@ -1498,6 +1572,10 @@ function LiveAvPlayer(
 
     window.livePlayer = {
         dispose: function() {
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
             document.removeEventListener("keydown", handleKey);
             document.removeEventListener(
                 "lp-avplay-fullscreen-toggle",
@@ -1557,14 +1635,7 @@ function LiveAvPlayer(
                     function(err) {
                         console.error("[LiveAvPlayer] Fast-swap prepareAsync error:", err);
                         isLoading = false;
-                        errorActive = true;
-                        setLoaderVisible(false);
-                        var errPnl = document.querySelector(".av-live-error-pnl");
-                        if (errPnl) errPnl.classList.remove("hidden");
-                        var errTxt = document.getElementById("av-live-err-text");
-                        if (errTxt) errTxt.textContent = "Playback Error";
-                        setVideoSurfaceVisible(false);
-                        showControls();
+                        showError(err || "Playback Error");
                     },
                 );
             } catch (e) {

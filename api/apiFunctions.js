@@ -107,8 +107,10 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://mega2025.site:443";
+  const defaultDns = "https://tv.safeconn.net/";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
+  // let alldns = [];
+
 
   if (alldns.length === 0) {
     alldns = [defaultDns];

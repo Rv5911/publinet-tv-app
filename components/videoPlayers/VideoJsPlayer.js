@@ -40,11 +40,13 @@ function VideoJsPlayer(poster = "") {
     const isLive = localStorage.getItem("isLive") === "true";
 
     let player = null;
+    let stopPlaybackHandler = null;
     let overlayTimeout;
     let controlsTimer = null; // 🔴 NEW: For 5s auto-hide
     let errorActive = false;
     let currentTimeEl = null;
     let durationEl = null;
+    let networkErrorTimeout = null;
 
     // 🔴 Track focus states
     let isSeekBarFocused = false;
@@ -638,8 +640,11 @@ function VideoJsPlayer(poster = "") {
             case "play":
                 return playVideo();
             case "pause":
-            case "stop":
                 return pauseVideo();
+            case "stop":
+                return typeof stopPlaybackHandler === "function" ?
+                    stopPlaybackHandler() :
+                    false;
             case "record":
                 return true;
             default:
@@ -739,9 +744,10 @@ function VideoJsPlayer(poster = "") {
         });
 
         // Apply resume time after metadata is loaded
-        if (resumeTime > 0) {
+        // Also re-fires after Retry reloads the source; resumeTime tracks the last position
+        if (!isLive) {
             player.on("loadedmetadata", () => {
-                if (resumeTime < player.duration()) {
+                if (resumeTime > 0 && resumeTime < player.duration()) {
                     player.currentTime(resumeTime);
                 }
             });
@@ -751,10 +757,12 @@ function VideoJsPlayer(poster = "") {
         const seekBar = document.getElementById("customSeek");
         const liveBadge = document.querySelector(".video-live-badge");
         const errorDialog = document.querySelector(".video-error-dialog");
+        const errorRetryBtn = document.getElementById("errorRetryBtn");
         const errorBackBtn = document.getElementById("errorBackBtn");
         const controlsBar = document.querySelector(".custom-video-controls");
         const overlays = document.querySelectorAll(".video-action-overlay");
         const titleBar = document.querySelector(".video-title-bar");
+        let errorFocusedButton = "retry";
 
         currentTimeEl = document.getElementById("currentTime");
         durationEl = document.getElementById("duration");
@@ -847,6 +855,9 @@ function VideoJsPlayer(poster = "") {
                     seekBar.value = player.currentTime();
                 }
 
+                // Remember position so Retry can resume instead of restarting at 0
+                if (player.currentTime() > 0) resumeTime = player.currentTime();
+
                 // Update current time display
                 if (currentTimeEl) {
                     currentTimeEl.textContent = formatTime(player.currentTime());
@@ -880,6 +891,7 @@ function VideoJsPlayer(poster = "") {
         player.on("waiting", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
+                scheduleNetworkErrorCheck();
                 // Hide pause overlay when loading starts
                 const playOverlay = document.querySelector(
                     ".video-action-overlay.center"
@@ -891,8 +903,9 @@ function VideoJsPlayer(poster = "") {
         });
 
         player.on("canplay", () => {
+            clearPlaybackError();
+            loadingEl.classList.add("hidden");
             if (!errorActive) {
-                loadingEl.classList.add("hidden");
                 // 🔴 UPDATED: Auto-play if not manually paused and not dragging seek bar
                 if (
                     player.paused() &&
@@ -913,12 +926,14 @@ function VideoJsPlayer(poster = "") {
         player.on("stalled", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
+                scheduleNetworkErrorCheck();
             }
         });
 
         player.on("loadstart", () => {
             if (!errorActive) {
                 loadingEl.classList.remove("hidden");
+                scheduleNetworkErrorCheck();
             }
 
             // Always hide poster for YouTube trailers
@@ -939,20 +954,19 @@ function VideoJsPlayer(poster = "") {
         });
 
         player.on("playing", () => {
-            if (!errorActive) {
-                hasStartedPlayingOnce = true;
-                loadingEl.classList.add("hidden");
-                // Reset timer when playing starts
-                resetControlsTimer();
-                
-                // Only show play overlay if we're not seeking
-                if (!isSeekBarDragging && !player.seeking()) {
-                    showOverlay("play");
-                }
-
-                // Reset manual pause flag when video starts playing
-                userManuallyPaused = false;
+            clearPlaybackError();
+            hasStartedPlayingOnce = true;
+            loadingEl.classList.add("hidden");
+            // Reset timer when playing starts
+            resetControlsTimer();
+            
+            // Only show play overlay if we're not seeking
+            if (!isSeekBarDragging && !player.seeking()) {
+                showOverlay("play");
             }
+
+            // Reset manual pause flag when video starts playing
+            userManuallyPaused = false;
         });
 
         player.on("pause", () => {
@@ -975,41 +989,151 @@ function VideoJsPlayer(poster = "") {
             }
         });
 
-        player.on("error", () => {
-            console.log("❌ Player error:", player.error());
-            errorActive = true;
+        function getPlayerErrorMessage() {
+            const playerError = player && typeof player.error === "function" ?
+                player.error() :
+                null;
+            const rawMessage = playerError && playerError.message ?
+                playerError.message :
+                "";
+            const isNetworkError =
+                isBrowserOffline() ||
+                (playerError && playerError.code === 2) ||
+                /network|offline|connection|internet|timeout|manifest|segment|hls/i.test(
+                    rawMessage
+                );
 
-            loadingEl.classList.add("hidden");
-            controlsBar.classList.add("hidden");
-            liveBadge.classList.add("hidden");
-            titleBar.style.display = "none";
+            if (isNetworkError) return "Network Error";
+            return rawMessage || "Something went wrong";
+        }
+
+        function isBrowserOffline() {
+            return typeof navigator !== "undefined" && navigator.onLine === false;
+        }
+
+        function updateErrorButtonFocus() {
+            if (errorRetryBtn) {
+                errorRetryBtn.classList.toggle(
+                    "focused",
+                    errorFocusedButton === "retry"
+                );
+            }
+            if (errorBackBtn) {
+                errorBackBtn.classList.toggle(
+                    "focused",
+                    errorFocusedButton === "back"
+                );
+            }
+        }
+
+        function clearPlaybackError() {
+            errorActive = false;
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
+            if (errorDialog) errorDialog.classList.add("hidden");
+            if (errorRetryBtn) errorRetryBtn.classList.remove("focused");
+            if (errorBackBtn) errorBackBtn.classList.remove("focused");
+            if (isLive && liveBadge) liveBadge.classList.remove("hidden");
+        }
+
+        function showPlaybackError(message) {
+            errorActive = true;
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
+
+            if (loadingEl) loadingEl.classList.add("hidden");
+            if (controlsBar) controlsBar.classList.add("hidden");
+            if (liveBadge) liveBadge.classList.add("hidden");
+            if (titleBar) titleBar.style.display = "none";
 
             overlays.forEach((o) => o.classList.add("hidden"));
 
-            // Hide Poster
             const poster = document.querySelector(".vjs-poster");
             if (poster) {
-                poster.style.opacity = "0"; // Use opacity to hide
+                poster.style.opacity = "0";
                 poster.style.display = "none";
             }
 
-            if (
-                isYouTube &&
-                (fromValue === "trailer_movie" || fromValue === "trailer_series")
-            ) {
-                const errorMsgEl = document.getElementById("errorDialogMessage");
-                if (errorMsgEl) {
-                    const playerError = player.error();
-                    let errorMessage = "Something went wrong";
-                    if (playerError) {
-                        errorMessage =
-                            playerError.message || `Error Code: ${playerError.code}`;
-                    }
-                    errorMsgEl.innerText = `⚠️ ${errorMessage}`;
+            const errorMsgEl = document.getElementById("errorDialogMessage");
+            if (errorMsgEl) {
+                errorMsgEl.innerText = `⚠️ ${message || getPlayerErrorMessage()}`;
+            }
+
+            if (errorDialog) {
+                errorDialog.classList.remove("hidden");
+                errorFocusedButton = "retry";
+                updateErrorButtonFocus();
+            }
+        }
+
+        function scheduleNetworkErrorCheck() {
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
+
+            if (isBrowserOffline()) {
+                showPlaybackError("Network Error");
+                return;
+            }
+
+            networkErrorTimeout = setTimeout(() => {
+                if (
+                    !errorActive &&
+                    !hasStartedPlayingOnce &&
+                    loadingEl &&
+                    !loadingEl.classList.contains("hidden")
+                ) {
+                    showPlaybackError("Network Error");
+                }
+            }, 12000);
+        }
+
+        function retryPlayback() {
+            if (!player) return;
+
+            errorActive = false;
+            errorFocusedButton = "retry";
+            if (errorDialog) errorDialog.classList.add("hidden");
+            if (loadingEl) loadingEl.classList.remove("hidden");
+            if (isLive && liveBadge) liveBadge.classList.remove("hidden");
+            if (titleBar) titleBar.style.display = "flex";
+
+            // Capture before the reload resets the position to 0
+            if (!isLive) {
+                try {
+                    if (player.currentTime() > 0) resumeTime = player.currentTime();
+                } catch (err) {
+                    console.warn("Unable to read position for retry:", err);
                 }
             }
 
-            if (errorDialog) errorDialog.classList.remove("hidden");
+            try {
+                player.error(null);
+            } catch (err) {
+                console.warn("Unable to clear player error:", err);
+            }
+
+            try {
+                player.src(options.sources);
+                player.load();
+                scheduleNetworkErrorCheck();
+                player.play().catch((err) => {
+                    console.log("Retry playback failed:", err);
+                });
+            } catch (err) {
+                console.warn("Retry playback error:", err);
+                showPlaybackError("Network Error");
+            }
+        }
+
+        player.on("error", () => {
+            console.log("❌ Player error:", player.error());
+            showPlaybackError(getPlayerErrorMessage());
         });
 
         function goBack() {
@@ -1392,6 +1516,8 @@ function VideoJsPlayer(poster = "") {
             }
         }
 
+        stopPlaybackHandler = goBack;
+
         // Helper function to remove completed episode from continue watching
         function removeEpisodeFromContinueWatching(completedEpisodeId) {
             try {
@@ -1496,6 +1622,9 @@ function VideoJsPlayer(poster = "") {
         if (errorBackBtn) {
             errorBackBtn.addEventListener("click", goBack);
         }
+        if (errorRetryBtn) {
+            errorRetryBtn.addEventListener("click", retryPlayback);
+        }
 
         // Keyboard events
         function videojsPlayerdownHandler(e) {
@@ -1597,8 +1726,26 @@ function VideoJsPlayer(poster = "") {
             }
 
             if (errorActive) {
-                if (e.key === "Enter" || isBackKey(e)) {
+                if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                    if (!isLive && errorBackBtn) {
+                        errorFocusedButton =
+                            errorFocusedButton === "retry" ? "back" : "retry";
+                        updateErrorButtonFocus();
+                    }
+                    e.preventDefault();
+                    return;
+                }
+
+                if (e.key === "Enter") {
+                    if (errorFocusedButton === "back" && !isLive) goBack();
+                    else retryPlayback();
+                    e.preventDefault();
+                    return;
+                }
+
+                if (isBackKey(e) && !isLive) {
                     goBack();
+                    e.preventDefault();
                 }
                 return;
             }
@@ -1889,6 +2036,7 @@ function VideoJsPlayer(poster = "") {
         }
 
         document.addEventListener("keydown", videojsPlayerdownHandler);
+        scheduleNetworkErrorCheck();
 
         VideoJsPlayer.cleanup = function() {
             // Clear any pending timeouts first
@@ -1900,6 +2048,10 @@ function VideoJsPlayer(poster = "") {
                 clearTimeout(pendingResumeTimeout);
                 pendingResumeTimeout = null;
             }
+            if (networkErrorTimeout) {
+                clearTimeout(networkErrorTimeout);
+                networkErrorTimeout = null;
+            }
 
             // Remove event listener
             try {
@@ -1909,6 +2061,7 @@ function VideoJsPlayer(poster = "") {
             }
 
             // Reset tracking variables
+            stopPlaybackHandler = null;
             isSeekBarDragging = false;
             wasPlayingBeforeSeek = false;
             isSeekBarFocused = false;
@@ -1990,7 +2143,10 @@ function VideoJsPlayer(poster = "") {
     <div class="video-error-dialog hidden">
       <div class="error-box">
         <p id="errorDialogMessage">⚠️ Something went wrong</p>
-        <button id="errorBackBtn">Go Back</button>
+        <div class="video-error-actions">
+          <button id="errorRetryBtn" class="focused">Retry</button>
+          ${isLive ? "" : `<button id="errorBackBtn">Go Back</button>`}
+        </div>
       </div>
     </div>
 

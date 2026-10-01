@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/PublinetApp" version="1.0.1" viewmodes="maximized">
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/PublinetApp" version="1.0.4" viewmodes="maximized">
     <access origin="*" subdomains="true"></access>
     <tizen:application id="CIJzcVAlhe.PublinetApp" package="CIJzcVAlhe" required_version="2.3"/>
     <content src="index.html"/>
     <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
     <icon src="app-icon.png"/>
     <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"/>
-      <tizen:metadata
-        key="http://samsung.com/tv/metadata/use.voiceguide"
-        value="false"/>
+    <tizen:metadata key="http://samsung.com/tv/metadata/use.voiceguide" value="false"/>
     <name>MegaTv</name>
     <tizen:privilege name="http://developer.samsung.com/privilege/allshare"/>
     <tizen:privilege name="http://developer.samsung.com/privilege/productinfo"/>
