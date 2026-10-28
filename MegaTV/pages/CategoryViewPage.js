@@ -546,3 +546,4 @@ function goBackFromCategoryView() {
 }
 
 window.CategoryViewPage = CategoryViewPage;
+window.categoryViewNavigationState = categoryViewNavigationState;

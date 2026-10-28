@@ -265,6 +265,27 @@ async function MovieDetailPage() {
 
   setTimeout(initFocus, 0);
 
+  // Exposed for js/ui/focus.js (delegated Magic Remote pointer support).
+  // None of these buttons/cast items have a real click listener of their
+  // own today, so activate() reuses the existing Enter-key logic directly.
+  function movieDetailHoverSync(el) {
+    var idx = focusableEls.indexOf(el);
+    if (idx === -1) return;
+    currentFocusIndex = idx;
+    setFocus(el);
+  }
+  function movieDetailActivate(el) {
+    movieDetailHoverSync(el);
+    moviesDetailPageKeydownHandler({
+      key: "Enter",
+      preventDefault: function () {},
+      stopPropagation: function () {},
+      stopImmediatePropagation: function () {},
+    });
+  }
+  window.movieDetailHoverSync = movieDetailHoverSync;
+  window.movieDetailActivate = movieDetailActivate;
+
   // --- Reset Resume Time ---
   function resetResumeTime(movieId) {
     if (!movieId) return;

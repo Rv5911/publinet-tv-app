@@ -32,6 +32,15 @@ function SettingsPage() {
 
     updateActiveItem();
 
+    function settingsMenuClickHandler(e) {
+      var item = e.target.closest("p");
+      if (!item || items.indexOf(item) === -1) return;
+      activeIndex = items.indexOf(item);
+      updateActiveItem();
+      handleSelection(item);
+    }
+    container.addEventListener("click", settingsMenuClickHandler);
+
     function settingsKeydownEvents(e) {
       if (isInSubPage) return;
 
@@ -127,6 +136,7 @@ function SettingsPage() {
     SettingsPage.cleanup = function () {
       document.removeEventListener("keydown", settingsKeydownEvents);
       document.removeEventListener("settings-subpage-exit", handleSubPageExit);
+      container.removeEventListener("click", settingsMenuClickHandler);
       isInSubPage = false;
     };
   }, 0);

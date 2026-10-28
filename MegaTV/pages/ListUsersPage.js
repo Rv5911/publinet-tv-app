@@ -234,6 +234,39 @@ function ListUsersPage() {
     document.addEventListener("keydown", handleEnterKeyDown);
     document.addEventListener("keyup", handleEnterKeyUp);
 
+    // Exposed for js/ui/focus.js (delegated Magic Remote pointer support).
+    // Reuses the existing short-press "select" logic exactly by firing the
+    // same keydown+keyup pair it already listens for (handleEnterKeyDown's
+    // own 200ms long-press timer never gets to fire since keyup runs
+    // synchronously right after, so this always behaves as a short press).
+    function listUsersFindRowCol(el) {
+      for (var r = 0; r < rows.length; r++) {
+        var c = rows[r].indexOf(el);
+        if (c !== -1) return { row: r, col: c };
+      }
+      return null;
+    }
+    function listUsersHoverSync(el) {
+      if (el === addUserBtn) {
+        onAddUser = true;
+        setFocus();
+        return;
+      }
+      var pos = listUsersFindRowCol(el);
+      if (!pos) return;
+      onAddUser = false;
+      currentRow = pos.row;
+      currentCol = pos.col;
+      setFocus();
+    }
+    function listUsersActivate(el) {
+      listUsersHoverSync(el);
+      handleEnterKeyDown({ key: "Enter" });
+      handleEnterKeyUp({ key: "Enter" });
+    }
+    window.listUsersHoverSync = listUsersHoverSync;
+    window.listUsersActivate = listUsersActivate;
+
     // --- Remove dialog ---
     function showRemoveDialog(row, col) {
       dialogOpen = true;
@@ -265,12 +298,24 @@ function ListUsersPage() {
       function updateDialogFocus() {
         deleteBtn.style.border = "3px solid transparent";
         cancelBtn.style.border = "3px solid transparent";
+        deleteBtn.classList.remove("focused");
+        cancelBtn.classList.remove("focused");
 
         if (dialogActiveBtn === "delete") {
           deleteBtn.style.border = "3px solid var(--gold)";
+          deleteBtn.classList.add("focused");
         } else {
           cancelBtn.style.border = "3px solid var(--gold)";
+          cancelBtn.classList.add("focused");
         }
+      }
+      // Move the shared .focused highlight onto the dialog as soon as it
+      // opens, so the Magic Remote pointer's OK-on-hover never falls through
+      // to a background row while this dialog is up (it has its own focus
+      // trap below).
+      var prevFocused = document.querySelectorAll(".focused");
+      for (var pf = 0; pf < prevFocused.length; pf++) {
+        prevFocused[pf].classList.remove("focused");
       }
       updateDialogFocus();
 

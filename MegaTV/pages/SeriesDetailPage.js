@@ -1294,6 +1294,41 @@ async function SeriesDetailPage() {
   };
 
   document.addEventListener("keydown", seriesDetailPageKeydownHandler);
+
+  // Exposed for js/ui/focus.js (delegated Magic Remote pointer support).
+  // The favorite button already has its own real click listener (below in
+  // the setTimeout block), so activate() skips it to avoid a double toggle;
+  // everything else here reuses the existing Enter-key logic directly.
+  function seriesDetailHoverSync(el) {
+    if (el.classList && el.classList.contains("dropdown-item")) {
+      var items = Array.prototype.slice.call(
+        document.querySelectorAll(".dropdown-item"),
+      );
+      var di = items.indexOf(el);
+      if (di === -1) return;
+      dropdownFocusIndex = di;
+      updateDropdownFocus();
+      return;
+    }
+    var idx = focusableEls.indexOf(el);
+    if (idx === -1) return;
+    currentFocusIndex = idx;
+    setFocus(el);
+  }
+  function seriesDetailActivate(el) {
+    seriesDetailHoverSync(el);
+    if (el.classList && el.classList.contains("series-detail-fav-button")) {
+      return;
+    }
+    seriesDetailPageKeydownHandler({
+      key: "Enter",
+      preventDefault: function () {},
+      stopPropagation: function () {},
+    });
+  }
+  window.seriesDetailHoverSync = seriesDetailHoverSync;
+  window.seriesDetailActivate = seriesDetailActivate;
+
   SeriesDetailPage.cleanup = function () {
     document.removeEventListener("keydown", seriesDetailPageKeydownHandler);
   };

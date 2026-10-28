@@ -141,71 +141,198 @@ function LivePage() {
       video.controls = false;
       video.removeAttribute("controls");
 
-      const syncPlayPauseIcon = () => {
+      // Session id: a channel switch creates a brand-new <video>, but old
+      // timers (poll/debounce/watchdog) from the previous session can still
+      // be pending. Every one of them checks isCurrent() before acting.
+      window._livePlayerSession = (window._livePlayerSession || 0) + 1;
+      var mySession = window._livePlayerSession;
+      function isCurrent() {
+        return mySession === window._livePlayerSession;
+      }
+
+      // ---- ONE state machine owns the spinner + dim (.live-video-loader).
+      // Nothing else may show/hide it. ----
+      var playState = "idle"; // idle | loading | buffering | playing | paused | error
+      var pendingShowTimer = null;
+      var progressPollTimer = null;
+      var startWatchdogTimer = null;
+      var bufferWatchdogTimer = null;
+      var lastTime = -1;
+      var lastProgressAt = Date.now();
+      var hasPlayedOnce = false;
+      var retriedOnce = false;
+
+      function syncPlayPauseIcon() {
         if (!playPauseIcon) return;
         playPauseIcon.innerHTML = video.paused
           ? '<i class="fa-solid fa-play"></i>'
           : '<i class="fa-solid fa-pause"></i>';
-      };
+      }
 
-      const showControls = () => {
+      function showControls() {
         if (playPauseIcon) playPauseIcon.style.display = "flex";
         if (fullscreenBtn) fullscreenBtn.style.display = "flex";
         if (controls) controls.classList.remove("hidden");
         if (topOverlays) topOverlays.classList.remove("hidden");
         resetControlsTimer();
-      };
+      }
 
-      const hideControls = () => {
+      function hideControls() {
         if (playPauseIcon) playPauseIcon.style.display = "none";
         if (fullscreenBtn) fullscreenBtn.style.display = "none";
         if (controls) controls.classList.add("hidden");
         if (topOverlays) topOverlays.classList.add("hidden");
-      };
+      }
 
-      const hideLoader = () => {
+      function hideLoaderNow(reason) {
         if (loader) loader.classList.add("hidden");
-      };
+        if (window.playerDebugLoaderCall) window.playerDebugLoaderCall("hide", reason);
+      }
 
-      const showLoader = () => {
+      function showLoaderNow(reason) {
         if (loader) loader.classList.remove("hidden");
         if (error) error.classList.add("hidden");
-      };
+        if (window.playerDebugLoaderCall) window.playerDebugLoaderCall("show", reason);
+      }
 
-      video.addEventListener("loadstart", showLoader);
-      video.addEventListener("waiting", showLoader);
-      video.addEventListener("stalled", showLoader);
-      video.addEventListener("canplay", hideLoader);
-      video.addEventListener("canplaythrough", hideLoader);
-      video.addEventListener("playing", () => {
-        hideLoader();
-        syncPlayPauseIcon();
-        showControls();
-      });
-      video.addEventListener("pause", () => {
-        syncPlayPauseIcon();
-        showControls();
-      });
-      video.addEventListener("error", () => {
-        hideLoader();
+      function clearWatchdogs() {
+        clearTimeout(startWatchdogTimer);
+        clearTimeout(bufferWatchdogTimer);
+      }
+
+      function armStartWatchdog() {
+        clearTimeout(startWatchdogTimer);
+        startWatchdogTimer = setTimeout(function () {
+          if (!isCurrent()) return;
+          if (!hasPlayedOnce) retryOnce();
+        }, 15000);
+      }
+
+      function armBufferWatchdog() {
+        clearTimeout(bufferWatchdogTimer);
+        bufferWatchdogTimer = setTimeout(function () {
+          if (!isCurrent()) return;
+          if (playState === "buffering" || playState === "loading") retryOnce();
+        }, 20000);
+      }
+
+      function retryOnce() {
+        if (!isCurrent()) return;
+        if (retriedOnce) {
+          showErrorUI("Failed to load video");
+          return;
+        }
+        retriedOnce = true;
+        try {
+          video.pause();
+          video.load();
+          video.play().catch(function () {});
+        } catch (e) {}
+        armStartWatchdog();
+      }
+
+      function showErrorUI(message) {
+        if (!isCurrent()) return;
+        clearTimeout(pendingShowTimer);
+        clearInterval(progressPollTimer);
+        clearWatchdogs();
+        playState = "error";
+        hideLoaderNow();
         if (error) {
-          const errorMessage = error.querySelector(".live-video-error-message");
-          if (errorMessage && video.error) {
-            errorMessage.textContent = `Failed to load video (Error ${video.error.code})`;
-          }
+          var errorMessage = error.querySelector(".live-video-error-message");
+          if (errorMessage) errorMessage.textContent = message || "Failed to load video";
           error.classList.remove("hidden");
         }
         if (controls) controls.classList.add("hidden");
         if (topOverlays) topOverlays.classList.add("hidden");
         if (playPauseIcon) playPauseIcon.style.display = "none";
+      }
+
+      function setState(next, reason) {
+        if (!isCurrent()) return;
+        if (window.playerDebugLog) window.playerDebugLog("state:" + next, reason);
+        if (playState === next) return;
+        playState = next;
+
+        if (next === "playing") {
+          hasPlayedOnce = true;
+          retriedOnce = false;
+          clearTimeout(pendingShowTimer);
+          pendingShowTimer = null;
+          clearWatchdogs();
+          hideLoaderNow(reason);
+        } else if (next === "loading" || next === "buffering") {
+          clearTimeout(pendingShowTimer);
+          pendingShowTimer = setTimeout(function () {
+            if (!isCurrent()) return;
+            if (playState === "loading" || playState === "buffering") showLoaderNow(reason);
+          }, 300);
+          if (next === "buffering" && hasPlayedOnce) armBufferWatchdog();
+        } else if (next === "paused") {
+          clearTimeout(pendingShowTimer);
+          hideLoaderNow(reason);
+        }
+      }
+
+      // Authoritative "is it actually moving" signal. On this platform, live
+      // HLS (.m3u8 / "Default") buffering at a segment boundary does not
+      // reliably refire 'playing' once it resumes, so the spinner would stay
+      // up forever if it only listened for that event. Polling currentTime
+      // catches the resume either way. M3U (TS) plays back without MSE and
+      // already fires matching waiting/playing pairs, so this is a no-op fix
+      // for it.
+      progressPollTimer = setInterval(function () {
+        if (!isCurrent()) {
+          clearInterval(progressPollTimer);
+          return;
+        }
+        if (video.paused) return;
+        if (video.currentTime !== lastTime) {
+          lastTime = video.currentTime;
+          lastProgressAt = Date.now();
+          setState("playing", "progress-poll");
+          syncPlayPauseIcon();
+        } else if (Date.now() - lastProgressAt > 1000) {
+          setState("buffering", "progress-poll-stuck");
+        }
+      }, 500);
+
+      video.addEventListener("loadstart", function () {
+        setState("loading", "loadstart-event");
+      });
+      video.addEventListener("canplay", function () {
+        if (!video.paused) setState("playing", "canplay-event");
+      });
+      video.addEventListener("canplaythrough", function () {
+        if (!video.paused) setState("playing", "canplaythrough-event");
+      });
+      video.addEventListener("playing", function () {
+        lastTime = video.currentTime;
+        lastProgressAt = Date.now();
+        setState("playing", "playing-event");
+        syncPlayPauseIcon();
+        showControls();
+      });
+      video.addEventListener("play", syncPlayPauseIcon);
+      video.addEventListener("pause", function () {
+        setState("paused", "pause-event");
+        syncPlayPauseIcon();
+        showControls();
+      });
+      video.addEventListener("error", function () {
+        showErrorUI(
+          video.error ? "Failed to load video (Error " + video.error.code + ")" : "Failed to load video"
+        );
       });
 
       if (playPauseIcon) {
-        playPauseIcon.onclick = (e) => {
+        playPauseIcon.onclick = function (e) {
           e.preventDefault();
           e.stopPropagation();
           if (video.paused) {
-            video.play().catch((err) => console.warn("Native live play failed:", err));
+            video.play().catch(function (err) {
+              console.warn("Native live play failed:", err);
+            });
           } else {
             video.pause();
           }
@@ -214,24 +341,34 @@ function LivePage() {
       }
 
       window.livePlayer = {
-        play: () => video.play(),
-        pause: () => video.pause(),
-        paused: () => video.paused,
-        togglePlayPause: () => {
+        play: function () {
+          return video.play();
+        },
+        pause: function () {
+          return video.pause();
+        },
+        paused: function () {
+          return video.paused;
+        },
+        togglePlayPause: function () {
           if (video.paused) {
-            video.play().catch((err) => console.warn("Native live play failed:", err));
+            video.play().catch(function (err) {
+              console.warn("Native live play failed:", err);
+            });
           } else {
             video.pause();
           }
-          syncPlayPauseIcon();
         },
-        showControls,
-        hideControls,
+        showControls: showControls,
+        hideControls: hideControls,
         refreshControlsVisibility: () => {
           if (video.paused) showControls();
           else resetControlsTimer();
         },
-        dispose: () => {
+        dispose: function () {
+          clearTimeout(pendingShowTimer);
+          clearInterval(progressPollTimer);
+          clearWatchdogs();
           video.pause();
           video.removeAttribute("src");
           video.load();
@@ -242,8 +379,29 @@ function LivePage() {
         },
       };
 
+      if (window.playerDebugRegister) {
+        window.playerDebugRegister({
+          label: "LivePage",
+          getState: function () {
+            return {
+              session: mySession,
+              state: playState,
+              loaderVisible: !!(loader && !loader.classList.contains("hidden")),
+              currentTime: video.currentTime,
+              readyState: video.readyState,
+              stuckMs: Date.now() - lastProgressAt,
+              extension: srcUrl.indexOf(".") !== -1 ? srcUrl.split(".").pop().split("?")[0] : "",
+            };
+          },
+        });
+      }
+
       syncPlayPauseIcon();
-      video.play().catch((err) => console.warn("Native live autoplay failed:", err));
+      setState("loading", "init");
+      armStartWatchdog();
+      video.play().catch(function (err) {
+        console.warn("Native live autoplay failed:", err);
+      });
     }, 0);
 
     return `
@@ -724,6 +882,29 @@ function LivePage() {
       setupInputListeners();
       setupScrollListener();
       setupClickListeners();
+
+      // Exposed for js/ui/focus.js (delegated Magic Remote pointer support):
+      // hover only moves the shared .focused highlight (never switches the
+      // channel); OK/click still goes through the real click handlers above.
+      window.liveHoverSync = liveHoverSync;
+      window.liveNavigate = {
+        up: function () {
+          navigateUp();
+          updateFocus();
+        },
+        down: function () {
+          navigateDown();
+          updateFocus();
+        },
+        left: function () {
+          navigateLeft();
+          updateFocus();
+        },
+        right: function () {
+          navigateRight();
+          updateFocus();
+        },
+      };
     }
 
     renderCategories();
@@ -1933,6 +2114,22 @@ function LivePage() {
       }
     }
 
+    // Dedicated media remote keys: Play (415) always plays, Pause (19)
+    // always pauses (not a toggle). The icon updates itself via the
+    // player's own play/pause event listeners.
+    if (e.keyCode === 415 || e.keyCode === 19) {
+      e.preventDefault();
+      if (window.livePlayer) {
+        if (e.keyCode === 415 && typeof window.livePlayer.play === "function") {
+          window.livePlayer.play();
+        } else if (e.keyCode === 19 && typeof window.livePlayer.pause === "function") {
+          window.livePlayer.pause();
+        }
+      }
+      resetControlsTimer();
+      return;
+    }
+
     // Cross-browser fullscreen detection
     const isFullscreen = checkIsFullscreen();
 
@@ -2889,10 +3086,16 @@ function LivePage() {
 
   const setupScrollListener = () => {
     const grid = document.getElementById("lp-channels-grid");
-    if (!grid) return;
+    if (grid) {
+      grid.removeEventListener("scroll", handleScroll);
+      grid.addEventListener("scroll", handleScroll);
+    }
 
-    grid.removeEventListener("scroll", handleScroll);
-    grid.addEventListener("scroll", handleScroll);
+    const catList = document.getElementById("lp-category-list");
+    if (catList) {
+      catList.removeEventListener("scroll", handleCategoryScroll);
+      catList.addEventListener("scroll", handleCategoryScroll);
+    }
   };
 
   const handleScroll = () => {
@@ -2910,6 +3113,46 @@ function LivePage() {
       }
     }
   };
+
+  // Wheel/trackpad over the sidebar already scrolls it natively (overflow-y:
+  // auto); this is the same "load next chunk near the end" pattern as
+  // handleScroll above, just for categories instead of channels.
+  const handleCategoryScroll = () => {
+    const catList = document.getElementById("lp-category-list");
+    if (!catList) return;
+
+    const scrollPosition = catList.scrollTop + catList.clientHeight;
+    const scrollHeight = catList.scrollHeight;
+
+    if (scrollPosition >= scrollHeight - 100) {
+      const loadedCats = getFilteredCategories().length;
+      const allCats = getAllFilteredCategories().length;
+      if (loadedCats < allCats) {
+        categoryChunk++;
+        renderCategories();
+      }
+    }
+  };
+
+  // Exposed for js/ui/focus.js: hover moves the shared .focused highlight
+  // onto a category/channel card without switching category or channel —
+  // only an explicit OK/click (handled by setupClickListeners above) does
+  // that.
+  function liveHoverSync(el) {
+    if (el.classList.contains("lp-category-item")) {
+      const idx = parseInt(el.getAttribute("data-index"), 10);
+      if (isNaN(idx)) return;
+      focusedSection = "sidebar";
+      sidebarIndex = idx;
+      updateFocus();
+    } else if (el.classList.contains("lp-channel-card")) {
+      const idx = parseInt(el.getAttribute("data-index"), 10);
+      if (isNaN(idx)) return;
+      focusedSection = "channels";
+      channelIndex = idx;
+      updateFocus();
+    }
+  }
 
   return `<div class="lp-main-container"></div>`;
 }

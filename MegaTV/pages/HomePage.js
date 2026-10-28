@@ -566,6 +566,30 @@ async function HomePage() {
       }
     }
 
+    function homePageClickHandler(e) {
+      var card = e.target.closest(".home-card");
+      var watchBtn = e.target.closest(".carousel-watch-now-btn");
+      if (card) {
+        var cat = card.getAttribute("data-category");
+        var idx = card.getAttribute("data-index");
+        var catNum = parseInt(cat, 10);
+        var idxNum = parseInt(idx, 10);
+        navState.focus = "categories";
+        navState.currentCategory = isNaN(catNum) ? cat : catNum;
+        navState.currentCard = isNaN(idxNum) ? idx : idxNum;
+        updateFocus();
+        homePageKeydownEvents({ key: "Enter", preventDefault: function () {} });
+      } else if (watchBtn) {
+        navState.focus = "watchNow";
+        updateFocus();
+        homePageKeydownEvents({ key: "Enter", preventDefault: function () {} });
+      }
+    }
+    const homePageContainer = document.querySelector(".home-page-container");
+    if (homePageContainer) {
+      homePageContainer.addEventListener("click", homePageClickHandler);
+    }
+
     document.addEventListener("keydown", homePageKeydownEvents);
     document.addEventListener("keydown", (e) => {
       if (localStorage.getItem("currentPage") == "dashboard") {
@@ -586,6 +610,9 @@ async function HomePage() {
 
     HomePage.cleanup = function () {
       document.removeEventListener("keydown", homePageKeydownEvents);
+      if (homePageContainer) {
+        homePageContainer.removeEventListener("click", homePageClickHandler);
+      }
     };
   }, 0);
 

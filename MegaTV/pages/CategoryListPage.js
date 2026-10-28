@@ -425,3 +425,4 @@ function goBackFromCategoryList() {
 }
 
 window.CategoryListPage = CategoryListPage;
+window.categoryListNavigationState = categoryListNavigationState;

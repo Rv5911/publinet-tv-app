@@ -76,6 +76,176 @@ function VideoJsPlayer(poster = "") {
     // 🔴 Track if video has started playing for the first time
     let hasStartedPlayingOnce = false;
 
+    // ---- ONE state machine owns the loader (.video-buffer-loader). Nothing
+    // else may show/hide it. Same fix already applied to Live TV's native
+    // player in pages/LivePage.js: native 'waiting'/'stalled' can fire with
+    // no matching 'canplay'/'playing' ever refiring, so a currentTime poll
+    // is the authoritative "is it actually moving" signal, not those events
+    // alone. ES5 (var/function) on purpose, so it can be shared by
+    // debouncedSeek() above and initPlayer()'s listeners below regardless of
+    // where each is defined relative to this block.
+    window._videoPlayerSession = (window._videoPlayerSession || 0) + 1;
+    var videoSession = window._videoPlayerSession;
+    function videoSessionIsCurrent() {
+        return videoSession === window._videoPlayerSession;
+    }
+
+    var playState = "idle"; // idle | loading | buffering | playing | paused | error
+    var pendingShowTimer = null;
+    var progressPollTimer = null;
+    var startWatchdogTimer = null;
+    var bufferWatchdogTimer = null;
+    var lastKnownTime = -1;
+    var lastProgressAt = Date.now();
+    var hasPlayedOnce = false;
+    var retriedOnce = false;
+
+    function getLoaderEl() {
+        return document.querySelector(".video-buffer-loader");
+    }
+
+    function showLoaderNow(reason) {
+        var el = getLoaderEl();
+        if (el) el.classList.remove("hidden");
+        if (window.playerDebugLoaderCall) window.playerDebugLoaderCall("show", reason);
+    }
+
+    function hideLoaderNow(reason) {
+        var el = getLoaderEl();
+        if (el) el.classList.add("hidden");
+        if (window.playerDebugLoaderCall) window.playerDebugLoaderCall("hide", reason);
+    }
+
+    function clearVideoWatchdogs() {
+        clearTimeout(startWatchdogTimer);
+        clearTimeout(bufferWatchdogTimer);
+    }
+
+    function showVideoErrorDialog(message) {
+        if (!videoSessionIsCurrent()) return;
+        errorActive = true;
+        hideLoaderNow("error");
+
+        var controlsBarEl = document.querySelector(".custom-video-controls");
+        var liveBadgeEl = document.querySelector(".video-live-badge");
+        var titleBarEl = document.querySelector(".video-title-bar");
+        var overlayEls = document.querySelectorAll(".video-action-overlay");
+        if (controlsBarEl) controlsBarEl.classList.add("hidden");
+        if (liveBadgeEl) liveBadgeEl.classList.add("hidden");
+        if (titleBarEl) titleBarEl.style.display = "none";
+        for (var i = 0; i < overlayEls.length; i++) overlayEls[i].classList.add("hidden");
+
+        var poster = document.querySelector(".vjs-poster");
+        if (poster) {
+            poster.style.opacity = "0";
+            poster.style.display = "none";
+        }
+
+        var errorMsgEl = document.getElementById("errorDialogMessage");
+        if (errorMsgEl && message) errorMsgEl.innerText = "⚠️ " + message;
+
+        var errorDialog = document.querySelector(".video-error-dialog");
+        if (errorDialog) errorDialog.classList.remove("hidden");
+
+        clearTimeout(pendingShowTimer);
+        clearInterval(progressPollTimer);
+        clearVideoWatchdogs();
+        playState = "error";
+    }
+
+    function armStartWatchdog() {
+        clearTimeout(startWatchdogTimer);
+        startWatchdogTimer = setTimeout(function () {
+            if (!videoSessionIsCurrent()) return;
+            if (!hasPlayedOnce) retryVideoOnce();
+        }, 25000);
+    }
+
+    function armBufferWatchdog() {
+        clearTimeout(bufferWatchdogTimer);
+        bufferWatchdogTimer = setTimeout(function () {
+            if (!videoSessionIsCurrent()) return;
+            if (playState === "buffering" || playState === "loading") retryVideoOnce();
+        }, 30000);
+    }
+
+    function retryVideoOnce() {
+        if (!videoSessionIsCurrent()) return;
+        if (retriedOnce) {
+            showVideoErrorDialog("Failed to load video");
+            return;
+        }
+        retriedOnce = true;
+        try {
+            var videoEl = document.getElementById("videojs-player-tag");
+            if (videoEl && typeof videoEl.load === "function") videoEl.load();
+            if (player && typeof player.play === "function") {
+                player.play().catch(function () {});
+            }
+        } catch (e) {}
+        armStartWatchdog();
+    }
+
+    function setVideoState(next, reason) {
+        if (!videoSessionIsCurrent()) return;
+        if (window.playerDebugLog) window.playerDebugLog("state:" + next, reason);
+        if (playState === next) return;
+        playState = next;
+
+        if (next === "playing") {
+            hasPlayedOnce = true;
+            retriedOnce = false;
+            clearTimeout(pendingShowTimer);
+            pendingShowTimer = null;
+            clearVideoWatchdogs();
+            hideLoaderNow(reason);
+        } else if (next === "loading" || next === "buffering") {
+            clearTimeout(pendingShowTimer);
+            pendingShowTimer = setTimeout(function () {
+                if (!videoSessionIsCurrent()) return;
+                if (playState === "loading" || playState === "buffering") showLoaderNow(reason);
+            }, 300);
+            if (next === "buffering" && hasPlayedOnce) armBufferWatchdog();
+        } else if (next === "paused") {
+            clearTimeout(pendingShowTimer);
+            hideLoaderNow(reason);
+        }
+    }
+
+    progressPollTimer = setInterval(function () {
+        if (!videoSessionIsCurrent()) {
+            clearInterval(progressPollTimer);
+            return;
+        }
+        if (!player || typeof player.paused !== "function" || errorActive) return;
+        if (player.paused()) return;
+        var t = player.currentTime();
+        if (t !== lastKnownTime) {
+            lastKnownTime = t;
+            lastProgressAt = Date.now();
+            setVideoState("playing", "progress-poll");
+        } else if (Date.now() - lastProgressAt > 1000) {
+            setVideoState("buffering", "progress-poll-stuck");
+        }
+    }, 500);
+
+    if (window.playerDebugRegister) {
+        window.playerDebugRegister({
+            label: "VideoJsPlayer",
+            getState: function () {
+                return {
+                    session: videoSession,
+                    state: playState,
+                    loaderVisible: !!(getLoaderEl() && !getLoaderEl().classList.contains("hidden")),
+                    currentTime: player && typeof player.currentTime === "function" ? player.currentTime() : null,
+                    readyState: document.getElementById("videojs-player-tag") ? document.getElementById("videojs-player-tag").readyState : null,
+                    stuckMs: Date.now() - lastProgressAt,
+                    extension: srcUrl.indexOf(".") !== -1 ? srcUrl.split(".").pop().split("?")[0] : "",
+                };
+            },
+        });
+    }
+
     // Format time function
     function formatTime(seconds) {
         if (!seconds || isNaN(seconds)) return "0:00:00";
@@ -124,9 +294,8 @@ function VideoJsPlayer(poster = "") {
         const seekBar = document.getElementById("customSeek");
 
         // Show loading indicator immediately when seeking starts
-        const loadingEl = document.querySelector(".video-buffer-loader");
-        if (loadingEl && !errorActive) {
-            loadingEl.classList.remove("hidden");
+        if (!errorActive) {
+            setVideoState("buffering", "seek-key");
         }
 
         if (seekBar && player && player.currentTime) {
@@ -605,7 +774,8 @@ function VideoJsPlayer(poster = "") {
         try {
             userManuallyPaused = false;
             if (typeof player.play === "function") player.play();
-            showOverlay("play");
+            // Now playing -> show the icon for the NEXT action (pause).
+            showOverlay("pause");
             resetControlsTimer();
             return true;
         } catch (err) {
@@ -622,7 +792,8 @@ function VideoJsPlayer(poster = "") {
             if (typeof player.pause === "function") player.pause();
             showAllControls();
             focusPlayPause();
-            showOverlay("pause");
+            // Now paused -> show the icon for the NEXT action (play).
+            showOverlay("play");
             return true;
         } catch (err) {
             console.warn("Player pause error:", err);
@@ -801,6 +972,9 @@ function VideoJsPlayer(poster = "") {
                 ? createNativeHtmlVideoPlayer(videoElement, options)
                 : videojs(videoElement, options);
 
+        setVideoState("loading", "init");
+        armStartWatchdog();
+
         player.ready(() => {
             if (player.paused() && !userManuallyPaused && !errorActive) {
                 player.play().catch((err) => {
@@ -840,13 +1014,10 @@ function VideoJsPlayer(poster = "") {
             });
         }
 
-        const loadingEl = document.querySelector(".video-buffer-loader");
         const seekBar = document.getElementById("customSeek");
         const liveBadge = document.querySelector(".video-live-badge");
-        const errorDialog = document.querySelector(".video-error-dialog");
         const errorBackBtn = document.getElementById("errorBackBtn");
         const controlsBar = document.querySelector(".custom-video-controls");
-        const overlays = document.querySelectorAll(".video-action-overlay");
         const titleBar = document.querySelector(".video-title-bar");
 
         currentTimeEl = document.getElementById("currentTime");
@@ -905,9 +1076,7 @@ function VideoJsPlayer(poster = "") {
                     isSeekBarDragging = true;
 
                     // Show loading indicator when seeking
-                    if (loadingEl) {
-                        loadingEl.classList.remove("hidden");
-                    }
+                    setVideoState("buffering", "seekbar-input");
 
                     // Store play state before seeking
                     wasPlayingBeforeSeek = !player.paused();
@@ -982,7 +1151,7 @@ function VideoJsPlayer(poster = "") {
             // A paused video is never "buffering" in the UI — ignore stray
             // waiting events that fire while the user has already paused.
             if (!errorActive && !player.paused()) {
-                if (loadingEl) loadingEl.classList.remove("hidden");
+                setVideoState("buffering", "waiting-event");
                 // Hide pause overlay when loading starts
                 const playOverlay = document.querySelector(
                     ".video-action-overlay.center"
@@ -995,7 +1164,6 @@ function VideoJsPlayer(poster = "") {
 
         player.on("canplay", () => {
             if (!errorActive) {
-                if (loadingEl) loadingEl.classList.add("hidden");
                 // 🔴 UPDATED: Auto-play if not manually paused and not dragging seek bar
                 if (
                     player.paused() &&
@@ -1007,21 +1175,24 @@ function VideoJsPlayer(poster = "") {
                         console.log("Auto-play on canplay failed:", err);
                     });
                 } else if (player.paused() && !isSeekBarDragging) {
-                    // Show pause overlay if user manually paused or is seeking
-                    showOverlay("pause");
+                    // Paused -> show the icon for the NEXT action (play).
+                    setVideoState("paused", "canplay-paused");
+                    showOverlay("play");
+                } else {
+                    setVideoState("playing", "canplay-event");
                 }
             }
         });
 
         player.on("stalled", () => {
             if (!errorActive && !player.paused()) {
-                if (loadingEl) loadingEl.classList.remove("hidden");
+                setVideoState("buffering", "stalled-event");
             }
         });
 
         player.on("loadstart", () => {
             if (!errorActive) {
-                if (loadingEl) loadingEl.classList.remove("hidden");
+                setVideoState("loading", "loadstart-event");
             }
 
             // Always hide poster for YouTube trailers
@@ -1044,13 +1215,16 @@ function VideoJsPlayer(poster = "") {
         player.on("playing", () => {
             if (!errorActive) {
                 hasStartedPlayingOnce = true;
-                if (loadingEl) loadingEl.classList.add("hidden");
+                lastKnownTime = player.currentTime();
+                lastProgressAt = Date.now();
+                setVideoState("playing", "playing-event");
                 // Reset timer when playing starts
                 resetControlsTimer();
                 
-                // Only show play overlay if we're not seeking
+                // Now playing -> show the icon for the NEXT action (pause),
+                // as long as we're not seeking.
                 if (!isSeekBarDragging && !player.seeking()) {
-                    showOverlay("play");
+                    showOverlay("pause");
                 }
 
                 // Reset manual pause flag when video starts playing
@@ -1061,19 +1235,21 @@ function VideoJsPlayer(poster = "") {
         player.on("pause", () => {
             if (errorActive) return;
 
-            // A paused video is never "buffering" — always clear the loader
-            // so it can't get stuck on screen once playback settles.
-            if (loadingEl) loadingEl.classList.add("hidden");
-
             // debouncedSeek() pauses playback internally while a seek
             // gesture is in flight — that's not a real user pause, so don't
-            // show the pause UI or block the auto-resume that follows it.
+            // clear the loader (it should stay up until currentTime moves
+            // again) or show the pause UI or block the auto-resume after it.
             if (isSeekGestureActive || player.seeking()) return;
+
+            // A real pause is never "buffering" — always clear the loader so
+            // it can't get stuck on screen once playback settles.
+            setVideoState("paused", "pause-event");
 
             // Always show pause overlay for a real pause
             if (controlsBar) controlsBar.classList.remove("hidden");
             if (titleBar) titleBar.style.display = "flex";
-            showOverlay("pause");
+            // Now paused -> show the icon for the NEXT action (play).
+            showOverlay("play");
             setTimeout(() => focusPlayPause(), 100);
 
             userManuallyPaused = true;
@@ -1081,39 +1257,21 @@ function VideoJsPlayer(poster = "") {
 
         player.on("error", () => {
             console.log("❌ Player error:", player.error());
-            errorActive = true;
 
-            if (loadingEl) loadingEl.classList.add("hidden");
-            if (controlsBar) controlsBar.classList.add("hidden");
-            if (liveBadge) liveBadge.classList.add("hidden");
-            if (titleBar) titleBar.style.display = "none";
-
-            overlays.forEach((o) => o.classList.add("hidden"));
-
-            // Hide Poster
-            const poster = document.querySelector(".vjs-poster");
-            if (poster) {
-                poster.style.opacity = "0"; // Use opacity to hide
-                poster.style.display = "none";
-            }
-
+            let errorMessage = "Failed to load video";
             if (
                 isYouTube &&
                 (fromValue === "trailer_movie" || fromValue === "trailer_series")
             ) {
-                const errorMsgEl = document.getElementById("errorDialogMessage");
-                if (errorMsgEl) {
-                    const playerError = player.error();
-                    let errorMessage = "Something went wrong";
-                    if (playerError) {
-                        errorMessage =
-                            playerError.message || `Error Code: ${playerError.code}`;
-                    }
-                    errorMsgEl.innerText = `⚠️ ${errorMessage}`;
+                const playerError = player.error();
+                errorMessage = "Something went wrong";
+                if (playerError) {
+                    errorMessage =
+                        playerError.message || `Error Code: ${playerError.code}`;
                 }
             }
 
-            if (errorDialog) errorDialog.classList.remove("hidden");
+            showVideoErrorDialog(errorMessage);
         });
 
         function goBack() {
@@ -1960,6 +2118,32 @@ function VideoJsPlayer(poster = "") {
 
         document.addEventListener("keydown", videojsPlayerdownHandler);
 
+        // Exposed for js/ui/focus.js (delegated Magic Remote pointer
+        // support): the center play/pause overlay has no click listener of
+        // its own today.
+        window.videoPlayerToggle = toggleVideoPlayback;
+
+        // Pointer move shows the HUD (controls + title + center overlay)
+        // with the same 5-second auto-hide the keyboard path already uses.
+        // A click while the HUD is hidden lands on the bare video/container
+        // (nothing else is hit-testable while hidden), so it only reveals
+        // the HUD and never also triggers whatever would be underneath it.
+        var playerContainerEl = document.querySelector(".video-js-player-container");
+        if (playerContainerEl) {
+            playerContainerEl.addEventListener("mousemove", function () {
+                if (errorActive) return;
+                showAllControls();
+                resetControlsTimer();
+            });
+            playerContainerEl.addEventListener("click", function () {
+                if (errorActive) return;
+                if (controlsBar && controlsBar.classList.contains("hidden")) {
+                    showAllControls();
+                    resetControlsTimer();
+                }
+            });
+        }
+
         VideoJsPlayer.cleanup = function() {
             // Clear any pending timeouts first
             if (pendingSeekTimeout) {
@@ -1974,6 +2158,9 @@ function VideoJsPlayer(poster = "") {
                 clearTimeout(controlsTimer);
                 controlsTimer = null;
             }
+            clearTimeout(pendingShowTimer);
+            clearInterval(progressPollTimer);
+            clearVideoWatchdogs();
 
             // Remove event listener
             try {

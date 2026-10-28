@@ -356,6 +356,35 @@ function LoginPage() {
     }
 
     document.addEventListener("keydown", loginPageKeydownEvents);
+
+    // Exposed for js/ui/focus.js (delegated Magic Remote pointer support).
+    // eyeIcon and loginButton already have their own real click listeners
+    // (above), so activate() skips them to avoid a double action; the
+    // inputs and list-button have none, so those reuse the existing
+    // Enter-key logic directly (opens the keyboard / navigates).
+    function loginHoverSync(el) {
+      if (el === eyeIcon) {
+        clearFocusStyles();
+        if (lastFocusedInput) lastFocusedInput.blur();
+        eyeIcon.classList.add("eye-icon-focused");
+        return;
+      }
+      var idx = inputs.indexOf(el);
+      if (idx === -1) return;
+      updateFocus(idx);
+    }
+    function loginActivate(el) {
+      loginHoverSync(el);
+      if (el === eyeIcon || el === loginButton) return;
+      loginPageKeydownEvents({
+        key: "Enter",
+        keyCode: 13,
+        preventDefault: function () {},
+        stopPropagation: function () {},
+      });
+    }
+    window.loginHoverSync = loginHoverSync;
+    window.loginActivate = loginActivate;
     loginButton.addEventListener("click", handleLogin);
 
     LoginPage.cleanup = function () {
@@ -372,7 +401,7 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input  login-input"    type="text"  placeholder="Enter Any Name"></div>
+          <div><input class="playlistname-input  login-input"   type="text"  placeholder="Enter Any Name"></div>
           <div><input class="username-input login-input"   type="text" placeholder="Enter User Name"></div>
           <div><input class="password-input login-input"  type="password"  placeholder="Enter Password"></div>
 
