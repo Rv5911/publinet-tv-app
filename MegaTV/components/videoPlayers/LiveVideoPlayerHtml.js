@@ -341,9 +341,10 @@
 
   function bindVideo() {
     var v = S.video;
+    // a bare 'waiting' blip changes nothing: tick() switches to buffering only
+    // after a real stall (readyState < 3 and time frozen for 300ms)
     on(v, "waiting", function () {
       S.waiting = true;
-      if (S.state === "playing") setState("buffering");
     });
     on(v, "playing", function () {
       S.lastProgressAt = Date.now();

@@ -818,7 +818,13 @@
     if (advanced) {
       S.lastTime = t;
       S.lastProgressAt = now;
-      if (!v.paused && !S.seekWait) {
+      if (!v.paused && S.seekWait) {
+        // the picture is already moving again: the seek is done
+        if (S.seekWait.seeked) {
+          S.seekWait.canplay = true;
+          tryFinishSeek();
+        }
+      } else if (!v.paused) {
         S.waiting = false;
         if (S.state === "loading" || S.state === "buffering") setState("playing");
         if (S.state === "playing") {
@@ -860,9 +866,10 @@
     });
     on(v, "durationchange", updateTimes);
     on(v, "timeupdate", updateTimes);
+    // a bare 'waiting' blip changes nothing: tick() switches to buffering only
+    // after a real stall (readyState < 3 and time frozen for 300ms)
     on(v, "waiting", function () {
       S.waiting = true;
-      if (S.state === "playing") setState("buffering");
     });
     on(v, "playing", function () {
       S.waiting = false;
@@ -1318,10 +1325,8 @@
       if (entry) Continue.write(o, o.id, 0, S.knownDuration);
       startPlayback(0);
       showHud();
-    } else if (saved > RESUME_MIN_SEC && !o.fromContinue) {
-      openPopup(saved);
-      S.state = "idle";
     } else {
+      // a saved position (item is in Continue Watching) always resumes: no prompt
       startPlayback(saved > RESUME_MIN_SEC ? saved : 0);
       showHud();
     }
