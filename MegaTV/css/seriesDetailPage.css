@@ -811,3 +811,14 @@
         opacity: 1;
     }
 }
+/* Decorative layers must never swallow clicks meant for the buttons. */
+.series-detail-page-container::before,
+.play-icon-overlay,
+.series-detail-cast,
+[class*="skeleton"] {
+    pointer-events: none;
+}
+
+.series-cast-item {
+    pointer-events: auto;
+}

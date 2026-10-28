@@ -108,6 +108,7 @@ function LivePage() {
   // Cross-browser fullscreen detection helper
   const checkIsFullscreen = () => {
     return (
+      (window.LiveVideoPlayerHtml && window.LiveVideoPlayerHtml.isFullscreen()) ||
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
       document.mozFullScreenElement ||
@@ -510,6 +511,12 @@ function LivePage() {
     const playerContainer = document.getElementById("lp-player-container");
     if (!playerContainer) return;
 
+    // HTML5 live player: one <video>, layout switched by applyLayout (no reload)
+    if (window.LiveVideoPlayerHtml && window.LiveVideoPlayerHtml.isActive()) {
+      window.LiveVideoPlayerHtml.toggleFullscreen();
+      return;
+    }
+
     const isEnteringFullscreen = !checkIsFullscreen();
     document.body.classList.add("lp-fullscreen-transitioning");
     playerContainer.classList.add("lp-fullscreen-transitioning");
@@ -579,6 +586,7 @@ function LivePage() {
       "navigation-focus-change",
       handleNavigationFocusChange,
     );
+    window.liveHtmlLayoutChanged = null;
     window.cleanupLivePage = null;
   };
 
@@ -609,6 +617,7 @@ function LivePage() {
     document.addEventListener("sortChanged", handleSortChange);
 
     // Add fullscreen event listeners
+    window.liveHtmlLayoutChanged = handleFullscreenChange;
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
     document.addEventListener("mozfullscreenchange", handleFullscreenChange);
@@ -1669,9 +1678,13 @@ function LivePage() {
 
     currentPlayingStream = stream; // Set early to prevent multiple reloads
 
+    // HTML5 live player (non-Tizen) keeps one <video> and shows its own loader
+    const useHtmlLive =
+      !!window.LiveVideoPlayerHtml && window.LiveVideoPlayerHtml.isSupported();
+
     // Show loading indicator
     const videoWrapper = document.querySelector(".lp-video-wrapper");
-    if (videoWrapper) {
+    if (videoWrapper && !useHtmlLive) {
       videoWrapper.innerHTML = `
         <div style="width:100%; height:100%; background:black; display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff;">
           <i class="fas fa-spinner fa-spin" style="font-size: 50px; margin-bottom:10px;"></i>
@@ -1706,6 +1719,13 @@ function LivePage() {
       const currentStreamId = videoEl ? videoEl.dataset.streamId : null;
 
       if (currentStreamId !== String(stream.stream_id)) {
+        if (useHtmlLive) {
+          window.LiveVideoPlayerHtml.play(videoWrapper, {
+            streamId: stream.stream_id,
+            url: liveVideoUrl,
+            name: stream.name || "",
+          });
+        } else {
         if (window.livePlayer) {
           try {
             window.livePlayer.dispose();
@@ -1727,6 +1747,7 @@ function LivePage() {
             liveVideoUrl,
             stream.name || "",
           );
+        }
         }
       } else {
         if (window.livePlayer && typeof window.livePlayer.play === "function") {

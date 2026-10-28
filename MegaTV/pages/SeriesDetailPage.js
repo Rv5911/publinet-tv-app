@@ -737,6 +737,22 @@ async function SeriesDetailPage() {
 
       const seriesEpisodeVideoUrl = `${localStorage.getItem("loginDns")}/series/${currentPlaylist.user_info.username}/${currentPlaylist.user_info.password}/${episodeId}.${episode.container_extension}`;
 
+      // HTML5 player (webOS / PC). Tizen keeps the AVPlay path below.
+      if (window.App && App.VideoPlayerVod && App.VideoPlayerVod.isSupported()) {
+        App.VideoPlayerVod.open({
+          type: "series",
+          id: episodeId,
+          seriesId: localStorage.getItem("selectedSeriesId"),
+          season: selectedSeason,
+          episode: episode.episode_num,
+          title: episode.title || episode.name || "",
+          url: seriesEpisodeVideoUrl,
+          startOver: startFromBeginning,
+          fromContinue: !startFromBeginning,
+        });
+        return;
+      }
+
       // Create a clean copy of the episode data
       const playingItemData = {
         ...episode,
@@ -1197,34 +1213,7 @@ async function SeriesDetailPage() {
             console.log(" No Tralier Found")
           }
         } else if (focused === favBtn) {
-          const result = toggleFavoriteItem(
-            selectedSeriesItemId,
-            "favouriteSeries",
-          );
-
-          const heart = favBtn.querySelector(".heart-icon");
-          const text = favBtn.querySelector(".fav-text");
-
-          if (heart) {
-            heart.innerHTML = result.isFav
-              ? `<i class="fa-solid fa-heart"></i>`
-              : `<i class="fa-regular fa-heart"></i>`;
-          }
-          if (text) {
-            text.textContent = result.isFav
-              ? "Remove from Favorites"
-              : "Add to Favorites";
-          }
-
-          favBtn.setAttribute(
-            "aria-label",
-            result.isFav ? "Remove from Favorites" : "Add to Favorites",
-          );
-
-          Toaster.showToast(
-            result.isFav ? "success" : "error",
-            result.isFav ? "Added to Favorites" : "Removed from Favorites",
-          );
+          doFavorite();
         } else if (focused === seasonsBtn) {
           showDropdown();
         } else if (focused === castBtn) {
@@ -1315,9 +1304,77 @@ async function SeriesDetailPage() {
     currentFocusIndex = idx;
     setFocus(el);
   }
+  // The one favorite action (remote OK and click both end up here).
+  function doFavorite() {
+    const favBtn = document.querySelector(".series-detail-fav-button");
+    const result = toggleFavorite("series", selectedSeriesItemId);
+    if (!result || !result.success || !favBtn) return; // ignored press
+    const heart = favBtn.querySelector(".heart-icon");
+    const text = favBtn.querySelector(".fav-text");
+    if (heart) {
+      heart.innerHTML = result.isFav
+        ? '<i class="fa-solid fa-heart"></i>'
+        : '<i class="fa-regular fa-heart"></i>';
+    }
+    if (text) {
+      text.textContent = result.isFav ? "Remove from Favorites" : "Add to Favorites";
+    }
+    favBtn.setAttribute(
+      "aria-label",
+      result.isFav ? "Remove from Favorites" : "Add to Favorites",
+    );
+    Toaster.showToast(
+      result.isFav ? "success" : "error",
+      result.isFav ? "Added to Favorites" : "Removed from Favorites",
+    );
+  }
+
+  var DETAIL_ACTIONS = {
+    ".series-detail-play-button": "play",
+    ".series-detail-start-over-button": "start-over",
+    ".series-detail-more-info-button": "trailer",
+    ".series-detail-fav-button": "favorite",
+    ".series-detail-page-header-menu": "menu",
+    "#seasons-button": "seasons",
+    "#cast-button": "cast-toggle",
+    ".series-cast-item": "cast",
+    ".dropdown-item": "season-pick",
+    ".seasons-episodes-item": "episode",
+  };
+
+  // data-action of the element (stamped lazily for anything rendered later).
+  function actionElFrom(node, root) {
+    while (node && node !== root && node.nodeType === 1) {
+      if (node.getAttribute("data-action")) return node;
+      for (var sel in DETAIL_ACTIONS) {
+        if (node.matches && node.matches(sel)) {
+          node.setAttribute("data-action", DETAIL_ACTIONS[sel]);
+          return node;
+        }
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  // ONE click handler on the page container, bound once (the container
+  // survives re-renders; only its innerHTML changes).
+  (function bindDetailClicks() {
+    var root = document.getElementById("series-detail-page");
+    if (!root || root.__detailClickBound) return;
+    root.__detailClickBound = true;
+    root.addEventListener("click", function (e) {
+      var el = actionElFrom(e.target, root);
+      if (el && typeof window.seriesDetailActivate === "function") {
+        window.seriesDetailActivate(el);
+      }
+    });
+  })();
+
   function seriesDetailActivate(el) {
     seriesDetailHoverSync(el);
-    if (el.classList && el.classList.contains("series-detail-fav-button")) {
+    if (el.getAttribute("data-action") === "favorite" || (el.classList && el.classList.contains("series-detail-fav-button"))) {
+      doFavorite();
       return;
     }
     seriesDetailPageKeydownHandler({
@@ -1339,22 +1396,6 @@ async function SeriesDetailPage() {
     initFocus();
     updatePlayButton();
 
-    const favBtn = document.querySelector(".series-detail-fav-button");
-    if (favBtn) {
-      favBtn.addEventListener("click", () => {
-        const result = toggleFavoriteItem(
-          selectedSeriesItemId,
-          "favouriteSeries",
-        );
-        favBtn.textContent = result.isFav
-          ? "Remove from Favorites"
-          : "Add to Favorites";
-        Toaster.showToast(
-          result.isFav ? "success" : "error",
-          result.isFav ? "Added to Favorites" : "Removed from Favorites",
-        );
-      });
-    }
   }, 50);
 
   var htmlContent = renderSeriesDetailPage(seriesDetailData);
@@ -1479,10 +1520,7 @@ async function SeriesDetailPage() {
     }
 
     // Add favorite button
-    const isFavorite = isItemFavoriteForPlaylist(
-      selectedSeriesItemId,
-      "favouriteSeries",
-    );
+    const isFavorite = window.isFavorite("series", selectedSeriesItemId);
 
     return `
         <div class="series-detail-page-container">

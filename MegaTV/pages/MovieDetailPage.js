@@ -274,8 +274,74 @@ async function MovieDetailPage() {
     currentFocusIndex = idx;
     setFocus(el);
   }
+  // The one favorite action (remote OK and click both end up here).
+  function doFavorite() {
+    var favBtn = document.querySelector(".movie-detail-fav-button");
+    var id =
+      movieDetailData.movie_data && movieDetailData.movie_data.stream_id
+        ? movieDetailData.movie_data.stream_id
+        : "";
+    var res = toggleFavorite("movie", id);
+    if (!res || !res.success || !favBtn) return; // ignored press or no playlist
+    var heartIcon = favBtn.querySelector(".heart-icon");
+    var favText = favBtn.querySelector(".fav-text");
+    if (heartIcon)
+      heartIcon.innerHTML = res.isFav
+        ? '<i class="fa-solid fa-heart"></i>'
+        : '<i class="fa-regular fa-heart"></i>';
+    if (favText)
+      favText.textContent = res.isFav ? "Remove from Favorites" : "Add to Favorites";
+    Toaster.showToast(
+      res.isFav ? "success" : "error",
+      res.isFav ? "Added to Favorites" : "Removed from Favorites",
+    );
+  }
+
+  var DETAIL_ACTIONS = {
+    ".movie-detail-play-button": "play",
+    ".movie-detail-from-start-button": "start-over",
+    ".movie-detail-more-info-button": "trailer",
+    ".movie-detail-fav-button": "favorite",
+    ".movie-detail-page-header-menu": "menu",
+    ".movie-cast-item": "cast",
+  };
+
+  // data-action of the element (stamped lazily for anything rendered later).
+  function actionElFrom(node, root) {
+    while (node && node !== root && node.nodeType === 1) {
+      var a = node.getAttribute("data-action");
+      if (a) return node;
+      for (var sel in DETAIL_ACTIONS) {
+        if (node.matches && node.matches(sel)) {
+          node.setAttribute("data-action", DETAIL_ACTIONS[sel]);
+          return node;
+        }
+      }
+      node = node.parentNode;
+    }
+    return null;
+  }
+
+  // ONE click handler on the page container, bound once (the container
+  // survives re-renders; only its innerHTML changes).
+  (function bindDetailClicks() {
+    var root = document.getElementById("movies-detail-page");
+    if (!root || root.__detailClickBound) return;
+    root.__detailClickBound = true;
+    root.addEventListener("click", function (e) {
+      var el = actionElFrom(e.target, root);
+      if (el && typeof window.movieDetailActivate === "function") {
+        window.movieDetailActivate(el);
+      }
+    });
+  })();
+
   function movieDetailActivate(el) {
     movieDetailHoverSync(el);
+    if (el.getAttribute("data-action") === "favorite" || el.classList.contains("movie-detail-fav-button")) {
+      doFavorite();
+      return;
+    }
     moviesDetailPageKeydownHandler({
       key: "Enter",
       preventDefault: function () {},
@@ -368,6 +434,19 @@ async function MovieDetailPage() {
               movieDetailData.movie_data.container_extension;
           }
 
+          // HTML5 player (webOS / PC). Tizen keeps the AVPlay path below.
+          if (window.App && App.VideoPlayerVod && App.VideoPlayerVod.isSupported()) {
+            App.VideoPlayerVod.open({
+              type: "movie",
+              id: movieDetailData.movie_data.stream_id,
+              title: movieDetailData.movie_data.name || movieDetailData.movie_data.title || "",
+              url: movieVideoUrl,
+              startOver: focused === fromStartBtn,
+              fromContinue: focused === playBtn && isContinueWatchingMovie,
+            });
+            return;
+          }
+
           localStorage.setItem(
             "playingItemData",
             JSON.stringify(movieDetailData.movie_data),
@@ -403,34 +482,7 @@ async function MovieDetailPage() {
         }
 
         if (focused === favBtn) {
-          var res = toggleFavoriteItem(
-            movieDetailData.movie_data && movieDetailData.movie_data.stream_id
-              ? movieDetailData.movie_data.stream_id
-              : 0,
-            "favouriteMovies",
-          );
-          if (res && res.success) {
-            if (favBtn) {
-              var heartIcon = favBtn.querySelector(".heart-icon");
-              var favText = favBtn.querySelector(".fav-text");
-
-              if (heartIcon)
-                heartIcon.innerHTML = res.isFav
-                  ? '<i class="fa-solid fa-heart"></i>'
-                  : '<i class="fa-regular fa-heart"></i>';
-              if (favText)
-                favText.textContent = res.isFav
-                  ? "Remove from Favorites"
-                  : "Add to Favorites";
-
-              Toaster.showToast(
-                res.isFav ? "success" : "error",
-                res.isFav ? "Added to Favorites" : "Removed from Favorites",
-              );
-            }
-          } else {
-            console.log( "Unable to update favorites")
-          }
+          doFavorite();
         }
       }
 
@@ -528,10 +580,7 @@ async function MovieDetailPage() {
     console.log(data, "DATA");
     var isFav =
       data.movie_data && data.movie_data.stream_id
-        ? isItemFavoriteForPlaylist(
-            data.movie_data.stream_id,
-            "favouriteMovies",
-          )
+        ? isFavorite("movie", data.movie_data.stream_id)
         : false;
     var heartIconHtml = isFav
       ? '<i class="fa-solid fa-heart"></i>'

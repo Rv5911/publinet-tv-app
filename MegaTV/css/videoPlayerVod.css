@@ -1,0 +1,365 @@
+:root {
+  --vod-focus: #ffd400;
+}
+
+.vod-player {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 9000;
+  color: #fff;
+  font-family: "Poppins", Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+.vod-player .hidden {
+  display: none !important;
+}
+
+.vod-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  object-fit: contain;
+}
+
+/* ---- loader ---- */
+.vod-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vod-spinner {
+  width: 96px;
+  height: 96px;
+  border: 10px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: vod-spin 0.9s linear infinite;
+}
+
+@keyframes vod-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- HUD ---- */
+.vod-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  z-index: 3;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.75) 0%,
+    rgba(0, 0, 0, 0) 28%,
+    rgba(0, 0, 0, 0) 62%,
+    rgba(0, 0, 0, 0.85) 100%
+  );
+}
+
+.vod-hud-on .vod-hud {
+  display: block;
+}
+
+.vod-s-error .vod-hud {
+  display: none;
+}
+
+.vod-top {
+  position: absolute;
+  top: 48px;
+  left: 64px;
+  right: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.vod-title {
+  margin-left: 32px;
+  font-size: 44px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vod-center {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  margin-top: -100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vod-bottom {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  bottom: 72px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---- controls + focus (yellow background, black text/icons, nothing else) ---- */
+.vod-ctl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.vod-ctl.focused {
+  background: var(--vod-focus);
+  color: #000;
+}
+
+.vod-back {
+  width: 96px;
+  height: 96px;
+}
+
+.vod-skip,
+.vod-playbtn {
+  width: 160px;
+  height: 160px;
+  margin: 0 40px;
+  border-radius: 40px;
+}
+
+.vod-playbtn {
+  width: 200px;
+  height: 200px;
+}
+
+.vod-kind {
+  display: none;
+}
+
+.vod-kind.always,
+.vod-playbtn .vod-kind.k-play {
+  display: block;
+}
+
+.vod-playbtn.is-pause .vod-kind.k-play {
+  display: none;
+}
+
+.vod-playbtn.is-pause .vod-kind.k-pause {
+  display: block;
+}
+
+.vod-ic {
+  width: 80px;
+  height: 80px;
+  display: block;
+}
+
+.vod-playbtn .vod-ic {
+  width: 112px;
+  height: 112px;
+}
+
+.vod-back .vod-ic {
+  width: 64px;
+  height: 64px;
+}
+
+.vod-ic.f {
+  display: none;
+}
+
+.vod-ctl.focused .vod-ic.n {
+  display: none;
+}
+
+.vod-ctl.focused .vod-ic.f {
+  display: block;
+}
+
+/* ---- seekbar ---- */
+.vod-time {
+  width: 150px;
+  font-size: 34px;
+  font-weight: 600;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.vod-seekbar {
+  position: relative;
+  flex: 1;
+  height: 56px;
+  margin: 0 24px;
+  cursor: pointer;
+}
+
+.vod-seek-track {
+  position: absolute;
+  top: 21px;
+  left: 0;
+  right: 0;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.vod-seek-fill {
+  width: 0;
+  height: 100%;
+  background: #fff;
+}
+
+.vod-seekbar.focused .vod-seek-fill {
+  background: var(--vod-focus);
+}
+
+.vod-seek-thumb {
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.vod-seekbar.focused .vod-seek-thumb {
+  background: var(--vod-focus);
+}
+
+.vod-seek-bubble {
+  position: absolute;
+  bottom: 68px;
+  left: 0;
+  min-width: 120px;
+  margin-left: -60px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: #fff;
+  color: #000;
+  font-size: 32px;
+  font-weight: 600;
+  text-align: center;
+  display: none;
+  box-sizing: border-box;
+}
+
+.vod-previewing .vod-seek-bubble {
+  display: block;
+}
+
+.vod-seekbar.focused .vod-seek-bubble {
+  background: var(--vod-focus);
+  color: #000;
+}
+
+/* ---- error + popup dialogs ---- */
+.vod-error,
+.vod-popup {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 5;
+}
+
+.vod-dialog {
+  width: 1000px;
+  padding: 64px;
+  border-radius: 32px;
+  background: #151515;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.vod-dialog-title {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.vod-dialog-msg {
+  font-size: 34px;
+  line-height: 1.4;
+  color: #ddd;
+  margin-bottom: 48px;
+}
+
+.vod-dialog-btns {
+  display: flex;
+  justify-content: center;
+}
+
+.vod-btn {
+  min-width: 300px;
+  height: 100px;
+  margin: 0 20px;
+  padding: 0 40px;
+  font-size: 38px;
+  font-weight: 600;
+  border: 0;
+  background: #333;
+}
+
+.vod-btn .vod-ic {
+  width: 52px;
+  height: 52px;
+  margin-right: 16px;
+}
+
+.vod-btn .vod-kind {
+  display: block;
+}
+
+/* ---- red progress bar on Continue Watching cards ---- */
+.vod-card-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 6;
+  pointer-events: none;
+}
+
+.vod-card-progress i {
+  display: block;
+  height: 100%;
+  background: #e50914;
+}

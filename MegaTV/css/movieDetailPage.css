@@ -420,3 +420,14 @@
 .movie-detail-cast-section {
     margin-top: 40px;
 }
+/* Decorative layers must never swallow clicks meant for the buttons. */
+.movie-detail-page-container::before,
+.movie-detail-cast-section,
+.movie-detail-cast,
+[class*="skeleton"] {
+    pointer-events: none;
+}
+
+.movie-cast-item {
+    pointer-events: auto;
+}

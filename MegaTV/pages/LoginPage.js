@@ -27,6 +27,37 @@ function LoginPage() {
       });
     };
 
+    let lastFocusedInput = null;
+
+    // The ONLY places that give an input real focus / take it away.
+    // Inputs are readonly until opened, so arrows and hover (which only move
+    // the focus class) can never pop the keyboard.
+    function openInput(el) {
+      if (!el) return;
+      if (lastFocusedInput && lastFocusedInput !== el) closeInput(lastFocusedInput);
+      el.removeAttribute("readonly");
+      el.focus();
+      lastFocusedInput = el;
+      moveCaretToEnd(el);
+    }
+
+    // Keeps the focus class on the field; never re-focuses anything.
+    function closeInput(el) {
+      if (!el) return;
+      el.setAttribute("readonly", "readonly");
+      if (document.activeElement === el) el.blur();
+      if (lastFocusedInput === el) lastFocusedInput = null;
+    }
+
+    [playlistInput, usernameInput, passwordInput].forEach(function (inp) {
+      if (!inp) return;
+      inp.setAttribute("readonly", "readonly");
+      // keyboard closed (Done / back) -> readonly again, focus class stays
+      inp.addEventListener("blur", function () {
+        closeInput(inp);
+      });
+    });
+
     passwordInput.addEventListener("focus", () => {
       document.querySelector(".login-form-div").classList.add("shift-up");
       moveCaretToEnd(passwordInput);
@@ -85,7 +116,6 @@ function LoginPage() {
     ].filter(Boolean);
 
     let currentIndex = 0;
-    let lastFocusedInput = null;
 
     // Wrap password input safely
     const passwordWrapper = document.createElement("div");
@@ -144,10 +174,7 @@ function LoginPage() {
     function updateFocus(newIndex) {
       if (newIndex < 0 || newIndex >= inputs.length) return;
 
-      if (lastFocusedInput) {
-        lastFocusedInput.blur();
-        lastFocusedInput = null;
-      }
+      if (lastFocusedInput) closeInput(lastFocusedInput);
 
       clearFocusStyles();
       currentIndex = newIndex;
@@ -296,7 +323,7 @@ function LoginPage() {
         case "ArrowRight":
           if (inputs[currentIndex] === passwordInput) {
             clearFocusStyles();
-            if (lastFocusedInput) lastFocusedInput.blur();
+            if (lastFocusedInput) closeInput(lastFocusedInput);
             eyeIcon.classList.add("eye-icon-focused");
           }
           e.stopPropagation();
@@ -320,13 +347,13 @@ function LoginPage() {
           }
 
           if (lastFocusedInput && lastFocusedInput !== focused) {
-            lastFocusedInput.blur();
+            closeInput(lastFocusedInput);
           }
 
           if (focused.classList.contains("login-input")) {
-            focused.focus();
-            lastFocusedInput = focused;
-            moveCaretToEnd(focused);
+            // OK on an open field = Done; otherwise open it
+            if (document.activeElement === focused) closeInput(focused);
+            else openInput(focused);
           } else if (focused.classList.contains("login-button")) {
             handleLogin();
           } else if (focused.classList.contains("list-button")) {
@@ -365,7 +392,7 @@ function LoginPage() {
     function loginHoverSync(el) {
       if (el === eyeIcon) {
         clearFocusStyles();
-        if (lastFocusedInput) lastFocusedInput.blur();
+        if (lastFocusedInput) closeInput(lastFocusedInput);
         eyeIcon.classList.add("eye-icon-focused");
         return;
       }
@@ -376,6 +403,10 @@ function LoginPage() {
     function loginActivate(el) {
       loginHoverSync(el);
       if (el === eyeIcon || el === loginButton) return;
+      if (el.classList.contains("login-input")) {
+        openInput(el); // click / pointer OK opens the field (never toggles it closed)
+        return;
+      }
       loginPageKeydownEvents({
         key: "Enter",
         keyCode: 13,
@@ -401,9 +432,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input  login-input"   type="text"  placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input"   type="text" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input"  type="password"  placeholder="Enter Password"></div>
+          <div><input class="playlistname-input  login-input" value="test"  type="text" readonly autocomplete="off" placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input"  value="testing13541" type="text" readonly autocomplete="off" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input"  value="testing132" type="password" readonly autocomplete="off" placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>

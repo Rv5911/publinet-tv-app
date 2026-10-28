@@ -58,6 +58,9 @@
     ".playlist-card",
     ".eye-icon-login",
     ".video-action-overlay.center",
+    ".vod-ctl",
+    ".vod-seekbar",
+    ".lvh-ctl",
   ].join(",");
 
   // Pages whose cards/rows have no DOM focus and no click listener at all
@@ -154,20 +157,17 @@
     },
     movieDetail: {
       zone: ".movie-detail-page-container",
+      // No activate: the page's single delegated click handler runs the
+      // action (OK with the pointer visible turns into el.click()).
       sync: function (el) {
         if (typeof window.movieDetailHoverSync === "function") window.movieDetailHoverSync(el);
-      },
-      activate: function (el) {
-        if (typeof window.movieDetailActivate === "function") window.movieDetailActivate(el);
       },
     },
     seriesDetail: {
       zone: ".series-detail-page-container",
+      // No activate: see movieDetail above.
       sync: function (el) {
         if (typeof window.seriesDetailHoverSync === "function") window.seriesDetailHoverSync(el);
-      },
-      activate: function (el) {
-        if (typeof window.seriesDetailActivate === "function") window.seriesDetailActivate(el);
       },
     },
     listUsers: {
@@ -193,6 +193,26 @@
       sync: function () {},
       activate: function () {
         if (typeof window.videoPlayerToggle === "function") window.videoPlayerToggle();
+      },
+    },
+    // HTML5 players (videoPlayerVod / LiveVideoPlayerHtml): the players own
+    // the .focused class + zone index; OK is handled only by the focused control.
+    vodPlayer: {
+      zone: ".vod-player",
+      sync: function (el) {
+        if (typeof window.VodPlayerHoverSync === "function") window.VodPlayerHoverSync(el);
+      },
+      activate: function (el) {
+        if (typeof window.VodPlayerActivate === "function") window.VodPlayerActivate(el);
+      },
+    },
+    liveHtmlPlayer: {
+      zone: ".lvh-root .lvh-ctl",
+      sync: function (el) {
+        if (typeof window.LiveHtmlHoverSync === "function") window.LiveHtmlHoverSync(el);
+      },
+      activate: function (el) {
+        if (typeof window.LiveHtmlActivate === "function") window.LiveHtmlActivate(el);
       },
     },
     categoryView: {
@@ -238,6 +258,8 @@
 
   function resolveAdapter(el) {
     if (!el || typeof el.closest !== "function") return null;
+    if (el.closest(ADAPTERS.vodPlayer.zone)) return ADAPTERS.vodPlayer;
+    if (el.closest(ADAPTERS.liveHtmlPlayer.zone)) return ADAPTERS.liveHtmlPlayer;
     if (el.closest(ADAPTERS.categoryView.zone)) return ADAPTERS.categoryView;
     if (el.closest(ADAPTERS.categoryList.zone)) return ADAPTERS.categoryList;
     if (el.closest(ADAPTERS.movies.zone)) return ADAPTERS.movies;
@@ -279,7 +301,8 @@
     if (!el) return;
     lastHovered = el;
     setFocused(el);
-    if (isNativeFocusable(el)) el.focus();
+    // readonly fields (login) get real focus only from their own openInput()
+    if (isNativeFocusable(el) && !el.readOnly) el.focus();
     var adapter = resolveAdapter(el);
     if (adapter) adapter.sync(el);
   }

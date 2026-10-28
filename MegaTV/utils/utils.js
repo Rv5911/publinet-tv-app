@@ -182,6 +182,74 @@ function saveItemToCurrentPlaylist(item, typeKey, playlistUsername) {
   return pl[typeKey].some((m) => getItemUniqueId(m) === uid);
 }
 
+// ---- Movie / series favorites (detail pages) ----
+// One writer. Ids are always Strings; the active playlist's list is re-read
+// from storage on every call; a second press within 400ms is ignored so a
+// click + OK pair can never add and remove together.
+var FAV_PRESS_GAP_MS = 400;
+var lastFavPressAt = 0;
+
+function favKeyFor(type) {
+  return type === "series" ? "favouriteSeries" : "favouriteMovies";
+}
+
+function favItemId(item) {
+  if (item && typeof item === "object") {
+    return String(item.stream_id || item.series_id || item.id || "");
+  }
+  return String(item);
+}
+
+function activePlaylistFavorites(type) {
+  var name = null;
+  try {
+    name = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
+  } catch (e) {}
+  var playlists = getPlaylistsData();
+  for (var i = 0; i < playlists.length; i++) {
+    if (playlists[i].playlistName === name) {
+      return { playlists: playlists, pl: playlists[i], key: favKeyFor(type) };
+    }
+  }
+  return null;
+}
+
+function isFavorite(type, id) {
+  var ctx = activePlaylistFavorites(type);
+  if (!ctx) return false;
+  var list = ctx.pl[ctx.key] || [];
+  var sid = String(id);
+  for (var i = 0; i < list.length; i++) {
+    if (favItemId(list[i]) === sid) return true;
+  }
+  return false;
+}
+
+// Returns {success, isFav}, or null when the press was ignored.
+function toggleFavorite(type, id) {
+  var now = Date.now();
+  if (now - lastFavPressAt < FAV_PRESS_GAP_MS) return null;
+  lastFavPressAt = now;
+
+  var sid = String(id);
+  var ctx = activePlaylistFavorites(type);
+  if (!ctx || !sid) return { success: false, isFav: false };
+
+  var list = ctx.pl[ctx.key] || [];
+  var out = [];
+  var found = false;
+  for (var i = 0; i < list.length; i++) {
+    if (favItemId(list[i]) === sid) found = true;
+    else out.push(list[i]);
+  }
+  if (!found) out.push(sid);
+  ctx.pl[ctx.key] = out;
+  savePlaylistsData(ctx.playlists);
+  return { success: true, isFav: !found };
+}
+window.toggleFavorite = toggleFavorite;
+window.isFavorite = isFavorite;
+
 function addItemToHistory(item, typeKey, playlistUsername) {
   const username = playlistUsername || getCurrentPlaylistUsername();
   if (!username) return;

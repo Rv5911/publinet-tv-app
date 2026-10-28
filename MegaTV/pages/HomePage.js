@@ -439,6 +439,19 @@ async function HomePage() {
                 selectedItem.movie_data.container_extension;
             }
 
+            // HTML5 player (webOS / PC). Tizen keeps the AVPlay path below.
+            if (window.App && App.VideoPlayerVod && App.VideoPlayerVod.isSupported()) {
+              localStorage.setItem("fromHome", "true");
+              document.removeEventListener("keydown", homePageKeydownEvents);
+              App.VideoPlayerVod.open({
+                type: "movie",
+                id: selectedItem.movie_data.stream_id,
+                title: selectedItem.movie_data.name || selectedItem.movie_data.title || "",
+                url: movieVideoUrl,
+              });
+              return;
+            }
+
             localStorage.setItem(
               "playingItemData",
               JSON.stringify(selectedItem.movie_data)

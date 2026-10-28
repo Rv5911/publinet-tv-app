@@ -1,0 +1,319 @@
+:root {
+  --lvh-focus: #ffd400;
+}
+
+.lvh-root .hidden {
+  display: none !important;
+}
+
+/* ---- single fullscreen layout (the <video> is never moved or reloaded) ---- */
+.lp-player-container.lvh-fs {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
+  background: #000;
+}
+
+body.lvh-fs-on {
+  background: #000 !important;
+}
+
+body.lvh-fs-on .lp-sidebar,
+body.lvh-fs-on .lp-epg-container,
+body.lvh-fs-on .lp-channels-section,
+body.lvh-fs-on #navbar-root {
+  visibility: hidden !important;
+}
+
+.lvh-full .play-pause-icon,
+.lvh-full .live-video-controls,
+.lvh-full .live-top-overlays,
+.lvh-error-on .play-pause-icon,
+.lvh-error-on .live-video-controls,
+.lvh-error-on .live-top-overlays {
+  display: none !important;
+}
+
+/* ---- loader ---- */
+.lvh-loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.lvh-spinner {
+  width: 72px;
+  height: 72px;
+  border: 8px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: lvh-spin 0.9s linear infinite;
+}
+
+.lvh-full .lvh-spinner {
+  width: 96px;
+  height: 96px;
+  border-width: 10px;
+}
+
+@keyframes lvh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- fullscreen HUD ---- */
+.lvh-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  z-index: 5;
+  color: #fff;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0) 28%,
+    rgba(0, 0, 0, 0) 70%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+}
+
+.lvh-full.lvh-hud-on .lvh-hud {
+  display: block;
+}
+
+.lvh-top {
+  position: absolute;
+  top: 48px;
+  left: 64px;
+  right: 64px;
+  display: flex;
+  align-items: center;
+}
+
+.lvh-name {
+  font-size: 44px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lvh-live {
+  margin-left: 24px;
+  padding: 4px 18px;
+  border-radius: 10px;
+  background: #e50914;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.lvh-center {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  margin-top: -100px;
+  display: flex;
+  justify-content: center;
+}
+
+.lvh-bottom {
+  position: absolute;
+  right: 64px;
+  bottom: 56px;
+}
+
+/* ---- controls + focus (yellow background, black text/icons, nothing else) ---- */
+.lvh-ctl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 40px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.lvh-ctl.focused {
+  background: var(--lvh-focus);
+  color: #000;
+}
+
+.lvh-playbtn {
+  width: 200px;
+  height: 200px;
+}
+
+.lvh-exitbtn {
+  width: 120px;
+  height: 120px;
+  border-radius: 28px;
+}
+
+.lvh-kind {
+  display: none;
+}
+
+.lvh-kind.always,
+.lvh-playbtn .lvh-kind.k-play {
+  display: block;
+}
+
+.lvh-playbtn.is-pause .lvh-kind.k-play {
+  display: none;
+}
+
+.lvh-playbtn.is-pause .lvh-kind.k-pause {
+  display: block;
+}
+
+.lvh-ic {
+  width: 72px;
+  height: 72px;
+  display: block;
+}
+
+.lvh-playbtn .lvh-ic {
+  width: 112px;
+  height: 112px;
+}
+
+.lvh-ic.f {
+  display: none;
+}
+
+.lvh-ctl.focused .lvh-ic.n {
+  display: none;
+}
+
+.lvh-ctl.focused .lvh-ic.f {
+  display: block;
+}
+
+/* ---- toast ---- */
+.lvh-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%);
+  padding: 14px 32px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 30px;
+  z-index: 7;
+  white-space: nowrap;
+}
+
+/* ---- error overlay ---- */
+.lvh-error {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 8;
+}
+
+.lvh-dialog {
+  max-width: 900px;
+  padding: 32px 40px;
+  border-radius: 24px;
+  background: #151515;
+  color: #fff;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.lvh-dialog-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.lvh-dialog-msg {
+  font-size: 20px;
+  line-height: 1.4;
+  color: #ddd;
+  margin-bottom: 24px;
+}
+
+.lvh-dialog-btns {
+  display: flex;
+  justify-content: center;
+}
+
+.lvh-btn {
+  min-width: 160px;
+  height: 64px;
+  margin: 0 10px;
+  padding: 0 24px;
+  border-radius: 16px;
+  background: #333;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.lvh-btn .lvh-ic {
+  width: 32px;
+  height: 32px;
+  margin-right: 10px;
+}
+
+.lvh-btn .lvh-kind {
+  display: block;
+}
+
+.lvh-full .lvh-dialog {
+  padding: 64px;
+  border-radius: 32px;
+}
+
+.lvh-full .lvh-dialog-title {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.lvh-full .lvh-dialog-msg {
+  font-size: 34px;
+  margin-bottom: 48px;
+}
+
+.lvh-full .lvh-btn {
+  min-width: 300px;
+  height: 100px;
+  margin: 0 20px;
+  font-size: 38px;
+  border-radius: 24px;
+}
+
+.lvh-full .lvh-btn .lvh-ic {
+  width: 52px;
+  height: 52px;
+}
