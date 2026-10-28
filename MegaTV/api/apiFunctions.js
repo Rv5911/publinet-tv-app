@@ -107,10 +107,8 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://inthezone.pro/";
-  // let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
-  let alldns =  [];
-
+  const defaultDns = "https://mega2025.site:443";
+  let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {
     alldns = [defaultDns];

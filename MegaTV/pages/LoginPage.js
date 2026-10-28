@@ -432,9 +432,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input  login-input" value="test"  type="text" readonly autocomplete="off" placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input"  value="testing13541" type="text" readonly autocomplete="off" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input"  value="testing132" type="password" readonly autocomplete="off" placeholder="Enter Password"></div>
+          <div><input class="playlistname-input  login-input"  type="text" readonly autocomplete="off" placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input"  type="text" readonly autocomplete="off" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input"  type="password" readonly autocomplete="off" placeholder="Enter Password"></div>
 
           <div class="login-buttons-div">
             <button class="login-button">Login</button>
