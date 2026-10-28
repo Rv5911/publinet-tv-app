@@ -822,3 +822,36 @@
 .series-cast-item {
     pointer-events: auto;
 }
+
+/* Episode cards: inner layers never catch the pointer, the card itself does. */
+.seasons-episodes-item > *,
+.seasons-episodes-item .episode-image-container > *,
+.seasons-episodes-item .episode-info-container > * {
+    pointer-events: none;
+}
+
+/* the episodes live inside .series-detail-cast (pointer-events:none above): re-enable the cards */
+.seasons-episodes-item,
+.series-cast-item,
+.seasons-button-container,
+.seasons-and-cast-buttons button {
+    pointer-events: auto;
+}
+
+/* finished episode: tick instead of a progress bar */
+.episode-watched-tick {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #1db954;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    z-index: 3;
+    pointer-events: none;
+}

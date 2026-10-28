@@ -113,10 +113,34 @@
 
   // ---------------------------------------------------------------- state
 
+  function isBusyState(st) {
+    return st === "loading" || st === "buffering";
+  }
+
   function setState(next) {
     if (!S || S.state === next) return;
+    var prev = S.state;
     S.state = next;
     S.root.className = S.root.className.replace(/\blvh-s-\w+/g, "").replace(/\s+/g, " ") + " lvh-s-" + next;
+
+    // Loading/buffering: only the spinner shows (one root class).
+    var wasBusy = isBusyState(prev);
+    var nowBusy = isBusyState(next);
+    if (!wasBusy && nowBusy) {
+      S.hudBeforeBusy = prev === "idle" ? S.fullscreen : S.hudVisible;
+      clearTimeout(S.hudTimer);
+      S.hudTimer = null;
+      S.hudVisible = false;
+      S.root.classList.remove("lvh-hud-on");
+      S.root.classList.add("is-loading");
+      rebuildEntries();
+    } else if (wasBusy && !nowBusy) {
+      S.root.classList.remove("is-loading");
+      if (S.hudBeforeBusy) {
+        S.hudBeforeBusy = false;
+        showHud();
+      }
+    }
     armWatchdog();
     syncIcons();
     updateLoader();
@@ -206,11 +230,12 @@
     clearInterval(S.pollTimer);
     S.watchdogTimer = S.hudTimer = S.pollTimer = null;
     stopMedia();
+    S.root.classList.remove("is-loading");
     S.state = "error";
     S.root.className = S.root.className.replace(/\blvh-s-\w+/g, "") + " lvh-s-error lvh-error-on";
     S.els.loader.classList.add("hidden");
     S.loaderOn = false;
-    S.els.errMsg.textContent = msg || "Failed to load the channel.";
+    S.els.errMsg.textContent = msg || "Something went wrong while playing this channel.";
     S.els.error.classList.remove("hidden");
     S.hudVisible = false;
     S.root.classList.remove("lvh-hud-on");
@@ -298,11 +323,18 @@
     S.video.pause();
   }
 
+  // Click and OK share this. Only while playing/paused; a repeat within 300ms
+  // is ignored. In the error state only the windowed preview retries on OK
+  // (it has no focusable overlay buttons for the remote); fullscreen uses them.
   function togglePlay() {
     if (S.errorOpen) {
-      retry();
+      if (!S.fullscreen) retry();
       return;
     }
+    if (S.state !== "playing" && S.state !== "paused") return;
+    var now = Date.now();
+    if (now - S.lastToggleAt < 300) return;
+    S.lastToggleAt = now;
     if (S.video.paused) doPlay();
     else doPause();
   }
@@ -339,12 +371,12 @@
       syncIcons();
     });
     on(v, "ended", function () {
-      failure("The live stream ended.");
+      failure("Something went wrong while playing this channel.");
     });
     on(v, "error", function () {
       if (!v.getAttribute("src") && !S.hls) return;
       var code = v.error ? v.error.code : 0;
-      failure(code === 4 ? "This channel or its address is not supported." : "Failed to load the channel.");
+      failure(code === 2 ? "Network error. Check your connection and try again." : "Something went wrong while playing this channel.");
     });
   }
 
@@ -396,7 +428,7 @@
   }
 
   function showHud() {
-    if (!S || !S.fullscreen || S.errorOpen) return;
+    if (!S || !S.fullscreen || S.errorOpen || isBusyState(S.state)) return;
     if (!S.hudVisible) {
       S.hudVisible = true;
       S.root.classList.add("lvh-hud-on");
@@ -429,6 +461,7 @@
 
   function currentIds() {
     if (S.errorOpen) return ["errBack", "errRetry"];
+    if (isBusyState(S.state)) return [];
     if (S.fullscreen && S.hudVisible) return ["play", "exit"];
     return [];
   }
@@ -488,6 +521,7 @@
     clearTimeout(S.hudTimer);
     S.hudVisible = false;
     S.root.classList.remove("lvh-hud-on");
+    S.hudBeforeBusy = !!full && isBusyState(S.state); // HUD returns after the spinner
     if (full) {
       hideControls();
       S.focusId = "play";
@@ -543,6 +577,14 @@
 
     if (!S.fullscreen) return; // windowed navigation belongs to LivePage
 
+    // loading / buffering: only Back works (exits fullscreen)
+    if (isBusyState(S.state) && !S.errorOpen) {
+      var back = kc === KEY_STOP || isBack(e);
+      if (back || dirOf(kc) || kc === 13 || kc === KEY_PLAY || kc === KEY_PAUSE) block(e);
+      if (back) exitFullscreen();
+      return;
+    }
+
     if (kc === KEY_PLAY) {
       if (S.video.paused) doPlay();
       showHud();
@@ -562,13 +604,11 @@
       }
     } else if (kc === 13) {
       if (!e.repeat) {
-        if (!S.entries.length) {
-          togglePlay();
-          showHud();
-        } else {
-          actionFor(S.focusId);
-          showHud();
-        }
+        // HUD hidden or nothing focused: OK toggles play/pause, then the HUD shows
+        var focusedEl = S.entries.length ? ctl(S.focusId) : null;
+        if (!focusedEl || !focusedEl.classList.contains("focused")) togglePlay();
+        else actionFor(S.focusId);
+        showHud();
       }
     } else {
       return;
@@ -704,6 +744,8 @@
       pollTimer: null,
       toastTimer: null,
       hls: null,
+      hudBeforeBusy: false,
+      lastToggleAt: 0,
     };
     S.els = {
       loader: q(".lvh-loader"),
@@ -729,7 +771,14 @@
     window.LiveHtmlActivate = function (node) {
       if (!S) return;
       var id = node && node.getAttribute("data-lvh");
-      if (!id || S.entries.indexOf(id) === -1) return;
+      if (!id || S.entries.indexOf(id) === -1) {
+        // OK with the pointer visible but none of our controls registered/focused
+        if (!S.errorOpen) {
+          togglePlay();
+          if (S.fullscreen) showHud();
+        }
+        return;
+      }
       S.focusId = id;
       applyFocus();
       actionFor(id);
@@ -737,7 +786,8 @@
     };
 
     exposeCompat();
-    on(document, "keydown", onKeyDown, true);
+    // window capture runs before focus.js's document-level OK handler
+    on(window, "keydown", onKeyDown, true);
     bindVideo();
     bindPointer();
     startPoll();

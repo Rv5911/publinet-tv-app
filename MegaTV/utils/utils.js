@@ -182,6 +182,135 @@ function saveItemToCurrentPlaylist(item, typeKey, playlistUsername) {
   return pl[typeKey].some((m) => getItemUniqueId(m) === uid);
 }
 
+// ---- Continue service: per-episode resume (one writer) ----
+// Stored inside the playlist object, so deleting a playlist deletes its
+// episode entries too:
+//   pl.episodeProgress[episodeId] = { positionSec, durationSec, updatedAt, seriesId }
+//   pl.episodeWatched[episodeId]  = seriesId   (finished at 100%)
+// The series Continue Watching card (continueWatchingSeries, one per series)
+// is written by the player and only points at the last played episode.
+var ContinueService = (function () {
+  function norm(id) {
+    return id == null ? "" : String(id);
+  }
+
+  function ctx() {
+    var name = null;
+    try {
+      name = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
+    } catch (e) {}
+    var playlists = getPlaylistsData();
+    for (var i = 0; i < playlists.length; i++) {
+      if (playlists[i].playlistName !== name) continue;
+      var pl = playlists[i];
+      if (!pl.episodeProgress) pl.episodeProgress = {};
+      if (!pl.episodeWatched) pl.episodeWatched = {};
+      // migration: the old single entry per series becomes its last episode's entry
+      if (!pl.episodeProgressMigrated) {
+        var cw = pl.continueWatchingSeries || [];
+        for (var j = 0; j < cw.length; j++) {
+          var it = cw[j];
+          if (!it || it.episodeId == null) continue;
+          var eid = norm(it.episodeId);
+          if (!pl.episodeProgress[eid] && Number(it.resumeTime) > 0) {
+            pl.episodeProgress[eid] = {
+              positionSec: Number(it.resumeTime) || 0,
+              durationSec: Number(it.duration) || 0,
+              updatedAt: Date.now(),
+              seriesId: norm(it.itemId),
+            };
+          }
+        }
+        pl.episodeProgressMigrated = true;
+        savePlaylistsData(playlists);
+      }
+      return { playlists: playlists, pl: pl };
+    }
+    return null;
+  }
+
+  function commit(c) {
+    savePlaylistsData(c.playlists);
+  }
+
+  return {
+    norm: norm,
+    getEpisode: function (id) {
+      var c = ctx();
+      return c ? c.pl.episodeProgress[norm(id)] || null : null;
+    },
+    episodeMap: function () {
+      var c = ctx();
+      return c ? c.pl.episodeProgress : {};
+    },
+    watchedMap: function () {
+      var c = ctx();
+      return c ? c.pl.episodeWatched : {};
+    },
+    isWatched: function (id) {
+      var c = ctx();
+      return !!(c && c.pl.episodeWatched[norm(id)]);
+    },
+    // Only this episode's entry changes; others are never touched.
+    setEpisode: function (id, seriesId, pos, dur) {
+      var c = ctx();
+      if (!c) return;
+      var eid = norm(id);
+      c.pl.episodeProgress[eid] = {
+        positionSec: Math.round(pos * 10) / 10,
+        durationSec: Math.floor(dur || 0),
+        updatedAt: Date.now(),
+        seriesId: norm(seriesId),
+      };
+      delete c.pl.episodeWatched[eid];
+      commit(c);
+    },
+    // Start over: position 0 for this episode only (entry kept, watched flag cleared).
+    resetEpisode: function (id) {
+      var c = ctx();
+      if (!c) return;
+      var eid = norm(id);
+      if (c.pl.episodeProgress[eid]) {
+        c.pl.episodeProgress[eid].positionSec = 0;
+        c.pl.episodeProgress[eid].updatedAt = Date.now();
+      }
+      delete c.pl.episodeWatched[eid];
+      commit(c);
+    },
+    // Ended at 100%: clear the progress, mark watched (tick on the card).
+    finishEpisode: function (id, seriesId) {
+      var c = ctx();
+      if (!c) return;
+      var eid = norm(id);
+      delete c.pl.episodeProgress[eid];
+      c.pl.episodeWatched[eid] = norm(seriesId) || "1";
+      commit(c);
+    },
+    // Remove from Continue Watching: all of the series' episodes lose progress.
+    removeSeries: function (seriesId) {
+      var c = ctx();
+      if (!c) return;
+      var sid = norm(seriesId);
+      var k;
+      for (k in c.pl.episodeProgress) {
+        if (norm(c.pl.episodeProgress[k].seriesId) === sid) delete c.pl.episodeProgress[k];
+      }
+      for (k in c.pl.episodeWatched) {
+        if (norm(c.pl.episodeWatched[k]) === sid) delete c.pl.episodeWatched[k];
+      }
+      commit(c);
+    },
+    clearAllSeries: function () {
+      var c = ctx();
+      if (!c) return;
+      c.pl.episodeProgress = {};
+      c.pl.episodeWatched = {};
+      commit(c);
+    },
+  };
+})();
+window.ContinueService = ContinueService;
+
 // ---- Movie / series favorites (detail pages) ----
 // One writer. Ids are always Strings; the active playlist's list is re-read
 // from storage on every call; a second press within 400ms is ignored so a

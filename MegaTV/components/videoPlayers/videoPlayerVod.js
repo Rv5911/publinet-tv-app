@@ -126,6 +126,11 @@
       }
     },
     find: function (o) {
+      if (o.type === "series") {
+        // per-episode entry (own position + duration), not the series card
+        var ep = ContinueService.getEpisode(o.id);
+        return ep ? { resumeTime: ep.positionSec, duration: ep.durationSec } : null;
+      }
       var found = null;
       var name = Continue.playlistName();
       var playlists = Continue.load();
@@ -152,7 +157,16 @@
       return found;
     },
     // Movies: one entry per movie. Series: one entry per series (last episode).
+    // Player's one writer: this episode's own entry + the series card.
     write: function (o, episodeId, pos, dur) {
+      if (o.type === "series" && String(episodeId) === String(o.id)) {
+        if (pos > 0) ContinueService.setEpisode(o.id, o.seriesId, pos, dur);
+        else ContinueService.resetEpisode(o.id);
+      }
+      Continue.writeCard(o, episodeId, pos, dur);
+    },
+    // Series card only (one per series, points at the last played episode).
+    writeCard: function (o, episodeId, pos, dur) {
       var itemId = String(o.type === "series" ? o.seriesId : o.id);
       var entry = {
         itemId: itemId,
@@ -308,11 +322,35 @@
 
   // ------------------------------------------------------------- state
 
+  function isBusyState(st) {
+    return st === "loading" || st === "buffering" || st === "seeking";
+  }
+
   function setState(next) {
     if (!S || S.state === next) return;
+    var prev = S.state;
     S.state = next;
     var cls = S.els.root.className.replace(/\bvod-s-\w+/g, "").replace(/\s+/g, " ");
     S.els.root.className = cls + " vod-s-" + next;
+
+    // Loading/buffering/seeking: only the spinner shows (one root class).
+    var wasBusy = isBusyState(prev);
+    var nowBusy = isBusyState(next);
+    if (!wasBusy && nowBusy) {
+      S.hudBeforeBusy = prev === "idle" ? true : S.hudVisible;
+      clearTimeout(S.hudTimer);
+      S.hudTimer = null;
+      S.hudVisible = false;
+      S.els.root.classList.remove("vod-hud-on");
+      S.els.root.classList.add("is-loading");
+      rebuildEntries();
+    } else if (wasBusy && !nowBusy) {
+      S.els.root.classList.remove("is-loading");
+      if (S.hudBeforeBusy) {
+        S.hudBeforeBusy = false;
+        showHud();
+      }
+    }
     armWatchdog();
     syncPlayIcon();
     updateLoader();
@@ -387,7 +425,7 @@
   }
 
   function showHud() {
-    if (!S || S.errorOpen || S.popupOpen) return;
+    if (!S || S.errorOpen || S.popupOpen || isBusyState(S.state)) return;
     if (!S.hudVisible) {
       S.hudVisible = true;
       S.els.root.classList.add("vod-hud-on");
@@ -411,6 +449,7 @@
   function currentIds() {
     if (S.popupOpen) return ["popResume", "popStart"];
     if (S.errorOpen) return ["errBack", "errRetry"];
+    if (isBusyState(S.state)) return [];
     if (S.hudVisible) return ["back", "rew", "play", "fwd", "seek"];
     return [];
   }
@@ -568,9 +607,13 @@
 
   // ------------------------------------------------------------ transport
 
+  // Click and OK share this. Only while playing/paused; a repeat within 300ms is ignored.
   function togglePlay() {
     var v = S.els.video;
-    if (S.state === "error" || S.state === "ended") return;
+    if (S.state !== "playing" && S.state !== "paused") return;
+    var now = Date.now();
+    if (now - S.lastToggleAt < 300) return;
+    S.lastToggleAt = now;
     if (v.paused) doPlay();
     else doPause();
     showHud();
@@ -655,6 +698,7 @@
     S.els.root.classList.remove("vod-hud-on", "vod-previewing");
     S.els.errMsg.textContent = msg || "Something went wrong while playing this video.";
     S.els.error.classList.remove("hidden");
+    S.els.root.classList.remove("is-loading");
     S.state = "error";
     S.els.root.className = S.els.root.className.replace(/\bvod-s-\w+/g, "") + " vod-s-error";
     S.loaderOn = false;
@@ -677,8 +721,6 @@
   function errorMessageFor(v) {
     var code = v.error ? v.error.code : 0;
     if (code === 2) return "Network error. Check your connection and try again.";
-    if (code === 3) return "This video could not be decoded.";
-    if (code === 4) return "This video or its address is not supported.";
     return "Something went wrong while playing this video.";
   }
 
@@ -727,6 +769,8 @@
     var o = S.opts;
     var nextId = null;
     if (o.type === "series") {
+      // finished at 100%: progress cleared, episode marked watched (tick)
+      ContinueService.finishEpisode(o.id, o.seriesId);
       var next = findNextEpisode(o);
       if (next) {
         nextId = next.id;
@@ -739,7 +783,7 @@
           season: next.season,
           episode: next.ep ? next.ep.episode_num : null,
         };
-        Continue.write(o2, next.id, 0, nd);
+        Continue.writeCard(o2, next.id, 0, nd); // next episode's own entry is untouched
       } else {
         Continue.remove(o); // last episode finished
       }
@@ -968,6 +1012,14 @@
     var kc = e.keyCode;
     var handled = true;
 
+    // loading / buffering / seeking: only the Back key works (leaves + saves)
+    if (isBusyState(S.state) && !S.errorOpen && !S.popupOpen) {
+      var isBack = isBackKeyEvent(e);
+      if (isMediaKey(kc) || isBack || dirOf(e) || kc === 13) block(e);
+      if (isBack) leave();
+      return;
+    }
+
     if (isMediaKey(kc)) {
       handleMedia(kc);
     } else if (isBackKeyEvent(e)) {
@@ -989,22 +1041,25 @@
       showHud();
     } else if (kc === 13) {
       if (!e.repeat) {
-        if (!S.entries.length) {
+        // HUD hidden or nothing focused: OK toggles play/pause, then the HUD shows
+        var focusedEl = S.entries.length ? ctl(S.focusId) : null;
+        if (!focusedEl || !focusedEl.classList.contains("focused")) {
           togglePlay();
-          showHud();
         } else {
           actionFor(S.focusId);
-          showHud();
         }
+        showHud();
       }
     } else {
       handled = false;
     }
 
-    if (handled) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
+    if (handled) block(e);
+  }
+
+  function block(e) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
   }
 
   function onKeyUp(e) {
@@ -1038,7 +1093,7 @@
     });
 
     on(root, "click", function (e) {
-      if (S.errorOpen || S.popupOpen) return;
+      if (S.errorOpen || S.popupOpen || isBusyState(S.state)) return;
       var t = e.target;
       while (t && t !== root) {
         if (t.className && typeof t.className === "string" && /\bvod-(ctl|seekbar|hud-hit)\b/.test(t.className)) return;
@@ -1185,6 +1240,8 @@
       everPlayed: false,
       cwActive: false,
       hadEntry: false,
+      hudBeforeBusy: false,
+      lastToggleAt: 0,
       savedPos: 0,
       popupOpen: false,
       errorOpen: false,
@@ -1223,7 +1280,14 @@
     window.VodPlayerActivate = function (node) {
       if (!S) return;
       var id = node && node.getAttribute("data-vod");
-      if (!id || S.entries.indexOf(id) === -1) return;
+      if (!id || S.entries.indexOf(id) === -1) {
+        // OK with the pointer visible but none of our controls registered/focused
+        if (!S.errorOpen && !S.popupOpen) {
+          togglePlay();
+          showHud();
+        }
+        return;
+      }
       if (id === "seek" && Date.now() - S.lastPointerSeek < 500) return;
       S.focusId = id;
       applyFocus();
@@ -1231,8 +1295,9 @@
       showHud();
     };
 
-    on(document, "keydown", onKeyDown, true);
-    on(document, "keyup", onKeyUp, true);
+    // window capture runs before focus.js's document-level OK handler
+    on(window, "keydown", onKeyDown, true);
+    on(window, "keyup", onKeyUp, true);
     on(document, "visibilitychange", onVisibility);
     on(window, "pagehide", onPageHide);
     on(window, "beforeunload", onPageHide);

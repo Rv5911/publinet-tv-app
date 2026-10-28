@@ -579,28 +579,79 @@ async function HomePage() {
       }
     }
 
-    function homePageClickHandler(e) {
-      var card = e.target.closest(".home-card");
-      var watchBtn = e.target.closest(".carousel-watch-now-btn");
-      if (card) {
-        var cat = card.getAttribute("data-category");
-        var idx = card.getAttribute("data-index");
-        var catNum = parseInt(cat, 10);
-        var idxNum = parseInt(idx, 10);
+    // ---- pointer support: ONE delegated click handler, bound once ----
+    // HomePage() is async: this timeout runs BEFORE the page HTML is inserted,
+    // so nothing under .home-page-container exists yet (the old direct binding
+    // found null and never ran). The persistent #home-page host survives every
+    // render, so the handler lives there and calls the latest activate().
+    var HOME_ACTIONS = {
+      ".carousel-watch-now-btn": "watch-now",
+      ".home-card": "open-card",
+    };
+    var lastActivated = { el: null, at: 0 };
+
+    // data-action / data-id of the item (stamped lazily for rendered rows)
+    function homeActionEl(node, root) {
+      while (node && node !== root && node.nodeType === 1) {
+        if (node.getAttribute("data-action")) return node;
+        for (var sel in HOME_ACTIONS) {
+          if (node.matches && node.matches(sel)) {
+            node.setAttribute("data-action", HOME_ACTIONS[sel]);
+            var sid = node.getAttribute("data-stream-id");
+            if (sid) node.setAttribute("data-id", sid);
+            return node;
+          }
+        }
+        node = node.parentNode;
+      }
+      return null;
+    }
+
+    // hover/click/OK all land here: the row + column index follow the pointer
+    function homeSyncFocus(el) {
+      var action = el.getAttribute("data-action");
+      localStorage.setItem("navigationFocus", "homePage");
+      if (action === "open-card") {
+        var catNum = parseInt(el.getAttribute("data-category"), 10);
+        var idxNum = parseInt(el.getAttribute("data-index"), 10);
         navState.focus = "categories";
-        navState.currentCategory = isNaN(catNum) ? cat : catNum;
-        navState.currentCard = isNaN(idxNum) ? idx : idxNum;
-        updateFocus();
-        homePageKeydownEvents({ key: "Enter", preventDefault: function () {} });
-      } else if (watchBtn) {
+        if (!isNaN(catNum)) navState.currentCategory = catNum;
+        if (!isNaN(idxNum)) navState.currentCard = idxNum;
+      } else if (action === "watch-now") {
         navState.focus = "watchNow";
-        updateFocus();
-        homePageKeydownEvents({ key: "Enter", preventDefault: function () {} });
       }
     }
-    const homePageContainer = document.querySelector(".home-page-container");
-    if (homePageContainer) {
-      homePageContainer.addEventListener("click", homePageClickHandler);
+
+    // The one activate(card): the remote OK path and the click path share it.
+    function homeActivate(el) {
+      if (!el) return;
+      var now = Date.now();
+      if (lastActivated.el === el && now - lastActivated.at < 400) return;
+      lastActivated.el = el;
+      lastActivated.at = now;
+      if (!el.getAttribute("data-action")) return;
+      homeSyncFocus(el);
+      updateFocus();
+      homePageKeydownEvents({ key: "Enter", preventDefault: function () {} });
+    }
+
+    window.homeHoverSync = function (el) {
+      if (!el.getAttribute("data-action")) homeActionEl(el, null);
+      if (el.getAttribute("data-action")) homeSyncFocus(el);
+    };
+    window.homeActivate = homeActivate;
+    window.homeStep = function (key) {
+      localStorage.setItem("navigationFocus", "homePage");
+      homePageKeydownEvents({ key: key, preventDefault: function () {} });
+    };
+
+    var homeHost = document.getElementById("home-page");
+    if (homeHost && !homeHost.__homeClickBound) {
+      homeHost.__homeClickBound = true;
+      homeHost.addEventListener("click", function (e) {
+        var el = homeActionEl(e.target, homeHost);
+        if (el && typeof window.homeActivate === "function") window.homeActivate(el);
+      });
     }
 
     document.addEventListener("keydown", homePageKeydownEvents);
@@ -623,9 +674,6 @@ async function HomePage() {
 
     HomePage.cleanup = function () {
       document.removeEventListener("keydown", homePageKeydownEvents);
-      if (homePageContainer) {
-        homePageContainer.removeEventListener("click", homePageClickHandler);
-      }
     };
   }, 0);
 

@@ -16,6 +16,8 @@ async function SeriesDetailPage() {
   let getSerieByName = [];
   let selectedSeason = 1;
   let lastFocused = null;
+  // true while the pointer (not the remote) moves focus: no page jump, no navbar toggle
+  let pointerHover = false;
   let focusableEls = [];
   let currentFocusIndex = 0;
   let isDropdownOpen = false;
@@ -154,21 +156,26 @@ async function SeriesDetailPage() {
     );
   }
 
-  const continueWatchingMap = {};
-  (continueWatchingEpisodes || []).forEach((item) => {
-    if (!item || !item.episodeId) return;
-
-    const seasonKey = 1; // Use 1 if season info is not present
-    const episodeKey = Number(item.episodeId); // Must match episode.id
-
-    if (!continueWatchingMap[seasonKey]) continueWatchingMap[seasonKey] = {};
-
-    const progress = item.duration
-      ? Math.min(Math.max((item.resumeTime / item.duration) * 100, 0), 100)
-      : 0;
-
-    continueWatchingMap[seasonKey][episodeKey] = progress;
-  });
+  // Per-episode progress (Continue service): every episode with an entry gets
+  // its own bar; finished episodes are in watchedEpisodes (tick, no bar).
+  const continueWatchingMap = { 1: {} }; // 1 = season key kept for the lookups below
+  const watchedEpisodes = {};
+  (function () {
+    var progressMap = ContinueService.episodeMap();
+    var watchedMap = ContinueService.watchedMap();
+    var sid = String(seriesDetailId);
+    var k;
+    for (k in progressMap) {
+      var e = progressMap[k];
+      if (e.seriesId && String(e.seriesId) !== sid) continue;
+      continueWatchingMap[1][Number(k)] = e.durationSec
+        ? Math.min(Math.max((e.positionSec / e.durationSec) * 100, 0), 100)
+        : 0;
+    }
+    for (k in watchedMap) {
+      if (String(watchedMap[k]) === sid) watchedEpisodes[Number(k)] = true;
+    }
+  })();
 
   let getSeriesCastData = [];
   if (getSerieByName && getSerieByName.id) {
@@ -277,7 +284,7 @@ async function SeriesDetailPage() {
 
     // Hide navbar when focusing on episodes, show when on top buttons
     if (!navRoot_SD) navRoot_SD = document.querySelector("#navbar-root");
-    if (navRoot_SD) {
+    if (navRoot_SD && !pointerHover) {
       if (el.classList.contains("seasons-episodes-item")) {
         navRoot_SD.style.display = "none";
       } else {
@@ -640,6 +647,12 @@ async function SeriesDetailPage() {
           }">
             <div class="episode-progress-bar" style="width: ${progress}%;"></div>
           </div>
+
+          ${
+            watchedEpisodes[episodeKey]
+              ? '<div class="episode-watched-tick"><i class="fa-solid fa-check"></i></div>'
+              : ""
+          }
         </div>
 
         <!-- Info Container -->
@@ -719,7 +732,12 @@ async function SeriesDetailPage() {
     setFocus(focusableEls[currentFocusIndex]);
   };
 
-  const playEpisode = (episodeId, episodeIndex, startFromBeginning = false) => {
+  const playEpisode = (
+    episodeId,
+    episodeIndex,
+    startFromBeginning = false,
+    askResume = false,
+  ) => {
     const seasonEpisodes = episodes[selectedSeason.toString()] || [];
     const episode = seasonEpisodes[episodeIndex];
 
@@ -748,7 +766,9 @@ async function SeriesDetailPage() {
           title: episode.title || episode.name || "",
           url: seriesEpisodeVideoUrl,
           startOver: startFromBeginning,
-          fromContinue: !startFromBeginning,
+          // episode cards with a saved position ask Resume / Start over;
+          // the main Resume button resumes directly
+          fromContinue: !startFromBeginning && !askResume,
         });
         return;
       }
@@ -1237,7 +1257,7 @@ async function SeriesDetailPage() {
           }
 
           // Only start from beginning if there's NO progress
-          playEpisode(episodeId, episodeIndex, !hasProgress);
+          playEpisode(episodeId, episodeIndex, !hasProgress, true);
         } else if (focused === menuBtn) {
           e.preventDefault();
           localStorage.setItem("sidebarPage", "seriesDetailPage");
@@ -1299,11 +1319,52 @@ async function SeriesDetailPage() {
       updateDropdownFocus();
       return;
     }
+    // episodes are re-rendered on season change: refresh the order first so a
+    // hovered/clicked episode is never looked up in a stale list
+    rebuildFocusable();
     var idx = focusableEls.indexOf(el);
     if (idx === -1) return;
+    // pointer over the page = page owns the keys (arrows continue from here)
+    localStorage.setItem("navigationFocus", "seriesDetailPage");
     currentFocusIndex = idx;
-    setFocus(el);
+    pointerHover = true;
+    try {
+      setFocus(el, true);
+    } finally {
+      pointerHover = false;
+    }
   }
+
+  // Magic Remote wheel / trackpad: over the episode row a horizontal gesture
+  // (or Shift+wheel) scrolls the row, a vertical one scrolls the page.
+  (function bindDetailWheel() {
+    var host = document.getElementById("series-detail-page");
+    if (!host || host.__detailWheelBound) return;
+    host.__detailWheelBound = true;
+    host.addEventListener(
+      "wheel",
+      function (e) {
+        var row = e.target.closest && e.target.closest(".series-detail-cast");
+        var page = host.querySelector(".series-detail-page-content-container");
+        var dx = e.deltaX || 0;
+        var dy = e.deltaY || 0;
+        if (e.shiftKey && !dx) {
+          dx = dy;
+          dy = 0;
+        }
+        if (row && Math.abs(dx) > Math.abs(dy)) {
+          row.scrollLeft += dx;
+        } else if (page && !page.classList.contains("dropdown-open")) {
+          page.scrollTop += dy;
+        } else {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      { passive: false },
+    );
+  })();
   // The one favorite action (remote OK and click both end up here).
   function doFavorite() {
     const favBtn = document.querySelector(".series-detail-fav-button");

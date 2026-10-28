@@ -215,6 +215,27 @@
         if (typeof window.LiveHtmlActivate === "function") window.LiveHtmlActivate(el);
       },
     },
+    // Home: hover keeps navState (row/column) in step with the pointer; the
+    // page's single delegated click handler runs the action (no activate here,
+    // OK with the pointer visible becomes el.click()). Wheel steps like Movies.
+    home: {
+      zone: ".home-page-container",
+      sync: function (el) {
+        if (typeof window.homeHoverSync === "function") window.homeHoverSync(el);
+      },
+      stepUp: function () {
+        if (window.homeStep) window.homeStep("ArrowUp");
+      },
+      stepDown: function () {
+        if (window.homeStep) window.homeStep("ArrowDown");
+      },
+      stepLeft: function () {
+        if (window.homeStep) window.homeStep("ArrowLeft");
+      },
+      stepRight: function () {
+        if (window.homeStep) window.homeStep("ArrowRight");
+      },
+    },
     categoryView: {
       zone: "#category-view-grid",
       sync: function (el) {
@@ -258,6 +279,7 @@
 
   function resolveAdapter(el) {
     if (!el || typeof el.closest !== "function") return null;
+    if (el.closest(ADAPTERS.home.zone)) return ADAPTERS.home;
     if (el.closest(ADAPTERS.vodPlayer.zone)) return ADAPTERS.vodPlayer;
     if (el.closest(ADAPTERS.liveHtmlPlayer.zone)) return ADAPTERS.liveHtmlPlayer;
     if (el.closest(ADAPTERS.categoryView.zone)) return ADAPTERS.categoryView;

@@ -1439,6 +1439,7 @@ function initNavbar() {
             document.body.style.backgroundColor = "black";
           } else if (action === "remove-all-series") {
             removeAllFromHistory("continueWatchingSeries");
+            ContinueService.clearAllSeries();
             Router.showPage("seriesPage");
             document.body.style.backgroundImage = "none";
             document.body.style.backgroundColor = "black";
@@ -1457,6 +1458,8 @@ function initNavbar() {
               localStorage.getItem("selectedSeriesId"),
               "continueWatchingSeries",
             );
+            // the series card AND every episode's progress/tick go
+            ContinueService.removeSeries(localStorage.getItem("selectedSeriesId"));
 
             Router.showPage("seriesDetailPage");
             document.body.style.backgroundImage = "none";

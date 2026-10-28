@@ -477,3 +477,12 @@
     margin-right: 5px;
     margin-bottom: 5px;
 }
+/* Decorative layers must never swallow clicks meant for the cards. */
+.home-card::before,
+.home-card::after,
+.home-card:hover::after,
+.home-card.focused::before,
+.home-card.focused::after,
+.home-page-container .poster::before {
+    pointer-events: none;
+}
