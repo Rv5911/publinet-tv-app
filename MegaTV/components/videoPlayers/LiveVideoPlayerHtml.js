@@ -638,6 +638,17 @@
       if (S.hudVisible) hideHud();
       else showHud();
     });
+    // windowed fullscreen button: LivePage only wires it to the remote, so
+    // the click is handled here (same toggle the remote OK reaches)
+    var fsBtn = S.root.querySelector("#lp-fullscreen-btn");
+    if (fsBtn) {
+      fsBtn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (S.fullscreen) exitFullscreen();
+        else enterFullscreen();
+      };
+    }
     var legacy = S.root.querySelector(".play-pause-icon");
     if (legacy) {
       legacy.onclick = function (e) {
