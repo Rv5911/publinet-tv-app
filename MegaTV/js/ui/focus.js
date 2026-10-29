@@ -188,6 +188,17 @@
         if (typeof window.loginActivate === "function") window.loginActivate(el);
       },
     },
+    // Navbar sidebar overlay (settings/list-user/account/sort/sign-out, plus
+    // its sort submenu and any page-specific dynamic options).
+    sidebar: {
+      zone: "#sidebar",
+      sync: function (el) {
+        if (typeof window.sidebarHoverSync === "function") window.sidebarHoverSync(el);
+      },
+      activate: function (el) {
+        if (typeof window.sidebarActivate === "function") window.sidebarActivate(el);
+      },
+    },
     videoPlayer: {
       zone: ".video-js-player-container",
       sync: function () {},
@@ -279,6 +290,7 @@
 
   function resolveAdapter(el) {
     if (!el || typeof el.closest !== "function") return null;
+    if (el.closest(ADAPTERS.sidebar.zone)) return ADAPTERS.sidebar;
     if (el.closest(ADAPTERS.home.zone)) return ADAPTERS.home;
     if (el.closest(ADAPTERS.vodPlayer.zone)) return ADAPTERS.vodPlayer;
     if (el.closest(ADAPTERS.liveHtmlPlayer.zone)) return ADAPTERS.liveHtmlPlayer;

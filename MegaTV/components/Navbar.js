@@ -1588,6 +1588,50 @@ function initNavbar() {
     }
   }
 
+  // Exposed for js/ui/focus.js (delegated Magic Remote pointer support).
+  // Mirrors the arrow-key navigation exactly: finds the hovered item's index
+  // in the same filtered list handleSidebarKeys/handleSortOptionsKeys
+  // already use, then re-invokes their existing Enter-key logic on
+  // click/OK - no action is duplicated here.
+  function sidebarHoverSync(el) {
+    var sortItem = el.closest(".sort-option");
+    if (sortItem) {
+      var sortItems = Array.from(sortOptions.querySelectorAll(".sort-option"));
+      var sIdx = sortItems.indexOf(sortItem);
+      if (sIdx !== -1) updateSortOptionsSelection(sortItems, sIdx);
+      return;
+    }
+    var link = el.closest("li.sidebar-link");
+    if (!link) return;
+    var items = Array.from(sidebar.querySelectorAll("li.sidebar-link")).filter(function (item) {
+      return (
+        !item.classList.contains("option-remove") &&
+        item.style.display !== "none" &&
+        !item.classList.contains("hidden")
+      );
+    });
+    var idx = items.indexOf(link);
+    if (idx !== -1) updateSidebarSelection(items, idx);
+  }
+
+  function sidebarActivate(el) {
+    // The sort checkboxes already have their own real "change" listener.
+    if (el.tagName === "INPUT" && el.classList.contains("sort-checkbox")) return;
+    sidebarHoverSync(el);
+    var syntheticEnter = {
+      key: "Enter",
+      preventDefault: function () {},
+      stopPropagation: function () {},
+    };
+    if (el.closest(".sort-option")) {
+      handleSortOptionsKeys(syntheticEnter);
+    } else {
+      handleSidebarKeys(syntheticEnter);
+    }
+  }
+  window.sidebarHoverSync = sidebarHoverSync;
+  window.sidebarActivate = sidebarActivate;
+
   window.updateSearchVisibility = updateSearchVisibility;
 }
 
