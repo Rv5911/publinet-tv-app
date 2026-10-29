@@ -45,8 +45,16 @@ function LoginPage() {
     function closeInput(el) {
       if (!el) return;
       el.setAttribute("readonly", "readonly");
-      if (document.activeElement === el) el.blur();
+      el.blur(); // no-op if el doesn't actually have focus - safe to call unconditionally
       if (lastFocusedInput === el) lastFocusedInput = null;
+    }
+
+    // Single source of truth for "nothing but the current field should look
+    // or be open" - always sweeps all three instead of trusting whichever
+    // one lastFocusedInput happens to point at, so two fields can never be
+    // left looking focused at once.
+    function closeAllInputs() {
+      [playlistInput, usernameInput, passwordInput].forEach(closeInput);
     }
 
     [playlistInput, usernameInput, passwordInput].forEach(function (inp) {
@@ -432,10 +440,9 @@ function LoginPage() {
         <h2 class="login-heading">Login Details</h2>
 
         <div class="login-inputs-div">
-          <div><input class="playlistname-input  login-input"  type="text" readonly autocomplete="off" placeholder="Enter Any Name"></div>
-          <div><input class="username-input login-input"  type="text" readonly autocomplete="off" placeholder="Enter User Name"></div>
-          <div><input class="password-input login-input"  type="password" readonly autocomplete="off" placeholder="Enter Password"></div>
-
+             <div><input class="playlistname-input  login-input" value="rodriguez14009f"  type="text" readonly autocomplete="off" placeholder="Enter Any Name"></div>
+          <div><input class="username-input login-input" value="rodriguez14009f"  type="text" readonly autocomplete="off" placeholder="Enter User Name"></div>
+          <div><input class="password-input login-input"  value="947868308f" type="password" readonly autocomplete="off" placeholder="Enter Password"></div>
           <div class="login-buttons-div">
             <button class="login-button">Login</button>
           </div>

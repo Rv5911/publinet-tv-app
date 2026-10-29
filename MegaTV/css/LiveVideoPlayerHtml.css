@@ -318,8 +318,9 @@ body.lvh-fs-on #navbar-root {
   height: 52px;
 }
 
-/* loading / buffering: spinner only, no control can show (set in setState) */
-.lvh-root.is-loading .lvh-hud,
+/* loading / buffering: spinner shows; in fullscreen the HUD stays visible
+   and usable (exit button) - only Play/Pause hides. Windowed-mode controls
+   (owned by LivePage.js) still hide fully, unchanged. */
 .lvh-root.is-loading .play-pause-icon,
 .lvh-root.is-loading .live-video-controls,
 .lvh-root.is-loading .live-top-overlays {
@@ -329,6 +330,6 @@ body.lvh-fs-on #navbar-root {
   transition: opacity 0.15s linear, visibility 0s linear 0.15s;
 }
 
-.lvh-root.is-loading .lvh-ctl {
-  pointer-events: none;
+.lvh-root.is-loading .lvh-playbtn {
+  display: none;
 }

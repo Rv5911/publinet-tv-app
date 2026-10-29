@@ -264,6 +264,7 @@ var ContinueService = (function () {
       };
       delete c.pl.episodeWatched[eid];
       commit(c);
+      console.log("[resume] setEpisode eid=" + eid + " seriesId=" + norm(seriesId) + " pos=" + pos);
     },
     // Start over: position 0 for this episode only (entry kept, watched flag cleared).
     resetEpisode: function (id) {
@@ -285,6 +286,7 @@ var ContinueService = (function () {
       delete c.pl.episodeProgress[eid];
       c.pl.episodeWatched[eid] = norm(seriesId) || "1";
       commit(c);
+      console.log("[resume] finishEpisode eid=" + eid + " seriesId=" + norm(seriesId));
     },
     // Remove from Continue Watching: all of the series' episodes lose progress.
     removeSeries: function (seriesId) {
@@ -310,6 +312,38 @@ var ContinueService = (function () {
   };
 })();
 window.ContinueService = ContinueService;
+
+// TEMP (Step 1 investigation - remove after): dump a series' resume data.
+// Console: dumpSeriesResume("<seriesId>")
+window.dumpSeriesResume = function (seriesId) {
+  var sid = ContinueService.norm(seriesId);
+  var playlists = getPlaylistsData();
+  var name = null;
+  try {
+    name = JSON.parse(localStorage.getItem("selectedPlaylist")).playlistName;
+  } catch (e) {}
+  for (var i = 0; i < playlists.length; i++) {
+    if (playlists[i].playlistName !== name) continue;
+    var pl = playlists[i];
+    var card = (pl.continueWatchingSeries || []).filter(function (it) {
+      return it && ContinueService.norm(it.itemId) === sid;
+    });
+    var perEpisode = {};
+    var k;
+    for (k in pl.episodeProgress || {}) {
+      if (ContinueService.norm(pl.episodeProgress[k].seriesId) === sid) perEpisode[k] = pl.episodeProgress[k];
+    }
+    var watched = {};
+    for (k in pl.episodeWatched || {}) {
+      if (ContinueService.norm(pl.episodeWatched[k]) === sid) watched[k] = pl.episodeWatched[k];
+    }
+    console.log("[resume] series card (single pointer):", JSON.stringify(card));
+    console.log("[resume] per-episode entries:", JSON.stringify(perEpisode));
+    console.log("[resume] watched (finished) episodes:", JSON.stringify(watched));
+    return { card: card, perEpisode: perEpisode, watched: watched };
+  }
+  console.log("[resume] no matching playlist found");
+};
 
 // ---- Movie / series favorites (detail pages) ----
 // One writer. Ids are always Strings; the active playlist's list is re-read

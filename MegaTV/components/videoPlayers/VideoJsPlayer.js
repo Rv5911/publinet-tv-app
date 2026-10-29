@@ -59,6 +59,72 @@ function VideoJsPlayer(poster = "") {
     // 🔴 Track play state before seeking
     let wasPlayingBeforeSeek = false;
 
+    // Continue Watching is by POSITION, not by elapsed real playback time:
+    // as soon as the position is 5s or more, add/update it - a seek straight
+    // to 10 minutes qualifies immediately, no watching required.
+    var hasAddedToContinueWatching = false;
+    var cwSaveTimer = null;
+
+    // One writer for both movies and series episodes.
+    function writeContinueWatchingEntry(resumeTime, duration) {
+        var continueWatchingItem = {
+            itemId: playingItemData.season ?
+                localStorage.getItem("selectedSeriesId") :
+                localStorage.getItem("selectedMovieId"),
+            episodeId: playingItemData.season ?
+                localStorage.getItem("selectedEpisodeId") :
+                null,
+            resumeTime: resumeTime,
+            duration: duration,
+            type: playingItemData.season ? "series" : "movie",
+        };
+
+        var playlists = JSON.parse(localStorage.getItem("playlistsData")) || [];
+        playlists = playlists.map(function (pl) {
+            if (pl.playlistName !== currentPlaylistName) return pl;
+            if (continueWatchingItem.type === "series") {
+                pl.continueWatchingSeries = (pl.continueWatchingSeries || []).filter(function (item) {
+                    return !(
+                        item.itemId === continueWatchingItem.itemId &&
+                        item.episodeId === continueWatchingItem.episodeId
+                    );
+                });
+            } else {
+                pl.continueWatchingMovies = (pl.continueWatchingMovies || []).filter(function (item) {
+                    return item.itemId !== continueWatchingItem.itemId;
+                });
+            }
+            return pl;
+        });
+        localStorage.setItem("playlistsData", JSON.stringify(playlists));
+
+        if (continueWatchingItem.type === "series") {
+            addItemToHistory(continueWatchingItem, "continueWatchingSeries");
+        } else {
+            addItemToHistory(continueWatchingItem, "continueWatchingMovies");
+        }
+    }
+
+    function maybeSaveContinueWatching(reason) {
+        if (isYouTube || isLive || errorActive || !player) return;
+        var resumeTime = 0;
+        var dur = 0;
+        try {
+            if (typeof player.currentTime === "function") resumeTime = player.currentTime();
+            if (typeof player.duration === "function") dur = player.duration();
+        } catch (e) {
+            return;
+        }
+        if (!(resumeTime >= 5)) return;
+        var isVideoCompleted = dur > 0 && Math.abs(resumeTime - dur) < 5;
+        if (isVideoCompleted) return;
+        if (!hasAddedToContinueWatching) {
+            hasAddedToContinueWatching = true;
+            console.log("[cw-tz] added at pos=" + resumeTime.toFixed(1) + "s reason=" + reason);
+        }
+        writeContinueWatchingEntry(resumeTime, dur);
+    }
+
     // 🔴 True from the first key of a seek gesture until the debounced seek
     // actually executes — lets us tell "paused because we're seeking" apart
     // from a real user pause.
@@ -975,6 +1041,11 @@ function VideoJsPlayer(poster = "") {
         setVideoState("loading", "init");
         armStartWatchdog();
 
+        clearInterval(cwSaveTimer);
+        cwSaveTimer = setInterval(function () {
+            if (player && !player.paused()) maybeSaveContinueWatching("interval");
+        }, 10000);
+
         player.ready(() => {
             if (player.paused() && !userManuallyPaused && !errorActive) {
                 player.play().catch((err) => {
@@ -989,6 +1060,7 @@ function VideoJsPlayer(poster = "") {
 
         player.on("seeked", () => {
             console.log("Seek completed");
+            maybeSaveContinueWatching("seek-end");
 
             // Only auto-play if video wasn't manually paused AND not dragging
             if (
@@ -1107,6 +1179,8 @@ function VideoJsPlayer(poster = "") {
             });
 
             player.on("timeupdate", () => {
+                if (!hasAddedToContinueWatching) maybeSaveContinueWatching("position-check");
+
                 if (errorActive) return;
 
                 const duration = player.duration() || 0;
@@ -1241,6 +1315,8 @@ function VideoJsPlayer(poster = "") {
             // again) or show the pause UI or block the auto-resume after it.
             if (isSeekGestureActive || player.seeking()) return;
 
+            maybeSaveContinueWatching("pause");
+
             // A real pause is never "buffering" — always clear the loader so
             // it can't get stuck on screen once playback settles.
             setVideoState("paused", "pause-event");
@@ -1257,6 +1333,7 @@ function VideoJsPlayer(poster = "") {
 
         player.on("error", () => {
             console.log("❌ Player error:", player.error());
+            maybeSaveContinueWatching("error");
 
             let errorMessage = "Failed to load video";
             if (
@@ -1312,66 +1389,13 @@ function VideoJsPlayer(poster = "") {
                         duration = 0;
                     }
 
-                    // Only save if played for more than 5 seconds and not completed
+                    // Add/update by position: 5s or more, not completed.
                     const isVideoCompleted =
                         duration > 0 && Math.abs(resumeTime - duration) < 5;
 
-                    if (resumeTime > 5 && !isVideoCompleted) {
-                        const continueWatchingItem = {
-                            itemId: playingItemData.season ?
-                                localStorage.getItem("selectedSeriesId") :
-                                localStorage.getItem("selectedMovieId"),
-                            episodeId: playingItemData.season ?
-                                localStorage.getItem("selectedEpisodeId") :
-                                null,
-                            resumeTime,
-                            duration,
-                            type: playingItemData.season ? "series" : "movie",
-                        };
-
-                        // Load playlists
-                        let playlists =
-                            JSON.parse(localStorage.getItem("playlistsData")) || [];
-
-                        playlists = playlists.map((pl) => {
-                            if (pl.playlistName !== currentPlaylistName) return pl;
-
-                            if (continueWatchingItem.type === "series") {
-                                // Remove old entry for same series+episode
-                                let updatedSeries = (pl.continueWatchingSeries || []).filter(
-                                    (item) =>
-                                    !(
-                                        item.itemId === continueWatchingItem.itemId &&
-                                        item.episodeId === continueWatchingItem.episodeId
-                                    )
-                                );
-                                pl = {
-                                    ...pl,
-                                    continueWatchingSeries: updatedSeries,
-                                };
-                            } else {
-                                // Remove old entry for same movie
-                                let updatedMovies = (pl.continueWatchingMovies || []).filter(
-                                    (item) => item.itemId !== continueWatchingItem.itemId
-                                );
-                                pl = {
-                                    ...pl,
-                                    continueWatchingMovies: updatedMovies,
-                                };
-                            }
-
-                            return pl;
-                        });
-
-                        // Save cleaned playlists back to localStorage
-                        localStorage.setItem("playlistsData", JSON.stringify(playlists));
-
-                        // Finally, add updated item via your function
-                        if (continueWatchingItem.type === "series") {
-                            addItemToHistory(continueWatchingItem, "continueWatchingSeries");
-                        } else {
-                            addItemToHistory(continueWatchingItem, "continueWatchingMovies");
-                        }
+                    if (resumeTime >= 5 && !isVideoCompleted) {
+                        hasAddedToContinueWatching = true;
+                        writeContinueWatchingEntry(resumeTime, duration);
                     } else {
                         console.log(
                             "❌ Not saving - resumeTime:",
@@ -1532,62 +1556,9 @@ function VideoJsPlayer(poster = "") {
                             );
                         }
                         // If there are still incomplete episodes, keep the series in continue watching
-                    } else if (resumeTime > 5 && !isVideoCompleted && !errorActive) {
-                        const continueWatchingItem = {
-                            itemId: playingItemData.season ?
-                                localStorage.getItem("selectedSeriesId") :
-                                localStorage.getItem("selectedMovieId"),
-                            episodeId: playingItemData.season ?
-                                localStorage.getItem("selectedEpisodeId") :
-                                null,
-                            resumeTime,
-                            duration,
-                            type: playingItemData.season ? "series" : "movie",
-                        };
-
-                        // Load playlists
-                        let playlists =
-                            JSON.parse(localStorage.getItem("playlistsData")) || [];
-
-                        playlists = playlists.map((pl) => {
-                            if (pl.playlistName !== currentPlaylistName) return pl;
-
-                            if (continueWatchingItem.type === "series") {
-                                // Remove old entry for same series+episode
-                                let updatedSeries = (pl.continueWatchingSeries || []).filter(
-                                    (item) =>
-                                    !(
-                                        item.itemId === continueWatchingItem.itemId &&
-                                        item.episodeId === continueWatchingItem.episodeId
-                                    )
-                                );
-                                pl = {
-                                    ...pl,
-                                    continueWatchingSeries: updatedSeries,
-                                };
-                            } else {
-                                // Remove old entry for same movie
-                                let updatedMovies = (pl.continueWatchingMovies || []).filter(
-                                    (item) => item.itemId !== continueWatchingItem.itemId
-                                );
-                                pl = {
-                                    ...pl,
-                                    continueWatchingMovies: updatedMovies,
-                                };
-                            }
-
-                            return pl;
-                        });
-
-                        // Save cleaned playlists back to localStorage
-                        localStorage.setItem("playlistsData", JSON.stringify(playlists));
-
-                        // Finally, add updated item via your function
-                        if (continueWatchingItem.type === "series") {
-                            addItemToHistory(continueWatchingItem, "continueWatchingSeries");
-                        } else {
-                            addItemToHistory(continueWatchingItem, "continueWatchingMovies");
-                        }
+                    } else if (resumeTime >= 5 && !isVideoCompleted && !errorActive) {
+                        hasAddedToContinueWatching = true;
+                        writeContinueWatchingEntry(resumeTime, duration);
                     }
 
                     // Set player to null first to prevent further access
@@ -2160,6 +2131,7 @@ function VideoJsPlayer(poster = "") {
             }
             clearTimeout(pendingShowTimer);
             clearInterval(progressPollTimer);
+            clearInterval(cwSaveTimer);
             clearVideoWatchdogs();
 
             // Remove event listener

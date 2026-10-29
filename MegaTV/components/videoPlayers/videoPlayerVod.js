@@ -15,14 +15,13 @@
   var ICON_DIR = "./assets/player/";
   var SEEK_STEP = 10;
   var RESUME_MIN_SEC = 5;
-  var CW_ADD_AFTER_MS = 5000;
   var CW_SAVE_EVERY_MS = 10000;
   var HUD_HIDE_MS = 5000;
   var START_TIMEOUT_MS = 25000;
   var BUFFER_TIMEOUT_MS = 30000;
   var STALL_MS = 300;
-  var KEY_COMMIT_MS = 600;
-  var BTN_COMMIT_MS = 500;
+  var KEY_COMMIT_MS = 300; // safety net only - a real keyup commits immediately
+  var BTN_COMMIT_MS = 300;
   var POLL_MS = 100;
 
   var KEY_PLAY = 415;
@@ -43,6 +42,13 @@
     errRetry: { left: "errBack" },
     popResume: { right: "popStart" },
     popStart: { left: "popResume" },
+  };
+
+  // Loading/buffering/seeking: the whole center row (Play/Pause, rew, fwd)
+  // is out of the focus order - only Back and the seekbar remain.
+  var NEIGHBORS_BUSY = {
+    back: { down: "seek" },
+    seek: { up: "back" },
   };
 
   var S = null; // active session
@@ -120,10 +126,14 @@
           playlists[i][k] = res;
           try {
             localStorage.setItem("playlistsData", JSON.stringify(playlists));
-          } catch (e) {}
+            console.log("[cw-ep] storage write ok key=" + k + " playlist=" + name + " count=" + res.length);
+          } catch (e) {
+            console.log("[cw-ep] storage write FAILED key=" + k + " err=" + e);
+          }
         }
         return;
       }
+      console.log("[cw] edit: no playlist matched name=" + name + " (have " + playlists.length + " playlists)");
     },
     find: function (o) {
       if (o.type === "series") {
@@ -160,6 +170,7 @@
     // Player's one writer: this episode's own entry + the series card.
     write: function (o, episodeId, pos, dur) {
       if (o.type === "series" && String(episodeId) === String(o.id)) {
+        console.log("[cw-ep] per-episode write episodeId=" + o.id + " seriesId=" + o.seriesId + " pos=" + pos + " dur=" + dur);
         if (pos > 0) ContinueService.setEpisode(o.id, o.seriesId, pos, dur);
         else ContinueService.resetEpisode(o.id);
       }
@@ -179,6 +190,8 @@
       if (o.type === "series" && o.episode != null && String(episodeId) === String(o.id)) {
         entry.episode = o.episode;
       }
+      var plName = Continue.playlistName();
+      console.log("[cw] writeCard key=" + Continue.key(o.type) + " playlist=" + plName + " entry=" + JSON.stringify(entry));
       Continue.edit(o.type, function (list) {
         var out = [entry];
         for (var i = 0; i < list.length; i++) {
@@ -333,23 +346,23 @@
     var cls = S.els.root.className.replace(/\bvod-s-\w+/g, "").replace(/\s+/g, " ");
     S.els.root.className = cls + " vod-s-" + next;
 
-    // Loading/buffering/seeking: only the spinner shows (one root class).
+    // Loading/buffering/seeking: spinner shows, but the HUD stays visible
+    // and usable (only Play/Pause drops out - see currentIds/NEIGHBORS_BUSY).
     var wasBusy = isBusyState(prev);
     var nowBusy = isBusyState(next);
     if (!wasBusy && nowBusy) {
-      S.hudBeforeBusy = prev === "idle" ? true : S.hudVisible;
-      clearTimeout(S.hudTimer);
-      S.hudTimer = null;
-      S.hudVisible = false;
-      S.els.root.classList.remove("vod-hud-on");
       S.els.root.classList.add("is-loading");
+      if (!S.hudVisible) {
+        S.hudVisible = true;
+        S.els.root.classList.add("vod-hud-on");
+      }
+      clearTimeout(S.hudTimer); // no auto-hide while busy
+      S.hudTimer = null;
       rebuildEntries();
     } else if (wasBusy && !nowBusy) {
       S.els.root.classList.remove("is-loading");
-      if (S.hudBeforeBusy) {
-        S.hudBeforeBusy = false;
-        showHud();
-      }
+      rebuildEntries();
+      armHudTimer();
     }
     armWatchdog();
     syncPlayIcon();
@@ -386,14 +399,22 @@
     }, ms);
   }
 
-  // Loader: only in loading/buffering/seeking, and only while really stalled.
+  // Loader: instant for the first load and for a seek (no grace period -
+  // the user just asked for a new position, show it right away); the
+  // STALL_MS grace period only applies to mid-playback buffering, so a
+  // sub-300ms network blip doesn't flash the spinner.
   function updateLoader() {
     if (!S) return;
-    var v = S.els.video;
     var st = S.state;
-    var inState = st === "loading" || st === "buffering" || st === "seeking";
-    var stalled = S.waiting && v.readyState < 3 && Date.now() - S.lastProgressAt >= STALL_MS;
-    var show = inState && stalled && !S.errorOpen;
+    var show;
+    if (st === "seeking" || st === "loading") {
+      show = !S.errorOpen;
+    } else if (st === "buffering") {
+      var v = S.els.video;
+      show = S.waiting && v.readyState < 3 && Date.now() - S.lastProgressAt >= STALL_MS && !S.errorOpen;
+    } else {
+      show = false;
+    }
     if (show !== S.loaderOn) {
       S.loaderOn = show;
       if (show) S.els.loader.classList.remove("hidden");
@@ -449,7 +470,7 @@
   function currentIds() {
     if (S.popupOpen) return ["popResume", "popStart"];
     if (S.errorOpen) return ["errBack", "errRetry"];
-    if (isBusyState(S.state)) return [];
+    if (isBusyState(S.state)) return S.hudVisible ? ["back", "seek"] : [];
     if (S.hudVisible) return ["back", "rew", "play", "fwd", "seek"];
     return [];
   }
@@ -457,6 +478,7 @@
   function defaultFocus() {
     if (S.popupOpen) return "popResume";
     if (S.errorOpen) return "errBack";
+    if (isBusyState(S.state)) return "seek";
     return "play";
   }
 
@@ -483,7 +505,7 @@
   }
 
   function navigate(dir) {
-    var nb = NEIGHBORS[S.focusId];
+    var nb = (isBusyState(S.state) ? NEIGHBORS_BUSY : NEIGHBORS)[S.focusId];
     var to = nb && nb[dir];
     if (to === "lastCenter") to = S.lastCenter || "play";
     if (to) setFocusId(to);
@@ -566,19 +588,21 @@
     realSeek(t);
   }
 
-  // Real seek = pause, loader, set currentTime, resume on seeked + canplay.
+  // Real seek = loader first (same tick), then pause, set currentTime,
+  // resume on seeked + canplay.
   function realSeek(t) {
     var v = S.els.video;
     if (S.state === "error" || S.state === "ended") return;
+    console.log("[cw-ep] seek to " + t + " cwActive=" + S.cwActive);
+    S.waiting = true;
+    S.lastProgressAt = Date.now();
+    setState("seeking"); // spinner shows now, before pause()/currentTime
     S.seekWait = { seeked: false, canplay: false, resume: !S.userPaused };
     if (!v.paused) {
       S.ignorePause = true;
       v.pause();
     }
-    S.waiting = true;
-    S.lastProgressAt = Date.now();
     S.lastPos = t;
-    setState("seeking");
     try {
       v.currentTime = t;
     } catch (e) {}
@@ -751,12 +775,19 @@
     return v.currentTime || S.lastPos;
   }
 
+  // Continue Watching eligibility is by POSITION, not by real playback time:
+  // as soon as the position is RESUME_MIN_SEC or more, add/update it - a
+  // seek straight to 10 minutes qualifies immediately, no watching required.
   function savePosition(reason) {
-    if (!S || !S.cwActive || !S.everPlayed || S.ended) return;
+    if (!S || S.ended) return;
     var pos = currentPos();
-    if (!(pos >= 0)) return;
+    if (!(pos >= RESUME_MIN_SEC)) return;
     var dur = duration();
     S.lastPos = pos;
+    if (!S.cwActive) {
+      S.cwActive = true;
+      console.log("[cw-ep] added at pos=" + pos.toFixed(1) + "s reason=" + reason);
+    }
     Continue.write(S.opts, S.opts.id, pos, dur);
     if (window.console && console.log) console.log("[VOD] saved " + pos + "s (" + reason + ")");
   }
@@ -827,15 +858,7 @@
       } else if (!v.paused) {
         S.waiting = false;
         if (S.state === "loading" || S.state === "buffering") setState("playing");
-        if (S.state === "playing") {
-          S.lastPos = t;
-          S.everPlayed = true;
-          S.realPlayMs += dt;
-          if (!S.cwActive && S.realPlayMs >= CW_ADD_AFTER_MS) {
-            S.cwActive = true;
-            savePosition("added");
-          }
-        }
+        if (S.state === "playing") S.lastPos = t;
       }
     } else if (
       S.state === "playing" &&
@@ -845,6 +868,12 @@
     ) {
       S.waiting = true;
       setState("buffering");
+    }
+    // Continue Watching: 1s position check while playing. Once added this
+    // is a no-op check (savePosition's own cwActive flag just skips the log).
+    if (S.state === "playing" && !S.cwActive && now - S.lastCwCheckAt >= 1000) {
+      S.lastCwCheckAt = now;
+      savePosition("position-check");
     }
     updateLoader();
   }
@@ -1015,15 +1044,41 @@
   }
 
   function onKeyDown(e) {
-    if (!S || S.leaving) return;
     var kc = e.keyCode;
+    if (kc === 461 || kc === 27 || kc === 10009 || kc === 8) {
+      console.log(
+        "[vod-back] kc=" + kc + " target=" + (e.target && e.target.nodeName) +
+        " S=" + (S ? ("leaving=" + S.leaving + " state=" + S.state + " dragging=" + S.dragging) : "null")
+      );
+    }
+    if (!S || S.leaving) return;
     var handled = true;
 
-    // loading / buffering / seeking: only the Back key works (leaves + saves)
+    // loading / buffering / seeking: HUD stays usable (back, seekbar); the
+    // whole center row (Play/Pause, rew, fwd) is unavailable - no OK-toggle,
+    // no media-key toggle. FF/RW still seek (replaces the pending one).
     if (isBusyState(S.state) && !S.errorOpen && !S.popupOpen) {
       var isBack = isBackKeyEvent(e);
-      if (isMediaKey(kc) || isBack || dirOf(e) || kc === 13) block(e);
-      if (isBack) leave();
+      block(e);
+      if (isBack || kc === KEY_STOP) {
+        leave();
+      } else if (kc === KEY_PLAY || kc === KEY_PAUSE || kc === KEY_PLAYPAUSE) {
+        // Play/Pause is hidden right now - these do nothing
+      } else if (kc === KEY_FF) {
+        buttonSeek(1);
+      } else if (kc === KEY_RW) {
+        buttonSeek(-1);
+      } else if (dirOf(e)) {
+        var busyDir = dirOf(e);
+        if (S.focusId === "seek" && (busyDir === "left" || busyDir === "right")) {
+          previewStep(busyDir === "left" ? -1 : 1, e.repeat);
+        } else {
+          navigate(busyDir);
+        }
+      } else if (kc === 13 && !e.repeat) {
+        // OK on "seek" with no pending preview would otherwise toggle play
+        if (!(S.focusId === "seek" && S.seekPreview == null)) actionFor(S.focusId);
+      }
       return;
     }
 
@@ -1118,6 +1173,15 @@
       applyFocus();
       setPreview(seekPctFromEvent(e) * duration(), 0);
       e.preventDefault();
+      // Safety net: if mouseup is ever lost (pointer leaves the window, etc.)
+      // this lock must not outlive the click that started it.
+      clearTimeout(S.dragSafetyTimer);
+      S.dragSafetyTimer = setTimeout(function () {
+        if (S && S.dragging) {
+          S.lastPointerSeek = Date.now();
+          commitSeek();
+        }
+      }, 600);
     });
     on(document, "mousemove", function (e) {
       if (!S.dragging) return;
@@ -1125,6 +1189,7 @@
     });
     on(document, "mouseup", function () {
       if (!S.dragging) return;
+      clearTimeout(S.dragSafetyTimer);
       S.lastPointerSeek = Date.now();
       commitSeek();
     });
@@ -1144,6 +1209,7 @@
     clearTimeout(S.watchdogTimer);
     clearTimeout(S.hudTimer);
     clearTimeout(S.commitTimer);
+    clearTimeout(S.dragSafetyTimer);
     clearInterval(S.pollTimer);
     clearInterval(S.saveTimer);
     stopMedia();
@@ -1153,14 +1219,27 @@
     window.VodPlayerActivate = null;
   }
 
+  // Safety net for hardware Back: once the Magic Remote pointer has been
+  // used, webOS can resolve its dedicated Back key as native history
+  // navigation instead of (or in addition to) a DOM keydown. A pushed
+  // history state turns that into a popstate we still catch.
+  function onPopState() {
+    if (!S || S.leaving) return;
+    handleBack();
+  }
+
   function leave(info) {
     if (!S || S.leaving) return;
     S.leaving = true;
     savePosition("back");
     var o = S.opts;
     var nextId = info && info.nextEpisodeId;
+    var hadHistory = S.historyPushed;
     cleanupSession();
     S = null;
+    if (hadHistory) {
+      try { history.back(); } catch (e) {}
+    }
     navigateBack(o, nextId);
   }
 
@@ -1207,8 +1286,13 @@
 
   function open(o) {
     if (!o || !o.url) return;
+    // Switching straight to another item (e.g. next episode) keeps the same
+    // single pushed history state instead of popping + pushing again, so a
+    // back()/pushState() race can never leave the stack out of sync.
+    var reusedHistory = false;
     if (S) {
       S.leaving = true;
+      reusedHistory = S.historyPushed;
       cleanupSession();
       S = null;
     }
@@ -1243,11 +1327,9 @@
       lastPos: 0,
       knownDuration: 0,
       pendingStart: 0,
-      realPlayMs: 0,
-      everPlayed: false,
+      lastCwCheckAt: 0,
       cwActive: false,
       hadEntry: false,
-      hudBeforeBusy: false,
       lastToggleAt: 0,
       savedPos: 0,
       popupOpen: false,
@@ -1256,6 +1338,8 @@
       leaving: false,
       hls: null,
       lastPointerSeek: 0,
+      dragSafetyTimer: null,
+      historyPushed: false,
     };
 
     // keys other pages read when we return to them
@@ -1288,8 +1372,10 @@
       if (!S) return;
       var id = node && node.getAttribute("data-vod");
       if (!id || S.entries.indexOf(id) === -1) {
-        // OK with the pointer visible but none of our controls registered/focused
-        if (!S.errorOpen && !S.popupOpen) {
+        // OK/click with the pointer visible but none of our controls
+        // registered/focused (or a click landed on the now-hidden Play/Pause
+        // button during loading/buffering/seeking) - do nothing.
+        if (!S.errorOpen && !S.popupOpen && !isBusyState(S.state)) {
           togglePlay();
           showHud();
         }
@@ -1308,6 +1394,15 @@
     on(document, "visibilitychange", onVisibility);
     on(window, "pagehide", onPageHide);
     on(window, "beforeunload", onPageHide);
+    if (reusedHistory) {
+      S.historyPushed = true;
+    } else {
+      try {
+        history.pushState({ vodPlayerOpen: true }, "");
+        S.historyPushed = true;
+      } catch (e) {}
+    }
+    on(window, "popstate", onPopState);
     bindVideo();
     bindPointer();
 

@@ -107,7 +107,7 @@ async function loginApi(
   fromPlaylist = false,
   playlistUrl = "",
 ) {
-  const defaultDns = "https://mega2025.site:443";
+  const defaultDns = "https://tv.safeconn.net";
   let alldns = JSON.parse(localStorage.getItem("all_dns")) || [];
 
   if (alldns.length === 0) {
@@ -490,6 +490,19 @@ async function getMoviesCategories() {
   return null;
 }
 
+// Keeps the first item seen for each name (case/whitespace-insensitive).
+// Some playlists list the same title more than once across providers.
+function dedupeByName(items) {
+  const seen = new Set();
+  return (items || []).filter((item) => {
+    const name = (item && item.name ? item.name : "").toLowerCase().trim();
+    if (!name) return true; // no name to compare - keep, avoid data loss
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
 // ✅ Get all VOD movies
 async function getAllVodMovies() {
   const selectedPlaylist = JSON.parse(localStorage.getItem("selectedPlaylist"));
@@ -499,7 +512,7 @@ async function getAllVodMovies() {
         `${selectedPlaylist.playlistUrl}&action=get_vod_streams`,
       );
       if (!response.ok) throw new Error("Failed to fetch movies");
-      return await response.json();
+      return dedupeByName(await response.json());
     }
   } catch (error) {
     console.log("❌ Failed to get movies:", error);
@@ -532,7 +545,7 @@ async function getAllVodSeries() {
         `${selectedPlaylist.playlistUrl}&action=get_series`,
       );
       if (!response.ok) throw new Error("Failed to fetch get_series");
-      return await response.json();
+      return dedupeByName(await response.json());
     }
   } catch (error) {
     console.log("❌ Failed to get get_series:", error);
@@ -557,6 +570,23 @@ async function getSeriesCategories() {
   return null;
 }
 
+// Keeps the first episode seen per season for each title (same provider
+// duplication issue as movies/series, one season array at a time).
+function dedupeEpisodesByTitle(episodesBySeason) {
+  if (!episodesBySeason) return episodesBySeason;
+  for (const season in episodesBySeason) {
+    const seen = new Set();
+    episodesBySeason[season] = (episodesBySeason[season] || []).filter((ep) => {
+      const title = ((ep && (ep.title || ep.name)) || "").toLowerCase().trim();
+      if (!title) return true;
+      if (seen.has(title)) return false;
+      seen.add(title);
+      return true;
+    });
+  }
+  return episodesBySeason;
+}
+
 async function getSeriesDetail(seriesId) {
   const selectedPlaylist = JSON.parse(localStorage.getItem("selectedPlaylist"));
   try {
@@ -565,7 +595,9 @@ async function getSeriesDetail(seriesId) {
         `${selectedPlaylist.playlistUrl}&action=get_series_info&series_id=${seriesId}`,
       );
       if (!response.ok) throw new Error("Failed to get_series_detail item");
-      return await response.json();
+      const data = await response.json();
+      if (data) data.episodes = dedupeEpisodesByTitle(data.episodes);
+      return data;
     }
   } catch (error) {
     console.log("❌ Failed to get_series_detail item:", error);

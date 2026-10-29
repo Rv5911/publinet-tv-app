@@ -364,16 +364,9 @@
   background: #e50914;
 }
 
-/* loading / buffering / seeking: spinner only, no control can show (set in setState) */
-.vod-player.is-loading .vod-hud {
-  display: block;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s linear, visibility 0s linear 0.15s;
-}
-
-.vod-player.is-loading .vod-ctl,
-.vod-player.is-loading .vod-seekbar {
-  pointer-events: none;
+/* loading / buffering / seeking: spinner shows, HUD stays visible and
+   usable (back, title, seekbar, times) - the whole center row (Play/Pause,
+   rew, fwd) hides. */
+.vod-player.is-loading .vod-center {
+  display: none;
 }

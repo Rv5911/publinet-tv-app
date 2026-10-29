@@ -146,9 +146,11 @@ function getRecentlyWatchedSeries() {
         let username = window.getCurrentPlaylistUsername ?
             window.getCurrentPlaylistUsername() :
             null;
+        console.log("[cw] getRecentlyWatchedSeries username(currentPlaylistData)=" + username);
         if (!username) return [];
 
         let playlists = window.getPlaylistsData ? window.getPlaylistsData() : [];
+        console.log("[cw] playlist names available=" + playlists.map((p) => p.playlistName) + " playlistUsername field=" + playlists.map((p) => p.playlistUsername));
         for (let i = 0; i < playlists.length; i++) {
             if (playlists[i].playlistUsername === username) {
                 let recent = playlists[i].continueWatchingSeries || [];

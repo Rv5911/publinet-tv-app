@@ -123,23 +123,22 @@
     S.state = next;
     S.root.className = S.root.className.replace(/\blvh-s-\w+/g, "").replace(/\s+/g, " ") + " lvh-s-" + next;
 
-    // Loading/buffering: only the spinner shows (one root class).
+    // Loading/buffering: spinner shows, but in fullscreen the HUD stays
+    // visible and usable (exit button) - only Play/Pause drops out.
     var wasBusy = isBusyState(prev);
     var nowBusy = isBusyState(next);
     if (!wasBusy && nowBusy) {
-      S.hudBeforeBusy = prev === "idle" ? S.fullscreen : S.hudVisible;
-      clearTimeout(S.hudTimer);
-      S.hudTimer = null;
-      S.hudVisible = false;
-      S.root.classList.remove("lvh-hud-on");
       S.root.classList.add("is-loading");
+      if (S.fullscreen && !S.hudVisible) {
+        S.hudVisible = true;
+        S.root.classList.add("lvh-hud-on");
+      }
+      clearTimeout(S.hudTimer); // no auto-hide while busy
+      S.hudTimer = null;
       rebuildEntries();
     } else if (wasBusy && !nowBusy) {
       S.root.classList.remove("is-loading");
-      if (S.hudBeforeBusy) {
-        S.hudBeforeBusy = false;
-        showHud();
-      }
+      rebuildEntries();
     }
     armWatchdog();
     syncIcons();
@@ -170,13 +169,19 @@
     }, ms);
   }
 
-  // Loader: only in loading/buffering and only while really stalled.
+  // Loader: instant for the first load (no grace period); the STALL_MS
+  // grace period only applies to mid-playback buffering.
   function updateLoader() {
     if (!S) return;
-    var v = S.video;
-    var inState = S.state === "loading" || S.state === "buffering";
-    var stalled = S.waiting && v.readyState < 3 && Date.now() - S.lastProgressAt >= STALL_MS;
-    var show = inState && stalled && !S.errorOpen;
+    var show;
+    if (S.state === "loading") {
+      show = !S.errorOpen;
+    } else if (S.state === "buffering") {
+      var v = S.video;
+      show = S.waiting && v.readyState < 3 && Date.now() - S.lastProgressAt >= STALL_MS && !S.errorOpen;
+    } else {
+      show = false;
+    }
     if (show !== S.loaderOn) {
       S.loaderOn = show;
       S.els.loader.classList[show ? "remove" : "add"]("hidden");
@@ -462,7 +467,7 @@
 
   function currentIds() {
     if (S.errorOpen) return ["errBack", "errRetry"];
-    if (isBusyState(S.state)) return [];
+    if (isBusyState(S.state)) return S.fullscreen && S.hudVisible ? ["exit"] : [];
     if (S.fullscreen && S.hudVisible) return ["play", "exit"];
     return [];
   }
@@ -470,7 +475,9 @@
   // Re-registered whenever controls show, hide or rebuild.
   function rebuildEntries() {
     S.entries = currentIds();
-    if (S.entries.indexOf(S.focusId) === -1) S.focusId = S.errorOpen ? "errBack" : "play";
+    if (S.entries.indexOf(S.focusId) === -1) {
+      S.focusId = S.errorOpen ? "errBack" : isBusyState(S.state) ? "exit" : "play";
+    }
     applyFocus();
   }
 
@@ -522,11 +529,17 @@
     clearTimeout(S.hudTimer);
     S.hudVisible = false;
     S.root.classList.remove("lvh-hud-on");
-    S.hudBeforeBusy = !!full && isBusyState(S.state); // HUD returns after the spinner
     if (full) {
       hideControls();
-      S.focusId = "play";
-      showHud();
+      S.focusId = isBusyState(S.state) ? "exit" : "play";
+      if (isBusyState(S.state)) {
+        // showHud() itself refuses to show while busy - set it directly so
+        // the HUD (exit button) is usable immediately, same as setState().
+        S.hudVisible = true;
+        S.root.classList.add("lvh-hud-on");
+      } else {
+        showHud();
+      }
     } else {
       S.entries = [];
       applyFocus();
@@ -537,11 +550,31 @@
   }
 
   function enterFullscreen() {
-    if (S && !S.fullscreen) applyLayout(true);
+    if (!S || S.fullscreen) return;
+    applyLayout(true);
+    // Safety net for hardware Back: once the Magic Remote pointer has been
+    // used, webOS can resolve its dedicated Back key as native history
+    // navigation instead of (or in addition to) a DOM keydown. A pushed
+    // history state turns that into a popstate we still catch.
+    try {
+      history.pushState({ lvhFullscreen: true }, "");
+      S.historyPushed = true;
+    } catch (e) {}
   }
 
   function exitFullscreen() {
-    if (S && S.fullscreen) applyLayout(false);
+    if (!S || !S.fullscreen) return;
+    applyLayout(false);
+    if (S.historyPushed) {
+      S.historyPushed = false;
+      try { history.back(); } catch (e) {}
+    }
+  }
+
+  function onPopState() {
+    if (!S || S.leaving || !S.fullscreen) return;
+    if (S.errorOpen && S.focusId !== "errBack") S.focusId = "errBack";
+    exitFullscreen();
   }
 
   // ------------------------------------------------------------------- keys
@@ -557,8 +590,14 @@
   }
 
   function onKeyDown(e) {
-    if (!S || S.leaving) return;
     var kc = e.keyCode;
+    if (kc === 461 || kc === 27 || kc === 10009 || kc === 8) {
+      console.log(
+        "[live-back] kc=" + kc + " target=" + (e.target && e.target.nodeName) +
+        " S=" + (S ? ("leaving=" + S.leaving + " fullscreen=" + S.fullscreen + " state=" + S.state) : "null")
+      );
+    }
+    if (!S || S.leaving) return;
     var inPage = localStorage.getItem("currentPage") === "liveTvPage";
     if (!S.fullscreen && !inPage) return;
 
@@ -570,7 +609,7 @@
       return;
     }
     if (kc === KEY_PLAYPAUSE) {
-      togglePlay();
+      if (!isBusyState(S.state)) togglePlay(); // Play/Pause is hidden while loading
       if (S.fullscreen) showHud();
       block(e);
       return;
@@ -578,11 +617,18 @@
 
     if (!S.fullscreen) return; // windowed navigation belongs to LivePage
 
-    // loading / buffering: only Back works (exits fullscreen)
+    // loading / buffering: HUD stays usable (exit button); only Play/Pause
+    // is unavailable - no OK-toggle, no media-key toggle.
     if (isBusyState(S.state) && !S.errorOpen) {
       var back = kc === KEY_STOP || isBack(e);
-      if (back || dirOf(kc) || kc === 13 || kc === KEY_PLAY || kc === KEY_PAUSE) block(e);
-      if (back) exitFullscreen();
+      block(e);
+      if (back) {
+        exitFullscreen();
+      } else if (dirOf(kc)) {
+        navigate(dirOf(kc));
+      } else if (kc === 13 && !e.repeat && S.focusId === "exit") {
+        actionFor("exit");
+      }
       return;
     }
 
@@ -666,12 +712,16 @@
   function teardown() {
     if (!S) return;
     S.leaving = true;
+    var hadHistory = S.historyPushed;
     clearTimeout(S.watchdogTimer);
     clearTimeout(S.hudTimer);
     clearTimeout(S.toastTimer);
     clearInterval(S.pollTimer);
     stopMedia();
     offAll();
+    if (hadHistory) {
+      try { history.back(); } catch (e) {}
+    }
     var box = document.getElementById("lp-player-container");
     if (box) box.classList.remove("lvh-fs");
     document.body.classList.remove("lvh-fs-on");
@@ -756,8 +806,8 @@
       pollTimer: null,
       toastTimer: null,
       hls: null,
-      hudBeforeBusy: false,
       lastToggleAt: 0,
+      historyPushed: false,
     };
     S.els = {
       loader: q(".lvh-loader"),
@@ -784,8 +834,10 @@
       if (!S) return;
       var id = node && node.getAttribute("data-lvh");
       if (!id || S.entries.indexOf(id) === -1) {
-        // OK with the pointer visible but none of our controls registered/focused
-        if (!S.errorOpen) {
+        // OK/click with the pointer visible but none of our controls
+        // registered/focused (or a click landed on the now-hidden Play/Pause
+        // button during loading/buffering) - do nothing.
+        if (!S.errorOpen && !isBusyState(S.state)) {
           togglePlay();
           if (S.fullscreen) showHud();
         }
@@ -800,6 +852,7 @@
     exposeCompat();
     // window capture runs before focus.js's document-level OK handler
     on(window, "keydown", onKeyDown, true);
+    on(window, "popstate", onPopState);
     bindVideo();
     bindPointer();
     startPoll();

@@ -67,8 +67,11 @@ const Router = (function () {
   };
 
   var currentPageName = null;
+  var navToken = 0;
 
   function showPage(name) {
+    var myToken = ++navToken;
+
     if (
       currentPageName &&
       typeof pages[currentPageName].cleanup === "function" &&
@@ -92,6 +95,12 @@ const Router = (function () {
       const renderResult = page.render();
       if (renderResult instanceof Promise) {
         renderResult.then((html) => {
+          // A newer navigation already happened while this page was still
+          // loading (e.g. user went back to another page mid-fetch) -
+          // ignore this stale result instead of popping its UI back up.
+          if (myToken !== navToken) return;
+          if (typeof html !== "string") return;
+
           page.el.innerHTML = html;
           page.el.style.display = "block";
 
