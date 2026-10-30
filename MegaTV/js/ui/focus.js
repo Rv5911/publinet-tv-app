@@ -18,9 +18,35 @@
 (function () {
   "use strict";
 
+  // Older webOS WebKit builds predate Element.prototype.closest/matches,
+  // which this whole file (and several pages) relies on - without this,
+  // every el.closest(...) call below throws and the pointer system never
+  // runs at all on those TVs. Standard polyfill, no-op where already native.
+  if (typeof Element !== "undefined" && !Element.prototype.matches) {
+    Element.prototype.matches =
+      Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
+  }
+  if (typeof Element !== "undefined" && !Element.prototype.closest) {
+    Element.prototype.closest = function (selector) {
+      var el = this;
+      while (el && el.nodeType === 1) {
+        if (el.matches(selector)) return el;
+        el = el.parentElement || el.parentNode;
+        if (el && el.nodeType !== 1) el = null;
+      }
+      return null;
+    };
+  }
+
   var pointerVisible = false;
   var lastHovered = null;
   var lastActivation = { el: null, time: 0 };
+  var wheelLock = false;
+  var wheelAnchor = { x: 0, y: 0 };
+  var pointerPosition = { x: 0, y: 0 };
+  var lastWheelAt = -Infinity;
+  var lastWheelStepAt = -Infinity;
+  var forwardingClick = false;
 
   // Native elements are already focusable; everything else below is a
   // custom "card"/"row"/"item" convention used by one or more pages that
@@ -331,14 +357,21 @@
     el.classList.add("focused");
   }
 
+  function isTextInput(el) {
+    return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+  }
+
   function handleHover(el) {
     if (!el) return;
     lastHovered = el;
     setFocused(el);
-    // readonly fields (login) get real focus only from their own openInput()
-    if (isNativeFocusable(el) && !el.readOnly) el.focus();
+    // Text inputs only ever get real focus from an explicit click/OK -
+    // hover (and arrow-driven highlight, which also routes through here)
+    // must never call focus() on one, or webOS pops the on-screen keyboard.
+    if (isNativeFocusable(el) && !isTextInput(el) && !el.readOnly) el.focus();
     var adapter = resolveAdapter(el);
     if (adapter) adapter.sync(el);
+    setFocused(el);
   }
 
   function noteActivation(el) {
@@ -355,15 +388,53 @@
     return !!(active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA"));
   }
 
-  // 1) Pointer visibility (LG webOS Magic Remote).
+  // 1) Pointer visibility (LG webOS Magic Remote). webOS sends both the
+  // custom event and keyCode 1536 (shown) / 1537 (hidden) on keydown; track
+  // either signal, but never act on these codes beyond that.
   document.addEventListener("cursorStateChange", function (e) {
     pointerVisible = !!(e && e.detail && e.detail.visibility);
+    window.__pointerVisible = pointerVisible;
   });
+  document.addEventListener(
+    "keydown",
+    function (e) {
+      if (e.keyCode === 1536) {
+        pointerVisible = true;
+        window.__pointerVisible = true;
+      } else if (e.keyCode === 1537) {
+        pointerVisible = false;
+        window.__pointerVisible = false;
+      }
+      if (e.key === "ArrowUp" || e.key === "ArrowDown" ||
+          e.key === "ArrowLeft" || e.key === "ArrowRight" ||
+          (e.keyCode >= 37 && e.keyCode <= 40)) {
+        wheelLock = false;
+        lastHovered = null;
+        pointerVisible = false;
+        window.__pointerVisible = false;
+      }
+    },
+    true
+  );
 
   // 2) Hover -> shared .focused class + per-page index sync, delegated.
   document.addEventListener("mouseover", function (e) {
+    if (wheelLock) return;
     var el = closestFocusable(e.target);
     if (el && el !== lastHovered) handleHover(el);
+  });
+
+  // Movement only unlocks. The following mouseover owns the focus change.
+  document.addEventListener("mousemove", function (e) {
+    pointerPosition.x = e.clientX;
+    pointerPosition.y = e.clientY;
+    if (!wheelLock || Date.now() - lastWheelAt < 500) return;
+    var dx = pointerPosition.x - wheelAnchor.x;
+    var dy = pointerPosition.y - wheelAnchor.y;
+    if (dx * dx + dy * dy > 30 * 30) {
+      wheelLock = false;
+      lastHovered = null;
+    }
   });
 
   // 3) Click -> sync + run the item's OK action, delegated. Capture phase so
@@ -372,7 +443,15 @@
   document.addEventListener(
     "click",
     function (e) {
-      var el = closestFocusable(e.target);
+      if (forwardingClick) return;
+      var el = wheelLock ? document.querySelector(".focused") : closestFocusable(e.target);
+      if (wheelLock) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        if (!el || recentlyActivated(el)) return;
+        activateSelected(el);
+        return;
+      }
       if (!el) return;
 
       if (e.isTrusted && recentlyActivated(el)) {
@@ -390,6 +469,26 @@
     true
   );
 
+  function activateSelected(el) {
+    noteActivation(el);
+    var adapter = resolveAdapter(el);
+    var checkable = el.tagName === "INPUT" && (el.type === "checkbox" || el.type === "radio");
+    if (adapter && adapter.activate && !checkable) {
+      adapter.activate(el);
+    } else if (isTextInput(el) && !el.readOnly) {
+      el.focus();
+    } else {
+      // Suppress the original pointer click and deliver exactly one click
+      // to the selected item, including pages with their own click handlers.
+      forwardingClick = true;
+      try {
+        el.click();
+      } finally {
+        forwardingClick = false;
+      }
+    }
+  }
+
   // 4) Enter/OK while the pointer is visible acts on the hovered item, not
   // whatever arrow keys last selected. Capture phase on document so this
   // runs before every page's own (bubble-phase) keydown handler.
@@ -397,78 +496,125 @@
     "keydown",
     function (e) {
       if (e.key !== "Enter" && e.keyCode !== 13) return;
-      if (!pointerVisible) return;
-      if (isTypingInField()) return;
+      if (!pointerVisible && !wheelLock) return;
+      if (!wheelLock && isTypingInField()) return;
 
-      var el = document.querySelector(".focused") || lastHovered;
+      var el = document.querySelector(".focused") || (wheelLock ? null : lastHovered);
       if (!el) return;
 
       e.preventDefault();
       e.stopImmediatePropagation();
 
       if (recentlyActivated(el)) return;
-      noteActivation(el);
-
-      var adapter = resolveAdapter(el);
-      if (adapter && adapter.activate) {
-        adapter.activate(el);
-      } else {
-        el.click();
-      }
+      activateSelected(el);
     },
     true
   );
 
-  // 5) Wheel/trackpad. Zones with step functions (movies/series/live) move
-  // exactly one row/card per tick, throttled to 100ms, reusing the same
-  // step functions arrow keys already call — so a newly-loaded row/card is
-  // handled identically whether you arrowed or scrolled to it. Everywhere
-  // else falls back to scrolling whatever auto/scroll ancestor is under the
-  // pointer (e.g. Settings, category view/list, dialogs).
-  var lastWheelAt = 0;
+  // 5) Back closes an open on-screen keyboard first, everywhere, before the
+  // page's own Back handling ever sees the press - capture phase so this
+  // runs ahead of every per-page/per-player keydown listener.
+  document.addEventListener(
+    "keydown",
+    function (e) {
+      if (typeof window.isBackKey !== "function" || !window.isBackKey(e)) return;
+      var active = document.activeElement;
+      if (!isTextInput(active)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      active.blur();
+    },
+    true
+  );
+
+  // webOS on-screen keyboard dismissed by the system (not by us) - keep
+  // input state in sync so a stray blur doesn't leave it stuck "open".
+  document.addEventListener("keyboardStateChange", function (e) {
+    if (e && e.detail && e.detail.visibility === false && isTextInput(document.activeElement)) {
+      document.activeElement.blur();
+    }
+  });
+
+  // Native page steps preserve pagination and page-specific navigation.
+  // Other lists use directional geometry, one item/row per wheel step.
+  function wheelScope(target) {
+    if (!target || !target.closest) return null;
+    return target.closest(".remove-dialog, .custom-dialog, [role=dialog], #sidebar, " +
+      ".settings-pages-container, .settings-second-container, .seasons-dropdown, " +
+      ".seasons-episodes-list, .playlist-cards-container, #category-view-grid, " +
+      "#category-list-grid, .list-users-container, .series-detail-page-container, " +
+      ".movie-detail-page-container, .settings-main-container") || target.parentElement;
+  }
+
+  function stepList(target, selected, horizontal, forward) {
+    var scope = wheelScope(target);
+    if (!scope) return;
+    var candidates = scope.querySelectorAll(FOCUSABLE_SELECTOR);
+    var origin = selected && scope.contains(selected) ? selected : closestFocusable(target);
+    var rect = origin && origin.getBoundingClientRect();
+    var best = null;
+    var bestScore = Infinity;
+    for (var i = 0; i < candidates.length; i++) {
+      var candidate = candidates[i];
+      if (candidate === origin || !candidate.getClientRects().length ||
+          (origin && origin.contains(candidate)) || candidate.disabled) continue;
+      var style = window.getComputedStyle(candidate);
+      if (style.visibility === "hidden" || style.display === "none") continue;
+      var box = candidate.getBoundingClientRect();
+      if (!rect) { best = candidate; break; }
+      var dx = (box.left + box.right - rect.left - rect.right) / 2;
+      var dy = (box.top + box.bottom - rect.top - rect.bottom) / 2;
+      var primary = horizontal ? dx : dy;
+      var cross = horizontal ? dy : dx;
+      if ((forward ? primary : -primary) <= 1) continue;
+      var score = Math.abs(primary) + Math.abs(cross) * 3;
+      if (score < bestScore) { best = candidate; bestScore = score; }
+    }
+    if (best) {
+      handleHover(best);
+      best.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }
 
   function handleWheel(e) {
-    var now = Date.now();
-    if (now - lastWheelAt < 100) {
-      e.preventDefault();
-      return;
-    }
-
     var deltaX = e.deltaX || 0;
     var deltaY = e.deltaY || 0;
-    if (e.shiftKey && !deltaX) {
-      deltaX = deltaY;
-      deltaY = 0;
-    }
+    if (!deltaX && !deltaY) return;
+    if (e.shiftKey && !deltaX) { deltaX = deltaY; deltaY = 0; }
 
-    var adapter = resolveAdapter(e.target);
-    if (adapter && (adapter.stepUp || adapter.stepDown || adapter.stepLeft || adapter.stepRight)) {
-      e.preventDefault();
-      lastWheelAt = now;
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        if (deltaX > 0 && adapter.stepRight) adapter.stepRight();
-        else if (deltaX < 0 && adapter.stepLeft) adapter.stepLeft();
-      } else {
-        if (deltaY > 0 && adapter.stepDown) adapter.stepDown();
-        else if (deltaY < 0 && adapter.stepUp) adapter.stepUp();
-      }
-      return;
-    }
+    var now = Date.now();
+    // Every wheel event extends the lock, including throttled events and
+    // attempts to scroll past the final item. Save the last real position.
+    wheelLock = true;
+    wheelAnchor.x = pointerPosition.x;
+    wheelAnchor.y = pointerPosition.y;
+    lastWheelAt = now;
+    e.preventDefault();
+    e.stopPropagation();
+    if (now - lastWheelStepAt < 100) return;
+    lastWheelStepAt = now;
 
-    var el = e.target;
-    while (el && el !== document.documentElement) {
-      var style = window.getComputedStyle(el);
-      if (el.scrollWidth > el.clientWidth && (style.overflowX === "auto" || style.overflowX === "scroll")) {
-        lastWheelAt = now;
-        el.scrollLeft += deltaX || deltaY;
-        break;
+    var selected = document.querySelector(".focused");
+    var target = selected || e.target;
+    var adapter = resolveAdapter(target);
+    var horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+    var forward = horizontal ? deltaX > 0 : deltaY > 0;
+    var step = horizontal ? (forward ? "stepRight" : "stepLeft") :
+      (forward ? "stepDown" : "stepUp");
+    if (adapter && adapter[step]) {
+      adapter[step]();
+      if (adapter === ADAPTERS.movies && typeof window.updateMoviesFocus === "function") window.updateMoviesFocus();
+      if (adapter === ADAPTERS.series && typeof window.updateSeriesFocus === "function") window.updateSeriesFocus();
+      // Live maintains its selection with .lp-focused rather than .focused.
+      selected = adapter === ADAPTERS.live ?
+        document.querySelector(".lp-main-container .lp-focused, .lp-main-container .lp-control-focused") :
+        document.querySelector(".focused");
+      if (selected) {
+        setFocused(selected);
+        selected.scrollIntoView({ block: "nearest", inline: "nearest" });
       }
-      if (el.scrollHeight > el.clientHeight && (style.overflowY === "auto" || style.overflowY === "scroll")) {
-        lastWheelAt = now;
-        el.scrollTop += deltaY || e.deltaY;
-        break;
-      }
-      el = el.parentElement;
+    } else {
+      stepList(target, selected, horizontal, forward);
     }
   }
 
@@ -482,10 +628,13 @@
       preventDefault: function () {
         if (e.preventDefault) e.preventDefault();
       },
+      stopPropagation: function () {
+        if (e.stopPropagation) e.stopPropagation();
+      },
     });
   }
 
-  document.addEventListener("wheel", handleWheel, { passive: false });
-  document.addEventListener("mousewheel", normalizeLegacyWheel, { passive: false });
-  document.addEventListener("DOMMouseScroll", normalizeLegacyWheel, { passive: false });
+  document.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+  document.addEventListener("mousewheel", normalizeLegacyWheel, { passive: false, capture: true });
+  document.addEventListener("DOMMouseScroll", normalizeLegacyWheel, { passive: false, capture: true });
 })();

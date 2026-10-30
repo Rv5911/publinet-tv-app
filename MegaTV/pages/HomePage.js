@@ -1,4 +1,17 @@
 async function HomePage() {
+  // Repeated presses on the Home nav item each start a new HomePage() call
+  // before the previous one's "await HomeCarousel()" has resolved. Without
+  // this, every call appends its own "#home-page-loader" div and only the
+  // first one (document.querySelector's single match) ever gets removed -
+  // N presses leave N-1 loaders stuck on screen forever.
+  var myHomeSession = (window.__homePageSession = (window.__homePageSession || 0) + 1);
+  (function removeStaleHomeLoaders() {
+    var stale = document.querySelectorAll("#home-page-loader");
+    for (var i = 0; i < stale.length; i++) {
+      if (stale[i].parentNode) stale[i].parentNode.removeChild(stale[i]);
+    }
+  })();
+
   const selectedPlaylistData = localStorage.getItem("selectedPlaylist")
     ? JSON.parse(localStorage.getItem("selectedPlaylist"))
     : {};
@@ -861,16 +874,24 @@ async function HomePage() {
   // Await the carousel HTML (this is async and fetches movie details)
   const carouselHtml = await HomeCarousel();
 
-  // Hide custom home page loader after carousel is loaded
-  const loaderElement = document.querySelector("#home-page-loader");
-  if (loaderElement) {
+  // A newer HomePage() call has since started (another nav press came in
+  // while this one was still awaiting) - that call owns the loader/DOM now,
+  // so this stale one must not touch either.
+  if (window.__homePageSession !== myHomeSession) {
+    return "";
+  }
+
+  // Hide custom home page loader after carousel is loaded (every one, in
+  // case an earlier call's loader was never cleaned up for any reason).
+  const staleLoaders = document.querySelectorAll("#home-page-loader");
+  staleLoaders.forEach((loaderElement) => {
     loaderElement.style.animation = "fadeOut 0.3s ease-out";
     setTimeout(() => {
       if (loaderElement && loaderElement.parentNode) {
         loaderElement.parentNode.removeChild(loaderElement);
       }
     }, 300);
-  }
+  });
 
   if (
     (!carouselHtml ||

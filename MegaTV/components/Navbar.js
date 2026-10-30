@@ -717,30 +717,63 @@ function initNavbar() {
     }
   });
 
+  // Single place that opens a navbar destination, used by both the click
+  // handler below and the Enter-key case further down. Repeated OK/click on
+  // a navbar item used to call Router.showPage() again every time (each
+  // page's own stuck-loader bugs aside, that alone is redundant work and a
+  // source of races) - this collapses it to one guarded path:
+  //   - already on that page -> no-op (just keeps focus there)
+  //   - a navigation is still settling -> ignore the extra press
+  //   - otherwise -> navigate once, then release the lock shortly after
+  var navbarNavInProgress = false;
+  function navigateToPage(page) {
+    if (!page) return;
+    var currentPage = localStorage.getItem("currentPage");
+    if (currentPage === page) return;
+    if (navbarNavInProgress) return;
+    navbarNavInProgress = true;
+
+    window.searchQuery = "";
+    if (searchInput) searchInput.value = "";
+    if (typeof window.cleanupMoviesNavigation === "function") {
+      window.cleanupMoviesNavigation();
+    }
+    if (typeof window.cleanupSeriesNavigation === "function") {
+      window.cleanupSeriesNavigation();
+    }
+
+    var targetPage = page;
+    if (
+      targetPage === "moviesPage" &&
+      localStorage.getItem("movieViewMode") === "category"
+    ) {
+      localStorage.setItem("categoryListType", "movies");
+      targetPage = "categoryListPage";
+    } else if (
+      targetPage === "seriesPage" &&
+      localStorage.getItem("seriesViewMode") === "category"
+    ) {
+      localStorage.setItem("categoryListType", "series");
+      targetPage = "categoryListPage";
+    }
+
+    if (typeof clearMoviesAndSeriesLocalStorage === "function") {
+      clearMoviesAndSeriesLocalStorage();
+    }
+    disposeLiveTvPlayer();
+    resetParentalControlState();
+    Router.showPage(targetPage);
+    updateNavbarActive(page);
+    buildDynamicSidebarOptions();
+
+    setTimeout(function () {
+      navbarNavInProgress = false;
+    }, 300);
+  }
+
   navItems.forEach((item, index) => {
     item.addEventListener("click", () => {
-      // Clear search query
-      window.searchQuery = "";
-      if (searchInput) searchInput.value = "";
-
-      let page = item.getAttribute("data-page");
-
-      // Check if we are already on the target page to avoid redundant loading
-      const currentPage = localStorage.getItem("currentPage");
-      if (
-        currentPage === page &&
-        (page === "moviesPage" ||
-          page === "seriesPage" ||
-          page === "categoryListPage")
-      ) {
-        return;
-      }
-
-      disposeLiveTvPlayer();
-      resetParentalControlState();
-      Router.showPage(page);
-      updateNavbarActive(item.getAttribute("data-page"));
-      buildDynamicSidebarOptions();
+      navigateToPage(item.getAttribute("data-page"));
     });
 
     item.addEventListener("focus", () => {
@@ -1098,36 +1131,7 @@ function initNavbar() {
         } else if (currentIndex === totalItems - 1) {
           openSidebar();
         } else {
-          if (window.cleanupMoviesNavigation) {
-            window.cleanupMoviesNavigation();
-          }
-          if (window.cleanupSeriesNavigation) {
-            window.cleanupSeriesNavigation();
-          }
-          let page = navItems[currentIndex - 1].getAttribute("data-page");
-
-          if (
-            page === "moviesPage" &&
-            localStorage.getItem("movieViewMode") === "category"
-          ) {
-            localStorage.setItem("categoryListType", "movies");
-            page = "categoryListPage";
-          } else if (
-            page === "seriesPage" &&
-            localStorage.getItem("seriesViewMode") === "category"
-          ) {
-            localStorage.setItem("categoryListType", "series");
-            page = "categoryListPage";
-          }
-
-          window.searchQuery = "";
-          clearMoviesAndSeriesLocalStorage();
-          disposeLiveTvPlayer();
-          resetParentalControlState();
-          Router.showPage(page);
-          updateNavbarActive(
-            navItems[currentIndex - 1].getAttribute("data-page"),
-          );
+          navigateToPage(navItems[currentIndex - 1].getAttribute("data-page"));
         }
         break;
       default:

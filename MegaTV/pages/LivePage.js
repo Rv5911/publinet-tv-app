@@ -2160,7 +2160,15 @@ function LivePage() {
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        // Cross-browser exit fullscreen
+        // HTML5 live player: "fullscreen" is a CSS class toggle
+        // (applyLayout), not the real browser Fullscreen API - exiting via
+        // document.exitFullscreen() is a no-op for it and leaves it stuck.
+        if (window.LiveVideoPlayerHtml && window.LiveVideoPlayerHtml.isActive()) {
+          window.LiveVideoPlayerHtml.exitFullscreen();
+          return;
+        }
+
+        // Cross-browser exit fullscreen (legacy/native fullscreen path)
         if (document.exitFullscreen) {
           document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {

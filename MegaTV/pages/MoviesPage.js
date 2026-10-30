@@ -1708,6 +1708,7 @@ function moveMoviesRight() {
     moviesNavigationState.currentCategoryIndex;
   moviesNavigationState.lastFocusedCard =
     moviesNavigationState.currentCardIndex;
+  updateMoviesFocus();
 }
 
 function moveMoviesLeft() {
@@ -1727,6 +1728,7 @@ function moveMoviesLeft() {
     moviesNavigationState.currentCategoryIndex;
   moviesNavigationState.lastFocusedCard =
     moviesNavigationState.currentCardIndex;
+  updateMoviesFocus();
 }
 
 function loadMoreMoviesForCategory(categoryIndex) {

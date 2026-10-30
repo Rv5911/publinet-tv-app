@@ -251,8 +251,9 @@
   function buildDom(o) {
     var root = el("div", "vod-player vod-s-loading");
     root.id = "vod-player-root";
+    root.setAttribute("tabindex", "-1");
     root.innerHTML =
-      '<video class="vod-video" playsinline webkit-playsinline></video>' +
+      '<video class="vod-video" tabindex="-1" playsinline webkit-playsinline></video>' +
       '<div class="vod-loader hidden"><div class="vod-spinner"></div></div>' +
       '<div class="vod-hud">' +
       '<div class="vod-top">' +
@@ -984,6 +985,10 @@
     }
   }
 
+  // Back always exits on the first press - the HUD being visible or not is
+  // irrelevant (that used to hide the HUD instead of exiting, which read as
+  // "Back just flashes the controls"). Only an actual dialog/seek gesture
+  // gets to just close instead of exiting.
   function handleBack() {
     if (S.seekPreview != null || S.previewing) {
       cancelPreview();
@@ -992,14 +997,6 @@
     if (S.popupOpen) {
       closePopup();
       leave();
-      return;
-    }
-    if (S.errorOpen) {
-      leave();
-      return;
-    }
-    if (S.hudVisible) {
-      hideHud();
       return;
     }
     leave();
@@ -1045,10 +1042,14 @@
 
   function onKeyDown(e) {
     var kc = e.keyCode;
+    // Pointer shown/hidden (1536/1537): never act on these, never block
+    // them - they are not for this handler.
+    if (kc === 1536 || kc === 1537) return;
     if (kc === 461 || kc === 27 || kc === 10009 || kc === 8) {
       console.log(
-        "[vod-back] kc=" + kc + " target=" + (e.target && e.target.nodeName) +
-        " S=" + (S ? ("leaving=" + S.leaving + " state=" + S.state + " dragging=" + S.dragging) : "null")
+        "[vod-back] kc=" + kc + " pointerVisible=" + window.__pointerVisible +
+        " active=" + (document.activeElement && document.activeElement.tagName) +
+        " S=" + (S ? ("leaving=" + S.leaving + " state=" + S.state) : "null")
       );
     }
     if (!S || S.leaving) return;
@@ -1082,10 +1083,11 @@
       return;
     }
 
-    if (isMediaKey(kc)) {
-      handleMedia(kc);
-    } else if (isBackKeyEvent(e)) {
+    if (isBackKeyEvent(e)) {
+      // Checked first, before anything that could show the HUD.
       handleBack();
+    } else if (isMediaKey(kc)) {
+      handleMedia(kc);
     } else if (dirOf(e)) {
       var dir = dirOf(e);
       if (!S.entries.length && !S.errorOpen && !S.popupOpen) {
@@ -1150,7 +1152,22 @@
   function bindPointer() {
     var root = S.els.root;
 
-    on(root, "mousemove", function () {
+    // Pressing a remote button can jitter the Magic Remote's pointer by a
+    // pixel or two - that must not show the HUD (which then made Back look
+    // like it only flashed the controls instead of exiting). Only a real
+    // pointer move, more than 10px, shows it.
+    var lastMoveX = null;
+    var lastMoveY = null;
+    on(root, "mousemove", function (e) {
+      var x = e.clientX;
+      var y = e.clientY;
+      if (lastMoveX !== null) {
+        var dx = x - lastMoveX;
+        var dy = y - lastMoveY;
+        if (dx * dx + dy * dy < 100) return; // < 10px
+      }
+      lastMoveX = x;
+      lastMoveY = y;
       showHud();
     });
 
@@ -1163,6 +1180,15 @@
       }
       if (S.hudVisible) hideHud();
       else showHud();
+    });
+
+    // After any click, native focus must land back on the (non-focusable-
+    // looking) player root, never stay on <video> or a clicked control, so
+    // key routing is never affected by what was last clicked.
+    on(root, "click", function () {
+      setTimeout(function () {
+        if (S && S.els.root) S.els.root.focus();
+      }, 0);
     });
 
     on(S.els.bar, "mousedown", function (e) {
@@ -1219,27 +1245,14 @@
     window.VodPlayerActivate = null;
   }
 
-  // Safety net for hardware Back: once the Magic Remote pointer has been
-  // used, webOS can resolve its dedicated Back key as native history
-  // navigation instead of (or in addition to) a DOM keydown. A pushed
-  // history state turns that into a popstate we still catch.
-  function onPopState() {
-    if (!S || S.leaving) return;
-    handleBack();
-  }
-
   function leave(info) {
     if (!S || S.leaving) return;
     S.leaving = true;
     savePosition("back");
     var o = S.opts;
     var nextId = info && info.nextEpisodeId;
-    var hadHistory = S.historyPushed;
     cleanupSession();
     S = null;
-    if (hadHistory) {
-      try { history.back(); } catch (e) {}
-    }
     navigateBack(o, nextId);
   }
 
@@ -1286,13 +1299,8 @@
 
   function open(o) {
     if (!o || !o.url) return;
-    // Switching straight to another item (e.g. next episode) keeps the same
-    // single pushed history state instead of popping + pushing again, so a
-    // back()/pushState() race can never leave the stack out of sync.
-    var reusedHistory = false;
     if (S) {
       S.leaving = true;
-      reusedHistory = S.historyPushed;
       cleanupSession();
       S = null;
     }
@@ -1339,7 +1347,6 @@
       hls: null,
       lastPointerSeek: 0,
       dragSafetyTimer: null,
-      historyPushed: false,
     };
 
     // keys other pages read when we return to them
@@ -1388,21 +1395,13 @@
       showHud();
     };
 
-    // window capture runs before focus.js's document-level OK handler
-    on(window, "keydown", onKeyDown, true);
-    on(window, "keyup", onKeyUp, true);
+    // Document-level capture: one Back path regardless of pointer/hover
+    // state or which control last took focus.
+    on(document, "keydown", onKeyDown, true);
+    on(document, "keyup", onKeyUp, true);
     on(document, "visibilitychange", onVisibility);
     on(window, "pagehide", onPageHide);
     on(window, "beforeunload", onPageHide);
-    if (reusedHistory) {
-      S.historyPushed = true;
-    } else {
-      try {
-        history.pushState({ vodPlayerOpen: true }, "");
-        S.historyPushed = true;
-      } catch (e) {}
-    }
-    on(window, "popstate", onPopState);
     bindVideo();
     bindPointer();
 

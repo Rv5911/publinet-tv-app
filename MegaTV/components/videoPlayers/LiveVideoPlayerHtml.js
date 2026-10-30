@@ -80,7 +80,7 @@
 
   function markup(cfg) {
     return (
-      '<div class="livetvPlayer-main-container lvh-root lvh-s-loading">' +
+      '<div class="livetvPlayer-main-container lvh-root lvh-s-loading" tabindex="-1">' +
       '<div class="live-video-player live-video-player-div">' +
       '<div class="play-pause-icon"><i class="fa-solid fa-play"></i></div>' +
       '<div class="live-top-overlays">' +
@@ -89,7 +89,7 @@
       '<div class="live-video-controls">' +
       '<div id="lp-fullscreen-btn" class="lp-fullscreen-btn">' +
       '<i class="fa-sharp fa-solid fa-expand lp-fullscreen-icon"></i></div></div>' +
-      '<video id="html-live-player" class="html-live-player lvh-video" autoplay playsinline webkit-playsinline data-stream-id="' +
+      '<video id="html-live-player" class="html-live-player lvh-video" tabindex="-1" autoplay playsinline webkit-playsinline data-stream-id="' +
       esc(cfg.streamId) + '"></video>' +
       '<div class="lvh-loader hidden"><div class="lvh-spinner"></div></div>' +
       '<div class="lvh-hud">' +
@@ -552,29 +552,11 @@
   function enterFullscreen() {
     if (!S || S.fullscreen) return;
     applyLayout(true);
-    // Safety net for hardware Back: once the Magic Remote pointer has been
-    // used, webOS can resolve its dedicated Back key as native history
-    // navigation instead of (or in addition to) a DOM keydown. A pushed
-    // history state turns that into a popstate we still catch.
-    try {
-      history.pushState({ lvhFullscreen: true }, "");
-      S.historyPushed = true;
-    } catch (e) {}
   }
 
   function exitFullscreen() {
     if (!S || !S.fullscreen) return;
     applyLayout(false);
-    if (S.historyPushed) {
-      S.historyPushed = false;
-      try { history.back(); } catch (e) {}
-    }
-  }
-
-  function onPopState() {
-    if (!S || S.leaving || !S.fullscreen) return;
-    if (S.errorOpen && S.focusId !== "errBack") S.focusId = "errBack";
-    exitFullscreen();
   }
 
   // ------------------------------------------------------------------- keys
@@ -591,9 +573,13 @@
 
   function onKeyDown(e) {
     var kc = e.keyCode;
+    // Pointer shown/hidden (1536/1537): never act on these, never block
+    // them - they are not for this handler.
+    if (kc === 1536 || kc === 1537) return;
     if (kc === 461 || kc === 27 || kc === 10009 || kc === 8) {
       console.log(
-        "[live-back] kc=" + kc + " target=" + (e.target && e.target.nodeName) +
+        "[live-back] kc=" + kc + " pointerVisible=" + window.__pointerVisible +
+        " active=" + (document.activeElement && document.activeElement.tagName) +
         " S=" + (S ? ("leaving=" + S.leaving + " fullscreen=" + S.fullscreen + " state=" + S.state) : "null")
       );
     }
@@ -632,16 +618,17 @@
       return;
     }
 
-    if (kc === KEY_PLAY) {
+    if (kc === KEY_STOP || isBack(e)) {
+      // Checked first, before anything that could show the HUD. Exit
+      // fullscreen first; LivePage handles the next Back.
+      if (S.errorOpen && S.focusId !== "errBack") S.focusId = "errBack";
+      exitFullscreen();
+    } else if (kc === KEY_PLAY) {
       if (S.video.paused) doPlay();
       showHud();
     } else if (kc === KEY_PAUSE) {
       if (!S.video.paused) doPause();
       showHud();
-    } else if (kc === KEY_STOP || isBack(e)) {
-      // exit fullscreen first; LivePage handles the next Back
-      if (S.errorOpen && S.focusId !== "errBack") S.focusId = "errBack";
-      exitFullscreen();
     } else if (dirOf(kc)) {
       if (!S.entries.length) {
         showHud();
@@ -671,7 +658,21 @@
   // ---------------------------------------------------------------- pointer
 
   function bindPointer() {
-    on(S.root, "mousemove", function () {
+    // Pressing a remote button can jitter the Magic Remote's pointer by a
+    // pixel or two - that must not show the HUD. Only a real pointer move,
+    // more than 10px, does.
+    var lastMoveX = null;
+    var lastMoveY = null;
+    on(S.root, "mousemove", function (e) {
+      var x = e.clientX;
+      var y = e.clientY;
+      if (lastMoveX !== null) {
+        var dx = x - lastMoveX;
+        var dy = y - lastMoveY;
+        if (dx * dx + dy * dy < 100) return; // < 10px
+      }
+      lastMoveX = x;
+      lastMoveY = y;
       if (S.fullscreen) showHud();
     });
     on(S.root, "click", function (e) {
@@ -684,6 +685,15 @@
       // click on the video toggles the HUD (never pauses live TV)
       if (S.hudVisible) hideHud();
       else showHud();
+    });
+
+    // After any click, native focus must land back on the (non-focusable-
+    // looking) player root, never stay on <video> or a clicked control, so
+    // key routing is never affected by what was last clicked.
+    on(S.root, "click", function () {
+      setTimeout(function () {
+        if (S && S.root) S.root.focus();
+      }, 0);
     });
     // windowed fullscreen button: LivePage only wires it to the remote, so
     // the click is handled here (same toggle the remote OK reaches)
@@ -712,16 +722,12 @@
   function teardown() {
     if (!S) return;
     S.leaving = true;
-    var hadHistory = S.historyPushed;
     clearTimeout(S.watchdogTimer);
     clearTimeout(S.hudTimer);
     clearTimeout(S.toastTimer);
     clearInterval(S.pollTimer);
     stopMedia();
     offAll();
-    if (hadHistory) {
-      try { history.back(); } catch (e) {}
-    }
     var box = document.getElementById("lp-player-container");
     if (box) box.classList.remove("lvh-fs");
     document.body.classList.remove("lvh-fs-on");
@@ -807,7 +813,6 @@
       toastTimer: null,
       hls: null,
       lastToggleAt: 0,
-      historyPushed: false,
     };
     S.els = {
       loader: q(".lvh-loader"),
@@ -850,9 +855,9 @@
     };
 
     exposeCompat();
-    // window capture runs before focus.js's document-level OK handler
-    on(window, "keydown", onKeyDown, true);
-    on(window, "popstate", onPopState);
+    // Document-level capture: one Back path regardless of pointer/hover
+    // state or which control last took focus.
+    on(document, "keydown", onKeyDown, true);
     bindVideo();
     bindPointer();
     startPoll();

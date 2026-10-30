@@ -1855,6 +1855,7 @@ function moveSeriesRight() {
         seriesNavigationState.currentCategoryIndex;
     seriesNavigationState.lastFocusedCard =
         seriesNavigationState.currentCardIndex;
+    updateSeriesFocus();
 }
 
 function moveSeriesLeft() {
@@ -1874,6 +1875,7 @@ function moveSeriesLeft() {
         seriesNavigationState.currentCategoryIndex;
     seriesNavigationState.lastFocusedCard =
         seriesNavigationState.currentCardIndex;
+    updateSeriesFocus();
 }
 
 function loadMoreSeriesForCategory(categoryIndex) {
