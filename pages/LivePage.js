@@ -49,6 +49,28 @@ function LivePage() {
   let lastEnterTime = 0;
   let lastEnteredChannelId = null;
 
+  // Long-press OK (Channel Options dialog) state - ES5 only, shared by the
+  // keyboard (keydown/keyup) and mouse/Magic Remote (mousedown/mouseup) paths.
+  var OK_LONG_PRESS_MS = 800;
+  // Rare fallback only: used when a keydown's .repeat is unusable (not a
+  // real auto-repeat signal) and no keyup ever arrives either, so a short
+  // grace window still can't block the next deliberate press for long.
+  var OK_KEY_REPEAT_FALLBACK_MS = 400;
+  var longPressTimer = null;
+  var longPressFired = false;
+  var okKeyDown = false;
+  var okKeyDownAt = 0;
+  var suppressNextChannelClick = false;
+  var channelOptionsDialogEl = null;
+
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   // DOM Elements
   let container;
   const isTizenPlatform = typeof tizen !== "undefined";
@@ -228,7 +250,11 @@ function LivePage() {
   };
 
   const cleanup = () => {
+    clearLongPressTimer();
+    closeChannelOptionsDialog(null);
+
     document.removeEventListener("keydown", handleKeydown);
+    document.removeEventListener("keyup", handleKeyup);
     document.removeEventListener("sortChanged", handleSortChange);
     document.removeEventListener("liveStopRequested", handleLiveStop);
     document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -290,8 +316,14 @@ function LivePage() {
     container = document.querySelector(".lp-main-container");
     if (!container) return;
 
+    okKeyDown = false;
+    longPressFired = false;
+    suppressNextChannelClick = false;
+    clearLongPressTimer();
+
     render();
     document.addEventListener("keydown", handleKeydown);
+    document.addEventListener("keyup", handleKeyup);
     document.addEventListener("sortChanged", handleSortChange);
     document.addEventListener("liveStopRequested", handleLiveStop);
 
@@ -442,6 +474,30 @@ function LivePage() {
     return cats;
   };
 
+  // Keeps the first channel seen for each name (case/whitespace-insensitive),
+  // matching dedupeByName() used for movies/series. Applied per displayed
+  // list rather than globally: providers often list the same channel name as
+  // separate entries in different categories (e.g. "UK | HD" and "UK | FHD"),
+  // and deduping across the whole playlist would make it vanish from one of
+  // them. This way "All Channels" shows each name once, while each category
+  // still keeps its own copy.
+  function dedupeStreamsByName(streams) {
+    var seen = {};
+    var out = [];
+    for (var i = 0; i < (streams || []).length; i++) {
+      var item = streams[i];
+      var name = (item && item.name ? item.name : "").toLowerCase().trim();
+      if (!name) {
+        out.push(item); // no name to compare - keep, avoid data loss
+        continue;
+      }
+      if (seen[name]) continue;
+      seen[name] = true;
+      out.push(item);
+    }
+    return out;
+  }
+
   const getFilteredChannels = () => {
     // Return cache if parameters haven't changed
     if (
@@ -470,6 +526,10 @@ function LivePage() {
         (s) => String(s.category_id) === String(selectedCategoryId),
       );
     }
+
+    // Drop repeated channel names within whatever list is being shown. Also
+    // returns a fresh array, so the sort below can't mutate allLiveStreams.
+    streams = dedupeStreamsByName(streams);
 
     if (channelSearchQuery) {
       streams = streams.filter((s) =>
@@ -760,8 +820,6 @@ function LivePage() {
             playlistUsername,
           )
         : false;
-      const isHistory = selectedCategoryId === "channelHistory";
-
       const card = document.createElement("div");
       card.className = "lp-channel-card";
       card.dataset.streamId = stream.stream_id;
@@ -781,18 +839,11 @@ function LivePage() {
             <div class="lp-channel-name">${stream.name}</div>
           </div>
          <div class="lp-channel-buttons">
-          <button class="lp-channel-fav-btn" data-stream-id="${
+          <span class="lp-channel-fav-btn" data-stream-id="${
             stream.stream_id
-          }" data-button-index="0">
+          }">
             <i class="${isFav ? "fa-solid" : "fa-regular"} fa-heart"></i>
-          </button>
-          ${
-            isHistory
-              ? `<button class="lp-channel-remove-btn" data-stream-id="${stream.stream_id}" data-button-index="1">
-              <i class="fa-solid fa-xmark"></i>
-            </button>`
-              : ""
-          }
+          </span>
         </div>
           </div>
           <div class="lp-progress-bar">
@@ -959,6 +1010,167 @@ function LivePage() {
     updateFocus();
   };
 
+  // ---- Channel Options dialog (long-press OK). ES5 only. ----
+  function closeChannelOptionsDialog(actionFn) {
+    if (!channelOptionsDialogEl) return;
+    const overlay = channelOptionsDialogEl;
+    channelOptionsDialogEl = null;
+    document.removeEventListener("keydown", overlay._lpDialogKeydown, true);
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    if (typeof actionFn === "function") actionFn();
+    // The OK press that opened this dialog may never have delivered a
+    // keyup on this platform, which would otherwise leave okKeyDown stuck
+    // true and a stale long-press timer still pending. Selecting a dialog
+    // option is itself a distinct, concluded press, so clear all of that
+    // now rather than letting it interfere with the next channel selection.
+    okKeyDown = false;
+    clearLongPressTimer();
+    longPressFired = false;
+    focusedSection = "channels";
+    buttonFocusIndex = -1;
+    // Force updateFocus() to re-apply the highlight even when the card's DOM
+    // node wasn't replaced (no removal happened): it still has
+    // currentFocusElement pointing at itself from before the dialog opened,
+    // so its "only touch the DOM if focus actually moved" shortcut would
+    // otherwise skip re-adding .lp-focused after clearFast() strips it.
+    currentFocusElement = null;
+    updateFocus();
+  }
+
+  function openChannelOptionsDialog(stream) {
+    if (!stream || channelOptionsDialogEl) return;
+
+    const playlistObj = getCurrentPlaylist();
+    const playlistUsername = playlistObj ? playlistObj.playlistName : null;
+    const isFav = window.isItemFavoriteForPlaylist
+      ? window.isItemFavoriteForPlaylist(
+          stream,
+          "favoritesLiveTV",
+          playlistUsername,
+        )
+      : false;
+    const isHistoryCategory = selectedCategoryId === "channelHistory";
+
+    const actions = [];
+    actions.push({
+      label: isFav ? "Remove from Favorites" : "Add to Favorites",
+      icon: isFav ? "fa-solid fa-heart" : "fa-regular fa-heart",
+      run: function () {
+        toggleFavorite(stream, true);
+      },
+    });
+    if (isHistoryCategory) {
+      actions.push({
+        label: "Remove from History",
+        run: function () {
+          removeFromHistory(stream);
+        },
+      });
+    }
+    actions.push({ label: "Cancel", run: null });
+
+    const overlay = document.createElement("div");
+    overlay.className = "lp-channel-options-overlay";
+
+    var buttonsHtml = "";
+    for (var i = 0; i < actions.length; i++) {
+      var iconHtml = actions[i].icon
+        ? '<i class="' + actions[i].icon + '"></i>'
+        : "";
+      buttonsHtml +=
+        '<button type="button" class="lp-channel-options-btn" data-index="' +
+        i +
+        '">' +
+        iconHtml +
+        escapeHtml(actions[i].label) +
+        "</button>";
+    }
+
+    overlay.innerHTML =
+      '<div class="lp-channel-options-dialog">' +
+      '<div class="lp-channel-options-title">' +
+      escapeHtml(stream.name || "") +
+      "</div>" +
+      '<div class="lp-channel-options-buttons">' +
+      buttonsHtml +
+      "</div>" +
+      "</div>";
+
+    document.body.appendChild(overlay);
+    channelOptionsDialogEl = overlay;
+
+    const buttons = overlay.querySelectorAll(".lp-channel-options-btn");
+    var focusIndex = 0;
+
+    function updateDialogFocus() {
+      for (var j = 0; j < buttons.length; j++) {
+        buttons[j].classList.toggle("focused", j === focusIndex);
+      }
+    }
+
+    updateDialogFocus();
+
+    function runAction(index) {
+      const action = actions[index];
+      closeChannelOptionsDialog(action ? action.run : null);
+    }
+
+    // No app-wide Magic Remote hover system exists in this project (unlike
+    // the webOS MegaTV/ build), so this dialog tracks hover itself.
+    function dialogMouseover(e) {
+      const btn = e.target.closest(".lp-channel-options-btn");
+      if (!btn) return;
+      const idx = parseInt(btn.getAttribute("data-index"), 10);
+      if (isNaN(idx) || idx === focusIndex) return;
+      focusIndex = idx;
+      updateDialogFocus();
+    }
+
+    function dialogKeydown(e) {
+      e.stopImmediatePropagation();
+      if (isBackKey(e)) {
+        e.preventDefault();
+        closeChannelOptionsDialog(null);
+        return;
+      }
+      if (e.key === "ArrowUp" || e.keyCode === 38) {
+        e.preventDefault();
+        if (focusIndex > 0) {
+          focusIndex--;
+          updateDialogFocus();
+        }
+      } else if (e.key === "ArrowDown" || e.keyCode === 40) {
+        e.preventDefault();
+        if (focusIndex < buttons.length - 1) {
+          focusIndex++;
+          updateDialogFocus();
+        }
+      } else if (e.key === "Enter" || e.keyCode === 13) {
+        e.preventDefault();
+        // KeyboardEvent.repeat (not a release signal) distinguishes the OS
+        // auto-repeating the still-held key that opened this dialog from a
+        // deliberate fresh press - this platform doesn't reliably deliver
+        // keyup for OK, so waiting for a release here would get stuck.
+        if (e.repeat) return;
+        runAction(focusIndex);
+      } else {
+        e.preventDefault();
+      }
+    }
+
+    overlay._lpDialogKeydown = dialogKeydown;
+    document.addEventListener("keydown", dialogKeydown, true);
+    overlay.addEventListener("mouseover", dialogMouseover);
+
+    for (var b = 0; b < buttons.length; b++) {
+      (function (idx) {
+        buttons[idx].addEventListener("click", function () {
+          runAction(idx);
+        });
+      })(b);
+    }
+  }
+
   const updateFocus = () => {
     // Fast class removal helper using live HTMLCollection
     const clearFast = (className) => {
@@ -1026,6 +1238,18 @@ function LivePage() {
     clearFast("lp-control-focused");
     clearFast("lp-player-permanent-focus");
     currentFocusElement = null;
+
+    // focusLiveErrorRetryButton() gives the retry button real DOM focus and
+    // a highlight. Once focus moves off the player, hand that back - leaving
+    // it focused shows a stray ring on retry while the user is browsing
+    // channels, and keeps it as the key-event target.
+    if (focusedSection !== "player") {
+      const staleRetryBtn = getVisibleLiveErrorRetryButton();
+      if (staleRetryBtn) {
+        staleRetryBtn.classList.remove("focused", "lp-control-focused");
+        if (document.activeElement === staleRetryBtn) staleRetryBtn.blur();
+      }
+    }
 
     const playPauseIcon =
       document.querySelector(".play-pause-icon") ||
@@ -1300,9 +1524,7 @@ function LivePage() {
 
         // Handle button focus (always update if focus is on buttons within card)
         if (buttonFocusIndex >= 0) {
-          const buttons = target.querySelectorAll(
-            ".lp-channel-fav-btn, .lp-channel-remove-btn",
-          );
+          const buttons = target.querySelectorAll(".lp-channel-remove-btn");
           const btnTarget = buttons[buttonFocusIndex];
           if (btnTarget) {
             btnTarget.classList.add("lp-focused");
@@ -1817,6 +2039,65 @@ function LivePage() {
     }
   };
 
+  // ---- Long-press OK detection (channel cards only). ES5 only. ----
+  function clearLongPressTimer() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function armLongPress(stream) {
+    clearLongPressTimer();
+    longPressFired = false;
+    longPressTimer = setTimeout(function () {
+      longPressTimer = null;
+      longPressFired = true;
+      openChannelOptionsDialog(stream);
+    }, OK_LONG_PRESS_MS);
+  }
+
+  function handleChannelCardKeydown(stream, isRepeat) {
+    // KeyboardEvent.repeat is the standard, reliable signal for "this is the
+    // OS auto-repeating a key that's still held" - prefer it over guessing
+    // from timing. The already-armed long-press timer keeps counting toward
+    // OK_LONG_PRESS_MS on its own; nothing to do for a repeat.
+    if (isRepeat) return;
+    var now = Date.now();
+    if (okKeyDown && now - okKeyDownAt < OK_KEY_REPEAT_FALLBACK_MS) {
+      // Only reached on a platform where e.key/e.keyCode made it here but
+      // .repeat wasn't usable - short grace window so it still can't block
+      // rapid deliberate presses for long.
+      return;
+    }
+    okKeyDown = true;
+    okKeyDownAt = now;
+    // Act immediately (same zero-latency play / fullscreen-toggle as before
+    // this feature existed) rather than waiting for a keyup that some remote
+    // control / TV platforms never reliably deliver for the OK button. The
+    // long-press dialog, if the hold continues past OK_LONG_PRESS_MS, opens
+    // on top of whatever just started playing.
+    handleEnter();
+    armLongPress(stream);
+  }
+
+  function handleChannelCardKeyup() {
+    if (!okKeyDown) return;
+    okKeyDown = false;
+    // Released before OK_LONG_PRESS_MS: cancel the pending dialog-open timer
+    // (the play/fullscreen-toggle action already ran on keydown). If the
+    // timer already fired, longPressFired just gets quietly reset here.
+    clearLongPressTimer();
+    longPressFired = false;
+  }
+
+  function handleKeyup(e) {
+    if (e.key !== "Enter" && e.keyCode !== 13) return;
+    if (!okKeyDown) return;
+    e.preventDefault();
+    handleChannelCardKeyup();
+  }
+
   const handleKeydown = (e) => {
     // Check if sidebar is open
     const sidebar = document.getElementById("sidebar");
@@ -1872,6 +2153,16 @@ function LivePage() {
       } else {
         return;
       }
+    }
+
+    // Any key other than Enter is reliable proof the previous OK hold has
+    // ended, even on a platform that never delivers its keyup - don't let a
+    // stale okKeyDown or a still-pending long-press timer from that press
+    // interfere with (or re-open the dialog during) whatever comes next.
+    if (e.key !== "Enter" && e.keyCode !== 13 && (okKeyDown || longPressTimer)) {
+      okKeyDown = false;
+      clearLongPressTimer();
+      longPressFired = false;
     }
 
     // Cross-browser fullscreen detection
@@ -2052,7 +2343,15 @@ function LivePage() {
         }
         break;
       case "Enter":
-        handleEnter();
+        if (
+          focusedSection === "channels" &&
+          buttonFocusIndex === -1 &&
+          filteredStreams[channelIndex]
+        ) {
+          handleChannelCardKeydown(filteredStreams[channelIndex], e.repeat === true);
+        } else {
+          handleEnter();
+        }
         break;
     }
 
@@ -2251,35 +2550,23 @@ function LivePage() {
       channelIndex = 0;
       buttonFocusIndex = -1;
     } else if (focusedSection === "channels") {
-      const currentCard =
-        document.querySelectorAll(".lp-channel-card")[channelIndex];
-      if (currentCard) {
-        const buttons = currentCard.querySelectorAll(
-          ".lp-channel-fav-btn, .lp-channel-remove-btn",
+      // Cards no longer carry their own focusable buttons (favourite is
+      // decorative, remove-from-history moved into the long-press dialog),
+      // so Down goes straight to the next row.
+      buttonFocusIndex = -1;
+      const nextRowStart = (Math.floor(channelIndex / 4) + 1) * 4;
+      if (nextRowStart < filteredStreams.length) {
+        const nextIndex = Math.min(
+          channelIndex + 4,
+          filteredStreams.length - 1,
         );
-
-        if (buttonFocusIndex === -1 && buttons.length > 0) {
-          buttonFocusIndex = 0;
-        } else if (buttonFocusIndex >= 0) {
-          buttonFocusIndex = -1;
-          const nextRowStart = (Math.floor(channelIndex / 4) + 1) * 4;
-          if (nextRowStart < filteredStreams.length) {
-            const nextIndex = Math.min(
-              channelIndex + 4,
-              filteredStreams.length - 1,
-            );
-            const loadedCount = channelChunk * channelPageSize;
-            if (
-              nextIndex >= loadedCount &&
-              loadedCount < filteredStreams.length
-            ) {
-              // Load more channels
-              channelChunk++;
-              renderChannels();
-            }
-            channelIndex = nextIndex;
-          }
+        const loadedCount = channelChunk * channelPageSize;
+        if (nextIndex >= loadedCount && loadedCount < filteredStreams.length) {
+          // Load more channels
+          channelChunk++;
+          renderChannels();
         }
+        channelIndex = nextIndex;
       }
     }
   };
@@ -2429,34 +2716,30 @@ function LivePage() {
         playerSubFocus = 0;
       }
     } else if (focusedSection === "channels") {
-      const currentCard =
-        document.querySelectorAll(".lp-channel-card")[channelIndex];
-      if (currentCard) {
-        const buttons = currentCard.querySelectorAll(
-          ".lp-channel-fav-btn, .lp-channel-remove-btn",
-        );
-
-        if (buttonFocusIndex === -1 && buttons.length > 0) {
-          buttonFocusIndex = 0;
-        } else if (
-          buttonFocusIndex >= 0 &&
-          buttonFocusIndex < buttons.length - 1
-        ) {
-          buttonFocusIndex++;
-        } else if (buttonFocusIndex >= buttons.length - 1) {
-          // Only move to next channel if available
-          if (channelIndex < filteredStreams.length - 1) {
-            buttonFocusIndex = -1;
-            channelIndex++;
-          }
-          // If no next channel, stay on the last button (do nothing)
+      // Right moves to the next channel (and stays put on the last one).
+      // Only the first channelChunk * channelPageSize channels are rendered,
+      // so load the next chunk before stepping past what's on screen -
+      // otherwise channelIndex runs ahead of the cards, nothing highlights,
+      // and OK plays a channel the user never saw.
+      buttonFocusIndex = -1;
+      if (channelIndex < filteredStreams.length - 1) {
+        const nextIndex = channelIndex + 1;
+        const loadedCount = channelChunk * channelPageSize;
+        if (nextIndex >= loadedCount && loadedCount < filteredStreams.length) {
+          channelChunk++;
+          renderChannels();
         }
+        channelIndex = nextIndex;
       }
     }
   };
 
   const handleEnter = () => {
-    if (getVisibleLiveErrorRetryButton()) {
+    // Only hijack OK for "retry" while the player itself is focused. The
+    // error panel staying up must not block picking a different channel
+    // from the grid/sidebar - that stream is exactly what the user is
+    // trying to get away from.
+    if (focusedSection === "player" && getVisibleLiveErrorRetryButton()) {
       retryLiveErrorPlayback();
       return;
     }
@@ -2558,8 +2841,6 @@ function LivePage() {
       if (!stream) return;
 
       if (buttonFocusIndex === 0) {
-        toggleFavorite(stream, true);
-      } else if (buttonFocusIndex === 1) {
         removeFromHistory(stream);
       } else {
         // Individual channel lock removed as per user request
@@ -2689,15 +2970,16 @@ function LivePage() {
             channelIndex = index;
             updateFocus();
 
-            const favBtn = e.target.closest(".lp-channel-fav-btn");
+            if (suppressNextChannelClick) {
+              suppressNextChannelClick = false;
+              return;
+            }
+
             const removeBtn = e.target.closest(".lp-channel-remove-btn");
 
             const stream = filteredStreams[channelIndex];
             if (stream) {
-              if (favBtn) {
-                e.stopPropagation();
-                toggleFavorite(stream, true);
-              } else if (removeBtn) {
+              if (removeBtn) {
                 e.stopPropagation();
                 removeFromHistory(stream);
               } else {
@@ -2792,6 +3074,32 @@ function LivePage() {
             }
           }
         }
+      });
+
+      // Magic Remote / PC mouse: holding the button down 800ms+ on a
+      // channel card is a long press (Channel Options dialog), same
+      // threshold and shared timer as the keyboard OK path below.
+      channelGrid.addEventListener("mousedown", function (e) {
+        var card = e.target.closest(".lp-channel-card");
+        if (!card || e.target.closest(".lp-channel-remove-btn")) return;
+        var index = parseInt(card.dataset.index, 10);
+        if (isNaN(index)) return;
+        var stream = filteredStreams[index];
+        if (!stream) return;
+        suppressNextChannelClick = false;
+        armLongPress(stream);
+      });
+
+      channelGrid.addEventListener("mouseup", function () {
+        clearLongPressTimer();
+        if (longPressFired) {
+          suppressNextChannelClick = true;
+          longPressFired = false;
+        }
+      });
+
+      channelGrid.addEventListener("mouseleave", function () {
+        clearLongPressTimer();
       });
     }
   };
