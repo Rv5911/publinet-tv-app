@@ -440,15 +440,18 @@ async function loginApi(
     // Check if it's an "Invalid Playlist Data" error
     const isInvalidPlaylistError =
       error.message && error.message.includes("Invalid Playlist Data");
+    // Stuck on PreLoginPage (auto-login) with any failure - keys stay blocked forever otherwise
+    const isStuckOnPreLogin =
+      localStorage.getItem("currentPage") === "preLoginPage";
 
     setTimeout(() => {
       loadingOverlay.classList.add("hidden");
       disableKeyBlock();
       resetLoadingPercentage();
 
-      // If Invalid Playlist Data error, clear session and navigate to login
-      if (isInvalidPlaylistError) {
-        console.log("🔄 Invalid Playlist Data detected - redirecting to login");
+      // On Invalid Playlist Data, or any failure while stuck on PreLoginPage, bounce to login
+      if (isInvalidPlaylistError || isStuckOnPreLogin) {
+        console.log("🔄 Login failed - redirecting to login page");
 
         // Clear login state
         localStorage.removeItem("isLogin");
@@ -457,12 +460,14 @@ async function loginApi(
 
         // Navigate to login page
         localStorage.setItem("navigationFocus", "navbar");
-        localStorage.setItem("currentPage", "loginPage");
-        Router.showPage("loginPage");
+        localStorage.setItem("currentPage", "login");
+        Router.showPage("login");
 
         Toaster.showToast(
           "error",
-          "Invalid Playlist Data. Please login again.",
+          isInvalidPlaylistError
+            ? "Invalid Playlist Data. Please login again."
+            : error.message,
         );
       } else {
         // Show normal error toast
